@@ -1,5 +1,5 @@
 import Image
-
+import mimetypes
 
 DEFAULT_METHOD = 'fit'
 
