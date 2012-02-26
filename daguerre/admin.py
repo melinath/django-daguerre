@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin
 from django.template.loader import render_to_string
 
-from daguerre.models import Image, Area, AdjustedImage, ImageMetadata, ImageGalleryOrder, ImageGallery
+from daguerre.models import Image, Area, AdjustedImage, ImageMetadata
 
 
 class AreaInline(admin.TabularInline):
@@ -77,7 +77,7 @@ class ImageMetadataInline(admin.TabularInline):
 	raw_id_fields = ('artist',)
 
 
-class ImageAdmin(models.ModelAdmin):
+class ImageAdmin(admin.ModelAdmin):
 	inlines = [ImageMetadataInline, AreaInline, AdjustedImageInline]
 	readonly_fields = ('height', 'width', 'timestamp')
 	list_display = ('name', 'timestamp', 'width', 'height')
@@ -103,16 +103,5 @@ class ImageAdmin(models.ModelAdmin):
 			formset.instance.adjustedimage_set.filter(requested_method__in=['fill', 'crop']).delete()
 
 
-class ImageGalleryOrderInline(admin.TabularInline):
-	model = ImageGalleryOrder
-	raw_id_fields = ('image',)
-
-
-class ImageGalleryAdmin(admin.ModelAdmin):
-	inlines = [ImageGalleryOrderInline]
-	search_fields = ('name',)
-
-
 admin.site.register(Image, ImageAdmin)
 admin.site.register(AdjustedImage, AdjustedImageAdmin)
-admin.site.register(ImageGallery, ImageGalleryAdmin)
