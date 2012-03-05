@@ -1,8 +1,7 @@
 from django.conf.urls.defaults import patterns, url
-from .views import adjusted_image, resize_image_file, ajax_resize_info
+from .views import adjusted_image_redirect, ajax_adjustment_info
 
 urlpatterns = patterns('',
-	url(r'^resize/(?P<ident>[\w-]+)$', adjusted_image, name="image_resize"),
-	url(r'^resize/(?P<ident>.+)$', resize_image_file, name="image_file_resize"),
-	url(r'^ajax/resize/info/(?P<ident>.+)$', ajax_resize_info, name="ajax_resize_info"),
+	url(r'^adjust/(?P<storage_path>.+)$', adjusted_image_redirect, name="daguerre_adjusted_image_redirect"),
+	url(r'^ajax/adjust/info/(?P<ident>.+)$', ajax_adjustment_info, name="daguerre_ajax_adjustment_info"),
 )

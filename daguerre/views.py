@@ -5,12 +5,12 @@ from hashlib import sha1
 import json
 
 from django.conf import settings
+from django.core.files.images import ImageFile
 from django.core.files.storage import default_storage
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, Http404, QueryDict
+from django.http import HttpResponse, Http404, QueryDict, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
-from daguerre.cache import get_cache, set_cache
 from daguerre.middleware import private_ajax
 from daguerre.models import Image, AdjustedImage, Area
 from daguerre.utils import runmethod, DEFAULT_METHOD, calculations
@@ -42,54 +42,37 @@ def check_security_hash(sec_hash, *args):
 	return sec_hash == make_security_hash(*args)
 
 
-def get_image_resize_info(target, **kwargs):
-	"""Returns a dictionary providing the ``ident``, ``url``, ``width``, and ``height`` of the image. The target should either be an Image instance or a file."""
+def get_image_resize_info(image, **kwargs):
+	"""Returns a dictionary providing the ``ident``, ``url``, ``width``, and ``height`` of the image. The image should be an Image instance."""
 	method = kwargs.pop('method', None)
 	crop = kwargs.pop('crop', None)
 	
-	if isinstance(target, Image):
-		adjusted_kwargs = {
-			'requested_width': kwargs.get('width'),
-			'requested_height': kwargs.get('height'),
-			'requested_max_width': kwargs.get('max_width'),
-			'requested_max_height': kwargs.get('max_height'),
-			'requested_method': method or DEFAULT_METHOD
-		}
-		if crop is not None:
-			adjusted_kwargs['requested_crop__name'] = crop
-		try:
-			adjusted = target.adjustedimage_set.get(**adjusted_kwargs)
-		except AdjustedImage.DoesNotExist:
-			ident = target.slug
-			view = 'image_resize'
-		else:
-			return {
-				'width': adjusted.width,
-				'height': adjusted.height,
-				'url': adjusted.adjusted.url,
-				'ident': target.slug,
-			}
+	adjusted_kwargs = {
+		'requested_width': kwargs.get('width'),
+		'requested_height': kwargs.get('height'),
+		'requested_max_width': kwargs.get('max_width'),
+		'requested_max_height': kwargs.get('max_height'),
+		'requested_method': method or DEFAULT_METHOD
+	}
+	if crop is not None:
+		adjusted_kwargs['requested_crop__name'] = crop
+
+	storage_path = image.image.name
+	try:
+		adjusted = image.adjustedimage_set.get(**adjusted_kwargs)
+	except AdjustedImage.DoesNotExist:
+		pass
 	else:
-		# the target is a file.
-		ident = target.name
-		
-		if ident.startswith(settings.MEDIA_ROOT):
-			# strip the media root prefix
-			# TODO: See if there's a better way to check if the file is already in storage. This may break if we change storage backends, or if our MEDIA_ROOT is repeated in URLs for some reason
-			# Maybe this isn't even the right place for this to go.
-			media_root = settings.MEDIA_ROOT + '/' if settings.MEDIA_ROOT[-1] is not '/' else settings.MEDIA_ROOT
-			ident = ident.replace(media_root,'')
-			
-		view = 'image_file_resize'
-	
+		return {
+			'width': adjusted.width,
+			'height': adjusted.height,
+			'url': adjusted.adjusted.url,
+			'ident': storage_path
+		}
 	
 	try:
-		width, height = target.width, target.height
-	except AttributeError:
-		# target is a file
-		target = PILImage.open(target)
-		width, height = target.size
-	except:
+		width, height = image.width, image.height
+	except Exception:
 		return {
 			'width': None,
 			'height': None,
@@ -115,116 +98,55 @@ def get_image_resize_info(target, **kwargs):
 	if method is not None:
 		qd[METHOD] = method
 		kwargs['method'] = method
-	qd[SECURITY] = make_security_hash(ident, *[kwargs.get(key) for key in ('width', 'height', 'max_width', 'max_height', 'method', 'crop')])
+	qd[SECURITY] = make_security_hash(storage_path, *[kwargs.get(key) for key in ('width', 'height', 'max_width', 'max_height', 'method', 'crop')])
 	
-	url = "%s?%s" % (reverse(view, kwargs={'ident': ident}), qd.urlencode())
+	url = "%s?%s" % (reverse('daguerre_adjusted_image_redirect', kwargs={'storage_path': storage_path}), qd.urlencode())
 	
 	return {
 		'width': width,
 		'height': height,
 		'url': url,
-		'ident': ident
+		'ident': storage_path
 	}
 
 
-def image_view(func):
-	"""Wraps a image-fetching function to create a view which caches its responses. TODO: This could probably use a touch of celery. Asynchronous image adjustment could be initiated when the template is rendered, rather than waiting until the page is loaded."""
-	def inner(request, ident):
-		width = clean_dim(request.GET.get(WIDTH, None))
-		height = clean_dim(request.GET.get(HEIGHT, None))
-		max_width = clean_dim(request.GET.get(MAX_WIDTH, None))
-		max_height = clean_dim(request.GET.get(MAX_HEIGHT, None))
-		crop = request.GET.get(CROP, None)
-		method = request.GET.get(METHOD, None)
-		security = request.GET.get(SECURITY, None)
-		
-		if not check_security_hash(security, ident, width, height, max_width, max_height, method, crop):
-			raise Http404
-		
-		if method is None:
-			method = DEFAULT_METHOD
-		
-		response = get_cache(ident, width, height, max_width, max_height, method, crop)
-		
-		if response is None:
-			im = func(request, ident, width, height, max_width, max_height, method, crop)
-			
-			format = im.format or "png"
-			mimetype = 'image/%s' % format.lower()
-			ext = mimetypes.guess_extension(mimetype)
-			response = HttpResponse(mimetype=mimetype)
-			filename = os.path.splitext(os.path.basename(ident))[0]
-			response['Content-Disposition'] = 'inline; filename=%s%s' % (filename, ext)
-			
-			if im.mode == 'CMYK':
-				im = im.convert('RGB')
-				format = 'JPEG'
-			
-			im.save(response, format)
-			set_cache(ident, width, height, max_width, max_height, method, crop, response)
-		
-		return response
-	return inner
+def adjusted_image_redirect(request, storage_path):
+	"""
+	Returns a redirect to an :attr:`~AdjustedImage.adjusted` file, first creating the :class:`~AdjustedImage` if necessary.
 
+	:param storage_path: The path to the original image file, relative to the default storage.
 
-@image_view
-def adjusted_image(request, slug, width, height, max_width, max_height, method, crop):
-	"""Gets or generates an :class:`AdjustedImage` based on an :class:`Image` with a :attr:`~Image.slug` of ``slug`` and returns the adjusted image."""
-	kwargs = {
-		'image__slug': slug,
-		'requested_width': width,
-		'requested_height': height,
-		'requested_max_width': max_width,
-		'requested_max_height': max_height,
-		'requested_method': method,
-	}
-	
+	"""
+	width = clean_dim(request.GET.get(WIDTH, None))
+	height = clean_dim(request.GET.get(HEIGHT, None))
+	max_width = clean_dim(request.GET.get(MAX_WIDTH, None))
+	max_height = clean_dim(request.GET.get(MAX_HEIGHT, None))
+	crop = request.GET.get(CROP, None)
+	method = request.GET.get(METHOD, None)
+	security = request.GET.get(SECURITY, None)
+
+	if not check_security_hash(security, storage_path, width, height, max_width, max_height, method, crop):
+		raise Http404
+
+	if method is None:
+		method = DEFAULT_METHOD
+
+	image = Image.objects.for_storage_path(storage_path)
+
 	if crop is not None:
 		try:
 			crop = Area.objects.get(image__slug=slug, name=crop)
 		except Area.DoesNotExist:
 			crop = None
-		else:
-			kwargs['requested_crop'] = crop
-	
-	try:
-		image = AdjustedImage.objects.get(**kwargs)
-	except AdjustedImage.DoesNotExist:
-		try:
-			base_image = Image.objects.get(slug=slug)
-		except Image.DoesNotExist:
-			raise Http404
-		
-		image = AdjustedImage.objects.adjust_image(base_image, width=width, height=height, max_width=max_width, max_height=max_height, method=method, crop=crop)
-	
-	# SB: This may raise an IOError or ValueError, but I don't remember what the cause is,
-	# so don't catch for now.
-	image.adjusted.open()
-	return PILImage.open(image.adjusted)
 
+	# Once you have the Image, adjust it!
+	adjusted = AdjustedImage.objects.adjust_image(image, width=width, height=height, max_width=max_width, max_height=max_height, method=method, crop=crop)
 
-def _ident_to_file(ident):
-	path = default_storage.path(ident)
-	
-	try:
-		im = PILImage.open(path)
-	except IOError:
-		raise Http404
-	
-	return im
-
-
-@image_view
-def resize_image_file(request, path, width, height, max_width, max_height, method, crop):
-	"""Given an arbitrary path to a media file, returns a resized version of the file if it is an image and raises a 404 error otherwise."""
-	im = _ident_to_file(path)
-	
-	# Resize image - always crop and scale this variant.
-	return runmethod(method, im, width=width, height=height, max_width=max_width, max_height=max_height)
+	return HttpResponseRedirect(adjusted.adjusted.url)
 
 
 @private_ajax
-def ajax_resize_info(request, ident):
+def ajax_adjustment_info(request, storage_path):
 	if not request.is_ajax():
 		raise Http404("Request is not AJAX.")
 	
@@ -232,12 +154,8 @@ def ajax_resize_info(request, ident):
 	height = clean_dim(request.GET.get(HEIGHT, None))
 	max_width = clean_dim(request.GET.get(MAX_WIDTH, None))
 	max_height = clean_dim(request.GET.get(MAX_HEIGHT, None))
-	
-	if "/" in ident:
-		# Then it's a path.
-		target = _ident_to_file(ident)
-	else:
-		target = get_object_or_404(Image, slug=ident)
+
+	image = Image.objects.for_storage_path(storage_path)
 	
 	kwargs = {
 		'crop': request.GET.get('crop', None),
@@ -249,6 +167,6 @@ def ajax_resize_info(request, ident):
 		if dim is not None:
 			kwargs[k] = dim
 	
-	info = get_image_resize_info(target, **kwargs)
+	info = get_image_resize_info(image, **kwargs)
 	
 	return HttpResponse(json.dumps(info), mimetype="application/json")

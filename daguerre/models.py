@@ -15,7 +15,6 @@ from django.template.defaultfilters import capfirst
 from django.utils.encoding import smart_str, smart_unicode
 import Image as PILImage
 
-from daguerre.cache import clear_cache, get_cache_key
 from daguerre.validators import FileTypeValidator
 from daguerre.utils import runmethod, methods
 
@@ -23,16 +22,34 @@ from daguerre.utils import runmethod, methods
 __all__ = ('Image', 'Area', 'AdjustedImage', 'ImageMetadata')
 
 
+class ImageManager(models.Manager):
+	def for_storage_path(self, storage_path):
+		"""Returns an Image for the given ``storage_path``, creating it if necessary."""
+		try:
+			image = Image.objects.get(image=storage_path)
+		except Image.DoesNotExist:
+			try:
+				im = default_storage.open(storage_path, mixin=ImageFile)
+			except IOError:
+				raise Http404
+
+			image = Image()
+			image.image = im
+			image.save()
+		return image
+
+
 class Image(models.Model):
 	"""A basic image. Has a name, a unique slug, an image file, a timestamp, and width/height fields."""
-	name = models.CharField(max_length=100)
-	slug = models.SlugField(max_length=100, unique=True)
+	name = models.CharField(max_length=100, blank=True)
 	
 	image = models.ImageField(upload_to='assets/images/%Y/%m/%d', validators=[FileTypeValidator(['.jpg', '.gif', '.png'])], help_text="Allowed file types: .jpg, .gif, and .png", height_field='height', width_field='width', max_length=255)
 	timestamp = models.DateTimeField(auto_now_add=True)
 	
 	height = models.PositiveIntegerField()
 	width = models.PositiveIntegerField()
+
+	objects = ImageManager()
 	
 	def save(self, *args, **kwargs):
 		super(Image, self).save(*args, **kwargs)
@@ -155,10 +172,8 @@ class AdjustedImageManager(models.Manager):
 		adjusted = self.model(image=image, requested_width=width, requested_height=height, requested_max_width=max_width, requested_max_height=max_height, requested_method=method, requested_crop=crop)
 		f = adjusted._meta.get_field('adjusted')
 		ext = mimetypes.guess_extension('image/%s' % format.lower())
-		
-		# dot is included in ext.
-		arg_prefix = get_cache_key(width, height, max_width, max_height, method)[::4]
-		filename = "%s_%s%s" % (arg_prefix, image.slug, ext)
+
+		filename = ''.join((sha1(''.join(unicode(arg) for arg in (width, height, max_width, max_height, method, crop, image.image.name))).hexdigest()[::2], ext))
 		filename = f.generate_filename(adjusted, filename)
 		
 		temp = TemporaryImageFile(filename, im, format)
@@ -195,10 +210,6 @@ class AdjustedImage(models.Model):
 	requested_max_height = models.PositiveIntegerField(db_index=True, blank=True, null=True)
 	requested_method = models.CharField(db_index=True, max_length=255, choices=[(slug, capfirst(slug)) for slug in methods])
 	requested_crop = models.ForeignKey(Area, blank=True, null=True)
-	
-	def delete(self, *args, **kwargs):
-		super(AdjustedImage, self).delete(*args, **kwargs)
-		clear_cache(self.image.slug, self.requested_width, self.requested_height, self.requested_max_width, self.requested_max_height, self.requested_method, getattr(self.requested_crop, 'name', None))
 	
 	def __unicode__(self):
 		return u"(%s, %s) adjustment for %s" % (smart_unicode(self.requested_width), smart_unicode(self.requested_height), self.image)
