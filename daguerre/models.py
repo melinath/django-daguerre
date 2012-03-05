@@ -51,14 +51,8 @@ class Image(models.Model):
 
 	objects = ImageManager()
 	
-	def save(self, *args, **kwargs):
-		super(Image, self).save(*args, **kwargs)
-	
-	def delete(self, *args, **kwargs):
-		super(Image, self).save(*args, **kwargs)
-	
 	def __unicode__(self):
-		return self.name
+		return self.name or self.image.name
 
 
 class Area(models.Model):
