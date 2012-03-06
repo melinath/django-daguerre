@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404
 
 from daguerre.middleware import private_ajax
 from daguerre.models import Image, AdjustedImage, Area
-from daguerre.utils import get_adjustment, DEFAULT_ADJUSTMENT
+from daguerre.utils.adjustments import get_adjustment, DEFAULT_ADJUSTMENT
 
 
 WIDTH = 'w'

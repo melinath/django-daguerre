@@ -16,7 +16,7 @@ from django.utils.encoding import smart_str, smart_unicode
 import Image as PILImage
 
 from daguerre.validators import FileTypeValidator
-from daguerre.utils import get_adjustment, adjustments, DEFAULT_ADJUSTMENT
+from daguerre.utils.adjustments import get_adjustment, adjustments, DEFAULT_ADJUSTMENT
 
 
 __all__ = ('Image', 'Area', 'AdjustedImage', 'ImageMetadata')
