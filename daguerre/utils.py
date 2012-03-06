@@ -1,233 +1,234 @@
 import Image
+from itertools import ifilter
 import mimetypes
 from django.utils.translation import ugettext_lazy as _
 
 
-DEFAULT_METHOD = 'fit'
-
-
-methods = {}
-calculations = {}
-
-
-def runmethod(slug, im, width=None, height=None, max_width=None, max_height=None, areas=None):
-	"""Runs the method registered as ``slug`` in the methods registry. All methods must accept ``width``, ``height``, ``max_width``, ``max_height``, and ``areas``, though they may ignore any of those parameters."""
+def get_adjustment(slug, *args, **kwargs):
+	"""Instantiates and returns the adjustment registered as ``slug``, or the default adjustment if no matching adjustment is found. The remaining arguments are passed directly to the adjustment class to create the instance."""
 	try:
-		method = methods[slug]
+		adjustment = adjustments[slug]
 	except KeyError:
-		method = methods[DEFAULT_METHOD]
+		adjustment = adjustments[DEFAULT_ADJUSTMENT]
 	
-	return method(im, width=width, height=height, max_width=max_width, max_height=max_height, areas=areas)
+	return adjustment(*args, **kwargs)
 
 
-def calculate_fit(im_w, im_h, width=None, height=None, max_width=None, max_height=None, areas=None):
+adjustments = {}
+DEFAULT_ADJUSTMENT = 'fit'
+
+
+class Adjustment(object):
 	"""
-	Calculates the dimensions of a :func:`fit` without actually resizing the image. Returns a tuple of the new width and height.
-	
-	Example::
-	
-		>>> calculate_fit(400, 800, width=600, height=600)
-		(300, 600)
-	
+	Base class for all adjustments which can be carried out on an image. Each adjustment has two stages: calculating the new image dimensions, and carrying out the adjustment.
+
+	:param image: A PIL Image.
+	:param width: The requested width for the adjusted image.
+	:param height: The requested height for the adjusted image.
+	:param max_width: The requested maximum width for the adjusted image.
+	:param max_height: The requested maximum height for the adjusted image.
+	:param areas: An iterable of :class:`~Area` instances which are associated with the image in question.
+
 	"""
-	if height is None and width is None:
-		return im_w, im_h
-	
-	im_r = float(im_w) / im_h
-	
-	if height is None:
-		new_h = int(width / im_r)
-		new_w = int(width)
-	 	if max_height is not None and new_h > max_height:
-			new_h = int(max_height)
-			new_w = int(new_h * im_r)
-	elif width is None:
-		new_w = int(height * im_r)
-		new_h = int(height)
-		if max_width is not None and new_w > max_width:
-			new_w = int(max_width)
-			new_h = int(new_w / im_r)
-	else:
-		new_w = int(min(width, height * im_r))
-		new_h = int(min(height, width / im_r))
-	
-	if new_w <= 0 or new_h <= 0:
-		return im_w, im_h
-	return new_w, new_h
+	def __init__(self, image, width=None, height=None, max_width=None, max_height=None, areas=None):
+		self.image = image
+		self.width = width
+		self.height = height
+		self.max_width = max_width
+		self.max_height = max_height
+		self.areas = areas
+
+	def calculate(self):
+		"""Calculates the dimensions of the adjusted image without actually manipulating the image."""
+		if not hasattr(self, '_calculated'):
+			calculated = self._calculate()
+			if calculated[0] <= 0 or calculated[1] <= 0:
+				calculated = self.image.size
+			self._calculated = calculated
+		return self._calculated
+
+	def _calculate(self):
+		raise NotImplementedError
+
+	def adjust(self):
+		"""Manipulates and returns the image."""
+		if not hasattr(self, '_adjusted'):
+			calculated = self.calculate()
+			if calculated == self.image.size:
+				adjusted = self.image.copy()
+			else:
+				adjusted = self._adjust()
+			self._adjusted = adjusted
+		return self._adjust()
+
+	def _adjust(self):
+		raise NotImplementedError
 
 
-def fit(im, width=None, height=None, max_width=None, max_height=None, areas=None):
+class Fit(Adjustment):
 	"""
-	Resizes ``im`` to fit completely inside the given dimensions without cropping or distortions. Returns a PIL Image instance.
-	
-	Rather than constraining an image to a specific width and height, width or height may be left as None, in which case the image can expand in the unspecified direction up to max_width or max_height, respectively.
-	
-	"""
-	im_w, im_h = im.size
-	
-	new_w, new_h = calculate_fit(im_w, im_h, width, height, max_width, max_height, areas)
-	
-	if (new_w, new_h) == im.size:
-		return im.copy()
-	
-	# Choose a method based on whether we're upscaling or downscaling.
-	if new_w < im_w:
-		method = Image.ANTIALIAS
-	else:
-		method = Image.BICUBIC
-	
-	return im.resize((new_w, new_h), method)
+	An adjustment where the image is resized to fit entirely within the given dimensions without cropping and maintaining the width/height ratio.
 
-methods['fit'] = fit
-calculations['fit'] = calculate_fit
+	Rather than constraining an image to a specific width and height, ``width`` or ``height` may be given as ``None``, in which case the image can expand in the unspecified direction up to ``max_width`` or ``max_height``, respectively, or indefinitely if the relevant dimension is not specified.
 
+	If neither width nor height is specified, this adjustment will simply return a copy of the image.
 
-def calculate_crop(im_w, im_h, width=None, height=None, max_width=None, max_height=None, areas=None):
 	"""
-	Calculates the dimensions of a :func:`crop` for the given parameters without actually cropping the image. Returns a tuple of the new width and height.
-	
-	Example::
-	
-		>>> calculate_crop(400, 800, width=200, height=200)
-		(200, 200)
-		>>> calculate_crop(400, 800, width=1000, height=1000)
-		(400, 800)
-	
-	"""
-	if width is None:
-		if max_width is None:
-			width = im_w
+	def _calculate(self):
+		image_width, image_height = self.image.size
+
+		if self.width is None and self.height is None:
+			return image_width, image_height
+
+		image_ratio = float(image_width) / image_height
+
+		if self.height is None:
+			# Constrain first by width, then by max_height.
+			new_height = int(self.width / image_ratio)
+			new_width = int(self.width)
+			if self.max_height is not None and new_height > self.max_height:
+				new_height = int(self.max_height)
+				new_width = int(new_height * image_ratio)
+		elif self.width is None:
+			# Constrain first by height, then by max_width.
+			new_width = int(self.height * image_ratio)
+			new_height = int(self.height)
+			if self.max_width is not None and new_width > self.max_width:
+				new_width = int(self.max_width)
+				new_height = int(new_width / image_ratio)
 		else:
-			width = min(im_w, max_width)
-	if height is None:
-		if max_height is None:
-			height = im_h
+			# Constrain strictly by both dimensions.
+			new_width = int(min(self.width, self.height * image_ratio))
+			new_height = int(min(self.height, self.width / image_ratio))
+
+		return new_width, new_height
+
+	def _adjust(self):
+		image_width, image_height = self.image.size
+		new_width, new_height = self.calculate()
+
+		# Choose a resize filter based on whether we're upscaling or downscaling.
+		if new_width < image_width:
+			f = Image.ANTIALIAS
 		else:
-			height = min(im_h, max_height)
-	
-	width = min(width, im_w)
-	height = min(height, im_h)
-	
-	return width, height
+			f = Image.BICUBIC
+		return self.image.resize((new_width, new_height), f)
 
 
-def crop(im, width=None, height=None, max_width=None, max_height=None, areas=None):
-	"""Crops an image to the given width and height. If any areas are passed in, they will be protected as appropriate in the crop. If ``width`` or ``height`` is not specified, the image may grow up to ``max_width`` or ``max_height`` respectively in the unspecified direction before being cropped."""
-	im_w, im_h = im.size
-	
-	new_w, new_h = calculate_crop(im_w, im_h, width, height, max_width, max_height, areas)
-	
-	if not areas:
-		x = (im_w - width) / 2
-		y = (im_h - height) / 2
-	else:
-		coords = optimal_crop_dims(im, width, height, areas)
-		x, y = coords[0]
-	
-	x2 = x + width
-	y2 = y + height
-	
-	return im.crop((x, y, x2, y2))
 
-methods['crop'] = crop
-calculations['crop'] = calculate_crop
+adjustments['fit'] = Fit
 
 
-def calculate_fill(im_w, im_h, width=None, height=None, max_width=None, max_height=None, areas=None):
-	"""
-	Calculates the dimensions for a :func:`fill` without actually resizing the image. Returns a tuple of the new width and height.
-	
-	Example::
-	
-		>>> calculate_fill(300, 600)
-		(300, 600)
-		>>> calculate_fill(300, 600, width=800)
-		(800, 1600)
-		>>> calculate_fill(300, 600, width=200, height=150)
-		(200, 150)
-	
-	"""
-	# If there are no restrictions, just return the original dimensions.
-	if height is None and width is None:
-		return im_w, im_h
-	
-	im_r = float(im_w) / im_h
-	
-	if height is None:
-		new_h = int(width / im_r)
-		if max_height is not None:
-			new_h = min(new_h, int(max_height))
-		new_w = int(width)
-	elif width is None:
-		new_w = int(height * im_r)
-		if max_width is not None:
-			new_w = min(new_w, int(max_width))
-		new_h = int(height)
-	else:
-		new_w = width
-		new_h = height
-	
-	# Return the original dimensions for invalid input.
-	if new_w <= 0 or new_h <= 0:
-		return im_w, im_h
-	return new_w, new_h
+class Crop(Adjustment):
+	"""Crops an image to the given width and height. :class:`~Area` instances which are passed in will be protected as much as possible during the crop. If ``width`` or ``height`` is not specified, the image may grow up to ``max_width`` or ``max_height`` respectively in the unspecified direction before being cropped."""
+	def _calculate(self):
+		image_width, image_height = self.image.size
+		not_none = lambda x: x is not None
+		# image_width and image_height are known to be defined.
+		new_width = ifilter(not_none, (self.width, self.max_width, image_width)).next()
+		new_height = ifilter(not_none, (self.height, self.max_height, image_height)).next()
 
+		new_width = min(new_width, image_width)
+		new_height = min(new_height, image_height)
 
-def fill(im, width=None, height=None, max_width=None, max_height=None, areas=None):
-	"""Resizes an image so that the given dimensions are filled. If any areas are passed in, they will be protected in any necessary crops. If ``width`` or ``height`` is ``None``, then the unspecified dimension will be allowed to expand up to ``max_width`` or ``max_height``, respectively."""
-	im_w, im_h = im.size
-	
-	new_w, new_h = calculate_fill(im_w, im_h, width, height, max_width, max_height, areas)
-	
-	if (new_w, new_h) == im.size:
-		return im.copy()
-	
-	im_r = float(im_w) / im_h
-	new_r = float(new_w) / new_h
-	
-	if new_r > im_r:
-		# New ratio is wider. Cut the height.
-		new_im = crop(im, im_w, int(im_w / new_r), areas=areas)
-	else:
-		new_im = crop(im, int(im_h * new_r), im_h, areas=areas)
-	
-	# After cropping the image to the right ratio, fit it to the new width and height.
-	return fit(new_im, new_w, new_h)
+		return new_width, new_height
 
-methods['fill'] = fill
-calculations['fill'] = calculate_fill
+	def _adjust(self):
+		image_width, image_height = self.image.size
+		new_width, new_height = self.calculate()
 
+		if not self.areas:
+			x1 = (image_width - self.width) / 2
+			y1 = (image_height - self.height) / 2
+		else:
+			min_penalty = None
+			optimal_coords = None
 
-def optimal_crop_dims(im, width, height, areas):
-	"Finds an optimal crop for a given image, width, height, and (protected) areas."
-	min_penalty = None
-	coords = None
-	
-	def get_penalty(area, x1, y1):
-		x2 = x1 + width
-		y2 = y1 + height
+			for x in xrange(image_width - new_width + 1):
+				for y in xrange(image_height - new_height + 1):
+					penalty = 0
+					for area in self.areas:
+						penalty += self._get_penalty(area, x, y, new_width, new_height)
+						if min_penalty is not None and penalty > min_penalty:
+							break
+
+					if min_penalty is None or penalty < min_penalty:
+						min_penalty = penalty
+						optimal_coords = [(x, y)]
+					elif penalty == min_penalty:
+						optimal_coords.append((x, y))
+			x1, y1 = optimal_coords[0]
+
+		x2 = x1 + new_width
+		y2 = y1 + new_height
+
+		return self.image.crop((x1, y1, x2, y2))
+
+	def _get_penalty(self, area, x1, y1, new_width, new_height):
+		x2 = x1 + new_width
+		y2 = y1 + new_height
 		if area.x1 >= x1 and area.x2 <= x2 and area.y1 >= y1 and area.y2 <= y2:
-			# The area is enclosed.
+			# The area is enclosed. No penalty
 			penalty_area = 0
 		elif area.x2 < x1 or area.x1 > x2 or area.y2 < y1 or area.y1 > y2:
+			# The area is excluded. Penalty for the whole thing.
 			penalty_area = area.area
 		else:
+			# Partial penalty.
 			penalty_area = area.area - (min(area.x2 - x1, x2 - area.x1, area.width) * min(area.y2 - y1, y2 - area.y1, area.height))
 		return penalty_area / area.priority
-	
-	for x in range(im.size[0] - width + 1):
-		for y in range(im.size[1] - height + 1):
-			penalty = 0
-			for area in areas:
-				penalty += get_penalty(area, x, y)
-			
-			if min_penalty is None or penalty < min_penalty:
-				min_penalty = penalty
-				coords = [(x, y)]
-			elif penalty == min_penalty:
-				coords.append((x, y))
-	
-	return coords
+
+
+adjustments['crop'] = Crop
+
+
+class Fill(Adjustment):
+	"""Crops the image to the requested ratio, then resizes it to the actual requested dimensions. If ``width`` or ``height`` is ``None``, then the unspecified dimension will be allowed to expand up to ``max_width`` or ``max_height``, respectively."""
+	def _calculate(self):
+		image_width, image_height = self.image.size
+		# If there are no restrictions, just return the original dimensions.
+		if self.height is None and self.width is None:
+			return image_width, image_height
+		
+		image_ratio = float(image_width) / image_height
+		
+		if self.height is None:
+			new_height = int(self.width / image_ratio)
+			if self.max_height is not None:
+				new_height = min(new_height, int(self.max_height))
+			new_wwidth = int(self.width)
+		elif self.width is None:
+			new_width = int(self.height * image_ratio)
+			if self.max_width is not None:
+				new_width = min(new_width, int(self.max_width))
+			new_height = int(self.height)
+		else:
+			new_width = self.width
+			new_height = self.height
+
+		return new_width, new_height
+
+	def _adjust(self):
+		image_width, image_height = self.image.size
+		new_width, new_height = self.calculate()
+
+		image_ratio = float(image_width) / image_height
+		new_ratio = float(new_width) / new_height
+
+		if new_ratio > image_ratio:
+			# New ratio is wider. Cut the height.
+			crop_width = image_width
+			crop_height = int(image_width / new_ratio)
+		else:
+			crop_width = int(image_height * new_ratio)
+			crop_height = image_height
+
+		new_image = Crop(self.image, width=crop_width, height=crop_height, areas=self.areas).adjust()
+
+		return Fit(new_image, width=new_width, height=new_height).adjust()
+
+
+adjustments['fill'] = Fill
 
 
 def convert_filetype(ftype):
@@ -244,53 +245,3 @@ def convert_filetype(ftype):
 			raise ValueError(_(u'Unknown MIME-type: %s' % ftype))
 	else:
 		raise ValueError(_('Invalid MIME-type: %s' % ftype))
-
-
-### Seam carving functions
-"""
-This uses Sameep Tandon's seam carving implementation.
-https://github.com/sameeptandon/python-seam-carving/
-
-This is extremely slow. Possible optimization would be to use
-brain recall's CAIR: http://sites.google.com/site/brainrecall/cair
-This is written in C++ and is much faster. It's unclear whether
-cair can modify non-bmp files, though...
-"""
-try:
-	from CAIS import *
-except:
-	pass
-else:
-	# It should be possible to add high-energy areas, but how? I would need to
-	# track them throughout the resize process, I think.
-	def seam_carve(im, width=None, height=None):
-		im = im.copy()
-		dimensions = get_resize_dimensions(im, width, height)
-		
-		if dimensions is None or dimensions == im.size:
-			return im
-		
-		width, height = im.size
-		x, y = dimensions
-		
-		while width > x:
-			u = find_vertical_seam(gradient_filter(grayscale_filter(im)))
-			im = delete_vertical_seam(im, u)
-			width = im.size[0]
-		
-		while width < x:
-			u = find_vertical_seam(gradient_filter(grayscale_filter(im)))
-			im = add_vertical_seam(im, u)
-			width = im.size[0]
-		
-		while height > y:
-			u = find_horizontal_seam(gradient_filter(grayscale_filter(im)))
-			im = delete_horizontal_seam(im, u)
-			height = im.size[1]
-		
-		while height < y:
-			u = find_horizontal_seam(gradient_filter(grayscale_filter(im)))
-			im = add_horizontal_seam(im, u)
-			height = im.size[1]
-		
-		return im

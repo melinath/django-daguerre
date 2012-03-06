@@ -16,7 +16,7 @@ from django.utils.encoding import smart_str, smart_unicode
 import Image as PILImage
 
 from daguerre.validators import FileTypeValidator
-from daguerre.utils import runmethod, methods
+from daguerre.utils import get_adjustment, adjustments, DEFAULT_ADJUSTMENT
 
 
 __all__ = ('Image', 'Area', 'AdjustedImage', 'ImageMetadata')
@@ -149,7 +149,7 @@ class TemporaryImageFile(UploadedFile):
 
 
 class AdjustedImageManager(models.Manager):
-	def adjust_image(self, image, width=None, height=None, max_width=None, max_height=None, method='', crop=None):
+	def adjust_image(self, image, width=None, height=None, max_width=None, max_height=None, adjustment=DEFAULT_ADJUSTMENT, crop=None):
 		"""Makes an AdjustedImage instance for the requested parameters from the given Image."""
 		image.image.seek(0)
 		im = PILImage.open(image.image)
@@ -161,13 +161,13 @@ class AdjustedImageManager(models.Manager):
 		else:
 			areas = image.areas.all()
 		
-		im = runmethod(method, im, width=width, height=height, max_width=max_width, max_height=max_height, areas=areas)
+		im = get_adjustment(adjustment, im, width=width, height=height, max_width=max_width, max_height=max_height, areas=areas).adjust()
 		
-		adjusted = self.model(image=image, requested_width=width, requested_height=height, requested_max_width=max_width, requested_max_height=max_height, requested_method=method, requested_crop=crop)
+		adjusted = self.model(image=image, requested_width=width, requested_height=height, requested_max_width=max_width, requested_max_height=max_height, requested_adjustment=adjustment, requested_crop=crop)
 		f = adjusted._meta.get_field('adjusted')
 		ext = mimetypes.guess_extension('image/%s' % format.lower())
 
-		filename = ''.join((sha1(''.join(unicode(arg) for arg in (width, height, max_width, max_height, method, crop, image.image.name))).hexdigest()[::2], ext))
+		filename = ''.join((sha1(''.join(unicode(arg) for arg in (width, height, max_width, max_height, adjustment, crop, image.image.name))).hexdigest()[::2], ext))
 		filename = f.generate_filename(adjusted, filename)
 		
 		temp = TemporaryImageFile(filename, im, format)
@@ -175,7 +175,7 @@ class AdjustedImageManager(models.Manager):
 		adjusted.adjusted = temp
 		# Try to handle race conditions gracefully.
 		try:
-			adjusted = self.get(image=image, requested_width=width, requested_height=height, requested_max_width=max_width, requested_max_height=max_height, requested_method=method, requested_crop=crop)
+			adjusted = self.get(image=image, requested_width=width, requested_height=height, requested_max_width=max_width, requested_max_height=max_height, requested_adjustment=adjustment, requested_crop=crop)
 		except self.model.DoesNotExist:
 			adjusted.save()
 		else:
@@ -202,14 +202,14 @@ class AdjustedImage(models.Model):
 	requested_height = models.PositiveIntegerField(db_index=True, blank=True, null=True)
 	requested_max_width = models.PositiveIntegerField(db_index=True, blank=True, null=True)
 	requested_max_height = models.PositiveIntegerField(db_index=True, blank=True, null=True)
-	requested_method = models.CharField(db_index=True, max_length=255, choices=[(slug, capfirst(slug)) for slug in methods])
+	requested_adjustment = models.CharField(db_index=True, max_length=255, choices=[(slug, capfirst(slug)) for slug in adjustments])
 	requested_crop = models.ForeignKey(Area, blank=True, null=True)
 	
 	def __unicode__(self):
 		return u"(%s, %s) adjustment for %s" % (smart_unicode(self.requested_width), smart_unicode(self.requested_height), self.image)
 	
 	class Meta:
-		unique_together = ('image', 'requested_width', 'requested_height', 'requested_max_width', 'requested_max_height', 'requested_method')
+		unique_together = ('image', 'requested_width', 'requested_height', 'requested_max_width', 'requested_max_height', 'requested_adjustment')
 
 
 class ImageMetadata(models.Model):

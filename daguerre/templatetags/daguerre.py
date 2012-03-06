@@ -91,7 +91,7 @@ def resize(parser, token):
 	* height
 	* max_width
 	* max_height
-	* method
+	* adjustment
 	* crop
 	
 	"""
@@ -110,7 +110,7 @@ def resize(parser, token):
 			asvar = params[-1]
 			params = params[:-2]
 	
-	valid_kwargs = ('width', 'height', 'max_width', 'max_height', 'method', 'crop')
+	valid_kwargs = ('width', 'height', 'max_width', 'max_height', 'adjustment', 'crop')
 	kwargs = {}
 	
 	for param in params:

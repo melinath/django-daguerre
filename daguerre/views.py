@@ -13,14 +13,14 @@ from django.shortcuts import get_object_or_404
 
 from daguerre.middleware import private_ajax
 from daguerre.models import Image, AdjustedImage, Area
-from daguerre.utils import runmethod, DEFAULT_METHOD, calculations
+from daguerre.utils import get_adjustment, DEFAULT_ADJUSTMENT
 
 
 WIDTH = 'w'
 HEIGHT = 'h'
 MAX_WIDTH = 'max_w'
 MAX_HEIGHT = 'max_h'
-METHOD = 'm'
+ADJUSTMENT = 'a'
 SECURITY = 's'
 CROP = 'c'
 
@@ -44,7 +44,7 @@ def check_security_hash(sec_hash, *args):
 
 def get_image_resize_info(image, **kwargs):
 	"""Returns a dictionary providing the ``ident``, ``url``, ``width``, and ``height`` of the image. The image should be an Image instance."""
-	method = kwargs.pop('method', None)
+	adjustment = kwargs.pop('adjustment', DEFAULT_ADJUSTMENT)
 	crop = kwargs.pop('crop', None)
 	
 	adjusted_kwargs = {
@@ -52,7 +52,7 @@ def get_image_resize_info(image, **kwargs):
 		'requested_height': kwargs.get('height'),
 		'requested_max_width': kwargs.get('max_width'),
 		'requested_max_height': kwargs.get('max_height'),
-		'requested_method': method or DEFAULT_METHOD
+		'requested_adjustment': adjustment
 	}
 	if crop is not None:
 		adjusted_kwargs['requested_crop__name'] = crop
@@ -79,9 +79,10 @@ def get_image_resize_info(image, **kwargs):
 			'url': None,
 			'ident': None
 		}
-	
-	calc = calculations[method or DEFAULT_METHOD]
-	width, height = calc(width, height, **kwargs)
+
+	image.image.open('r')
+	adjustment = get_adjustment(adjustment, PILImage.open(image.image), **kwargs)
+	width, height = adjustment.calculate()
 	
 	qd = QueryDict('', mutable=True)
 	if 'width' in kwargs:
@@ -95,10 +96,9 @@ def get_image_resize_info(image, **kwargs):
 	if crop is not None:
 		qd[CROP] = crop
 		kwargs['crop'] = crop
-	if method is not None:
-		qd[METHOD] = method
-		kwargs['method'] = method
-	qd[SECURITY] = make_security_hash(storage_path, *[kwargs.get(key) for key in ('width', 'height', 'max_width', 'max_height', 'method', 'crop')])
+	qd[ADJUSTMENT] = adjustment
+	kwargs['adjustment'] = adjustment
+	qd[SECURITY] = make_security_hash(storage_path, *[kwargs.get(key) for key in ('width', 'height', 'max_width', 'max_height', 'adjustment', 'crop')])
 	
 	url = "%s?%s" % (reverse('daguerre_adjusted_image_redirect', kwargs={'storage_path': storage_path}), qd.urlencode())
 	
@@ -122,14 +122,11 @@ def adjusted_image_redirect(request, storage_path):
 	max_width = clean_dim(request.GET.get(MAX_WIDTH, None))
 	max_height = clean_dim(request.GET.get(MAX_HEIGHT, None))
 	crop = request.GET.get(CROP, None)
-	method = request.GET.get(METHOD, None)
+	adjustment = request.GET.get(ADJUSTMENT, DEFAULT_ADJUSTMENT)
 	security = request.GET.get(SECURITY, None)
 
-	if not check_security_hash(security, storage_path, width, height, max_width, max_height, method, crop):
+	if not check_security_hash(security, storage_path, width, height, max_width, max_height, adjustment, crop):
 		raise Http404
-
-	if method is None:
-		method = DEFAULT_METHOD
 
 	image = Image.objects.for_storage_path(storage_path)
 
@@ -140,7 +137,7 @@ def adjusted_image_redirect(request, storage_path):
 			crop = None
 
 	# Once you have the Image, adjust it!
-	adjusted = AdjustedImage.objects.adjust_image(image, width=width, height=height, max_width=max_width, max_height=max_height, method=method, crop=crop)
+	adjusted = AdjustedImage.objects.adjust_image(image, width=width, height=height, max_width=max_width, max_height=max_height, adjustment=adjustment, crop=crop)
 
 	return HttpResponseRedirect(adjusted.adjusted.url)
 
@@ -159,7 +156,7 @@ def ajax_adjustment_info(request, storage_path):
 	
 	kwargs = {
 		'crop': request.GET.get('crop', None),
-		'method': request.GET.get('method', None)
+		'adjustment': request.GET.get('adjustment', DEFAULT_ADJUSTMENT)
 	}
 	
 	for k in ('width', 'height', 'max_width', 'max_height'):
