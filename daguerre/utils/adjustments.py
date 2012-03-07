@@ -141,7 +141,7 @@ class Adjustment(object):
 		if not hasattr(self, '_image'):
 			raise AttributeError
 		querydict = self.querydict.copy()
-		querydict.pop('security')
+		querydict.pop(QUERY_PARAMS['security'])
 		return u"%s?%s" % (reverse('daguerre_ajax_adjustment_info', kwargs={'storage_path': self._storage_path}), querydict.urlencode())
 
 	def info_dict(self):
@@ -295,7 +295,7 @@ class Fill(Adjustment):
 			new_height = int(self.width / image_ratio)
 			if self.max_height is not None:
 				new_height = min(new_height, int(self.max_height))
-			new_wwidth = int(self.width)
+			new_width = int(self.width)
 		elif self.width is None:
 			new_width = int(self.height * image_ratio)
 			if self.max_width is not None:

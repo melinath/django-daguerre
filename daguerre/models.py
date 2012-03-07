@@ -26,14 +26,14 @@ class ImageManager(models.Manager):
 	def for_storage_path(self, storage_path):
 		"""Returns an Image for the given ``storage_path``, creating it if necessary."""
 		try:
-			image = Image.objects.get(image=storage_path)
-		except Image.DoesNotExist:
+			image = self.get(image=storage_path)
+		except self.model.DoesNotExist:
 			try:
 				im = default_storage.open(storage_path, mixin=ImageFile)
 			except IOError:
-				raise Http404
+				raise self.model.DoesNotExist
 
-			image = Image()
+			image = self.model()
 			image.image = im
 			image.save()
 		return image

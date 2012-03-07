@@ -9,11 +9,13 @@ from daguerre.utils.adjustments import get_adjustment_class, DEFAULT_ADJUSTMENT,
 
 
 def clean_dim(dim):
+	if dim == '':
+		dim = None
 	if dim is not None:
 		try:
 			dim = int(dim)
-		except ValueError:
-			raise Http404
+		except ValueError, e:
+			raise Http404(e.message)
 	return dim
 
 
@@ -77,7 +79,10 @@ def ajax_adjustment_info(request, storage_path):
 		except KeyError:
 			pass
 
-	image = Image.objects.for_storage_path(storage_path)
+	try:
+		image = Image.objects.for_storage_path(storage_path)
+	except Image.DoesNotExist:
+		raise Http404('Image file not found.')
 
 	adjustment_class = get_adjustment_class(kwargs.pop('adjustment', DEFAULT_ADJUSTMENT))
 	adjustment = adjustment_class.from_image(image, **kwargs)
