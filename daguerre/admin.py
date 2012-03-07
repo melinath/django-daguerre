@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin
 from django.template.loader import render_to_string
 
-from daguerre.models import Image, Area, AdjustedImage, ImageMetadata
+from daguerre.models import Image, Area, AdjustedImage
 
 
 class AreaInline(admin.TabularInline):
@@ -69,16 +69,8 @@ class AdjustedImageInline(AdjustedImageBase, admin.StackedInline):
 	)
 
 
-class ImageMetadataInline(admin.TabularInline):
-	max_num = 1
-	extra = 1
-	model = ImageMetadata
-	verbose_name_plural = "image metadata"
-	raw_id_fields = ('artist',)
-
-
 class ImageAdmin(admin.ModelAdmin):
-	inlines = [ImageMetadataInline, AreaInline, AdjustedImageInline]
+	inlines = [AreaInline, AdjustedImageInline]
 	readonly_fields = ('height', 'width', 'timestamp')
 	list_display = ('name', 'timestamp', 'width', 'height')
 	date_hierarchy = 'timestamp'
