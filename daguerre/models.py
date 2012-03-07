@@ -16,7 +16,7 @@ from django.utils.encoding import smart_str, smart_unicode
 import Image as PILImage
 
 from daguerre.validators import FileTypeValidator
-from daguerre.utils.adjustments import get_adjustment, adjustments, DEFAULT_ADJUSTMENT
+from daguerre.utils.adjustments import get_adjustment_class, adjustments, DEFAULT_ADJUSTMENT
 
 
 __all__ = ('Image', 'Area', 'AdjustedImage', 'ImageMetadata')
@@ -149,37 +149,56 @@ class TemporaryImageFile(UploadedFile):
 
 
 class AdjustedImageManager(models.Manager):
-	def adjust_image(self, image, width=None, height=None, max_width=None, max_height=None, adjustment=DEFAULT_ADJUSTMENT, crop=None):
-		"""Makes an AdjustedImage instance for the requested parameters from the given Image."""
-		image.image.seek(0)
-		im = PILImage.open(image.image)
-		format = im.format
-		
-		if crop is not None:
-			im = im.crop((crop.x1, crop.y1, crop.x2, crop.y2))
-			areas = None
-		else:
-			areas = image.areas.all()
-		
-		im = get_adjustment(adjustment, im, width=width, height=height, max_width=max_width, max_height=max_height, areas=areas).adjust()
-		
-		adjusted = self.model(image=image, requested_width=width, requested_height=height, requested_max_width=max_width, requested_max_height=max_height, requested_adjustment=adjustment, requested_crop=crop)
-		f = adjusted._meta.get_field('adjusted')
-		ext = mimetypes.guess_extension('image/%s' % format.lower())
+	def adjust(self, image, width=None, height=None, max_width=None, max_height=None, adjustment=DEFAULT_ADJUSTMENT, crop=None):
+		"""
+		Fetches or creates an :class:`~AdjustedImage` instance for the requested parameters.
 
-		filename = ''.join((sha1(''.join(unicode(arg) for arg in (width, height, max_width, max_height, adjustment, crop, image.image.name))).hexdigest()[::2], ext))
-		filename = f.generate_filename(adjusted, filename)
-		
-		temp = TemporaryImageFile(filename, im, format)
-		
-		adjusted.adjusted = temp
-		# Try to handle race conditions gracefully.
+		:param image: The :class:`~Image` instance which is to be adjusted.
+		:param width, height, max_width, max_height: The requested dimensions for the adjusted image.
+		:param crop: The name of an :class:`~Area` associated with the :class:`Image`; if the crop exists, it will be applied before any other adjustments or calculations.
+
+		"""
+
+		adjusted_image_kwargs = {
+			'image': image,
+			'requested_adjustment': adjustment,
+		}
+
+		adjustment_class = get_adjustment_class(adjustment)
+		adjustment = adjustment_class.from_image(image, crop=crop, width=width, height=height, max_width=max_width, max_height=max_height)
+
+		adjusted_image_kwargs.update({
+			'requested_width': width,
+			'requested_height': height,
+			'requested_max_width': max_width,
+			'requested_max_height': max_height,
+			'requested_crop': adjustment._crop_area
+		})
+
+		adjusted_image_query_kwargs = dict(("%s__isnull" % k, True) if v is None else (k, v) for k, v in adjusted_image_kwargs.iteritems())
+
 		try:
-			adjusted = self.get(image=image, requested_width=width, requested_height=height, requested_max_width=max_width, requested_max_height=max_height, requested_adjustment=adjustment, requested_crop=crop)
+			adjusted = self.get(**adjusted_image_query_kwargs)
 		except self.model.DoesNotExist:
-			adjusted.save()
-		else:
-			temp.close()
+			adjusted = self.model(**adjusted_image_kwargs)
+
+			im = adjustment.adjust()
+			f = adjusted._meta.get_field('adjusted')
+			ext = mimetypes.guess_extension('image/%s' % adjustment.format.lower())
+
+			filename = ''.join((sha1(''.join(unicode(arg) for arg in (width, height, max_width, max_height, adjustment, crop, image.image.name))).hexdigest()[::2], ext))
+			filename = f.generate_filename(adjusted, filename)
+			
+			temp = TemporaryImageFile(filename, im, adjustment.format)
+			
+			adjusted.adjusted = temp
+			# Try to handle race conditions gracefully.
+			try:
+				adjusted = self.get(**adjusted_image_query_kwargs)
+			except self.model.DoesNotExist:
+				adjusted.save()
+			else:
+				temp.close()
 		return adjusted
 
 

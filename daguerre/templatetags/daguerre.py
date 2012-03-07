@@ -4,55 +4,11 @@ from django import template
 from django.conf import settings
 from django.template.defaulttags import kwarg_re
 
+from daguerre.utils.adjustments import get_adjustment_class, DEFAULT_ADJUSTMENT
 from daguerre.views import get_image_resize_info
 
 
 register = template.Library()
-
-
-class ImageProxy(object):
-	"""This object handles the heavy lifting for the {% resize %} tag. Its unicode method renders the URL for the image, but it also provides access to the height and width of the resized image, calculated as if a resize were going to be undertaken without actually doing so."""
-	def __init__(self, image, kwargs):
-		self.image = image
-		self.kwargs = kwargs
-	
-	def __unicode__(self):
-		return self.url
-	
-	@property
-	def url(self):
-		if not hasattr(self, '_url'):
-			self._setup()
-		return self._url
-	
-	@property
-	def width(self):
-		if not hasattr(self, '_width'):
-			self._setup()
-		return self._width
-	
-	@property
-	def height(self):
-		if not hasattr(self, '_height'):
-			self._setup()
-		return self._height
-	
-	@property
-	def ident(self):
-		if not hasattr(self, '_ident'):
-			self._setup()
-		return self._ident
-	
-	def _setup(self):
-		image = self.image
-		kwargs = self.kwargs.copy()
-		
-		info = get_image_resize_info(image, **kwargs)
-		
-		self._width, self._height, self._url, self._ident = info['width'], info['height'], info['url'], info['ident']
-	
-	def __nonzero__(self):
-		return self.url is not None
 
 
 class ImageResizeNode(template.Node):
@@ -63,14 +19,15 @@ class ImageResizeNode(template.Node):
 	
 	def render(self, context):
 		image = self.image.resolve(context)
-		kwargs = dict([(k, v.resolve(context)) for k, v in self.kwargs.items()])
-		
-		proxy = ImageProxy(image, kwargs)
-		
+		kwargs = dict((k, v.resolve(context)) for k, v in self.kwargs.iteritems())
+
+		adjustment_class = get_adjustment_class(kwargs.pop('adjustment', DEFAULT_ADJUSTMENT))
+		adjustment = adjustment_class.from_image(image, **kwargs)
+
 		if self.asvar is not None:
-			context[self.asvar] = proxy
+			context[self.asvar] = adjustment.info_dict()
 			return ''
-		return proxy
+		return adjustment.url
 
 
 @register.tag

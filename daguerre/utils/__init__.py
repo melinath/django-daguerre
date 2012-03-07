@@ -1,3 +1,7 @@
+from hashlib import sha1
+
+from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
 import mimetypes
 
 
@@ -15,3 +19,11 @@ def convert_filetype(ftype):
 			raise ValueError(_(u'Unknown MIME-type: %s' % ftype))
 	else:
 		raise ValueError(_('Invalid MIME-type: %s' % ftype))
+
+
+def make_security_hash(*args):
+	return sha1(''.join([unicode(arg) for arg in args]) + settings.SECRET_KEY).hexdigest()[::2]
+
+
+def check_security_hash(sec_hash, *args):
+	return sec_hash == make_security_hash(*args)
