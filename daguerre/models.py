@@ -20,7 +20,7 @@ from daguerre.validators import FileTypeValidator
 from daguerre.utils import runmethod, methods
 
 
-__all__ = ('Image', 'Area', 'AdjustedImage', 'ImageMetadata')
+__all__ = ('Image', 'Area', 'AdjustedImage')
 
 
 class Image(models.Model):
@@ -205,15 +205,3 @@ class AdjustedImage(models.Model):
 	
 	class Meta:
 		unique_together = ('image', 'requested_width', 'requested_height', 'requested_max_width', 'requested_max_height', 'requested_method')
-
-
-class ImageMetadata(models.Model):
-	"""Contains image metadata which is not central to the concept of an Image."""
-	image = models.OneToOneField(Image, related_name='metadata')
-	caption = models.TextField(help_text='May contain HTML', blank=True)
-	credit = models.CharField(max_length=100, blank=True)
-	artist = models.ForeignKey(getattr(settings, 'PHILO_PERSON_MODULE', 'auth.User'), blank=True, null=True)
-	creation_date = models.DateField(blank=True, null=True, help_text="The date that the image was created, not the date it was added to the system.")
-	
-	def __unicode__(self):
-		return u"Metadata for %s" % self.image
