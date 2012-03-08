@@ -1,4 +1,6 @@
 import Image
+import mimetypes
+from django.utils.translation import ugettext_lazy as _
 
 
 DEFAULT_METHOD = 'fit'
@@ -19,7 +21,15 @@ def runmethod(slug, im, width=None, height=None, max_width=None, max_height=None
 
 
 def calculate_fit(im_w, im_h, width=None, height=None, max_width=None, max_height=None, areas=None):
-	"""Calculates the dimensions of a :func:`fit` without actually resizing the image. Returns a tuple of the new width and height."""
+	"""
+	Calculates the dimensions of a :func:`fit` without actually resizing the image. Returns a tuple of the new width and height.
+	
+	Example::
+	
+		>>> calculate_fit(400, 800, width=600, height=600)
+		(300, 600)
+	
+	"""
 	if height is None and width is None:
 		return im_w, im_h
 	
@@ -67,13 +77,23 @@ def fit(im, width=None, height=None, max_width=None, max_height=None, areas=None
 		method = Image.BICUBIC
 	
 	return im.resize((new_w, new_h), method)
-#methods.register(fit, verbose_name='Fit')
+
 methods['fit'] = fit
 calculations['fit'] = calculate_fit
 
 
 def calculate_crop(im_w, im_h, width=None, height=None, max_width=None, max_height=None, areas=None):
-	"""Calculates the dimensions of a :func:`crop` for the given parameters without actually cropping the image. Returns a tuple of the new width and height."""
+	"""
+	Calculates the dimensions of a :func:`crop` for the given parameters without actually cropping the image. Returns a tuple of the new width and height.
+	
+	Example::
+	
+		>>> calculate_crop(400, 800, width=200, height=200)
+		(200, 200)
+		>>> calculate_crop(400, 800, width=1000, height=1000)
+		(400, 800)
+	
+	"""
 	if width is None:
 		if max_width is None:
 			width = im_w
@@ -108,13 +128,25 @@ def crop(im, width=None, height=None, max_width=None, max_height=None, areas=Non
 	y2 = y + height
 	
 	return im.crop((x, y, x2, y2))
-#methods.register(crop, verbose_name='Crop')
+
 methods['crop'] = crop
 calculations['crop'] = calculate_crop
 
 
 def calculate_fill(im_w, im_h, width=None, height=None, max_width=None, max_height=None, areas=None):
-	"""Calculates the dimensions for a :func:`fill` without actually resizing the image. Returns a tuple of the new width and height."""
+	"""
+	Calculates the dimensions for a :func:`fill` without actually resizing the image. Returns a tuple of the new width and height.
+	
+	Example::
+	
+		>>> calculate_fill(300, 600)
+		(300, 600)
+		>>> calculate_fill(300, 600, width=800)
+		(800, 1600)
+		>>> calculate_fill(300, 600, width=200, height=150)
+		(200, 150)
+	
+	"""
 	# If there are no restrictions, just return the original dimensions.
 	if height is None and width is None:
 		return im_w, im_h
@@ -161,7 +193,7 @@ def fill(im, width=None, height=None, max_width=None, max_height=None, areas=Non
 	
 	# After cropping the image to the right ratio, fit it to the new width and height.
 	return fit(new_im, new_w, new_h)
-#methods.register(fill, verbose_name='Fill')
+
 methods['fill'] = fill
 calculations['fill'] = calculate_fill
 
@@ -199,20 +231,20 @@ def optimal_crop_dims(im, width, height, areas):
 
 
 def convert_filetype(ftype):
-"""Takes a file ending or mimetype and returns a valid mimetype or raises a ValueError."""
-if '.' in ftype:
-	try:
-		return mimetypes.types_map[ftype]
-	except KeyError:
-		return mimetypes.common_types[ftype]
-elif '/' in ftype:
-	if ftype in mimetypes.types_map.values() or ftype in mimetypes.common_types.values():
-		return ftype
+	"""Takes a file ending or mimetype and returns a valid mimetype or raises a ValueError."""
+	if '.' in ftype:
+		try:
+			return mimetypes.types_map[ftype]
+		except KeyError:
+			return mimetypes.common_types[ftype]
+	elif '/' in ftype:
+		if ftype in mimetypes.types_map.values() or ftype in mimetypes.common_types.values():
+			return ftype
+		else:
+			raise ValueError(_(u'Unknown MIME-type: %s' % ftype))
 	else:
-		raise ValueError(_(u'Unknown MIME-type: %s' % ftype))
-else:
-	raise ValueError(_('Invalid MIME-type: %s' % ftype))
-	
+		raise ValueError(_('Invalid MIME-type: %s' % ftype))
+
 
 ### Seam carving functions
 """
@@ -262,6 +294,3 @@ else:
 			height = im.size[1]
 		
 		return im
-
-		import mimetypes
-		from django.utils.translation import ugettext_lazy as _

@@ -85,6 +85,10 @@ def get_image_resize_info(target, **kwargs):
 	
 	try:
 		width, height = target.width, target.height
+	except AttributeError:
+		# target is a file
+		target = PILImage.open(target)
+		width, height = target.size
 	except:
 		return {
 			'width': None,
@@ -112,6 +116,7 @@ def get_image_resize_info(target, **kwargs):
 		qd[METHOD] = method
 		kwargs['method'] = method
 	qd[SECURITY] = make_security_hash(ident, *[kwargs.get(key) for key in ('width', 'height', 'max_width', 'max_height', 'method', 'crop')])
+	
 	url = "%s?%s" % (reverse(view, kwargs={'ident': ident}), qd.urlencode())
 	
 	return {

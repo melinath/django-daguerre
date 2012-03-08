@@ -20,10 +20,10 @@ from daguerre.validators import FileTypeValidator
 from daguerre.utils import runmethod, methods
 
 
-__all__ = ('Image', 'Area', 'AdjustedImage', 'ImageGallery', 'ImageGalleryOrder', 'ImageMetadata')
+__all__ = ('Image', 'Area', 'AdjustedImage')
 
 
-class Image(Entity):
+class Image(models.Model):
 	"""A basic image. Has a name, a unique slug, an image file, a timestamp, and width/height fields."""
 	name = models.CharField(max_length=100)
 	slug = models.SlugField(max_length=100, unique=True)
@@ -205,56 +205,3 @@ class AdjustedImage(models.Model):
 	
 	class Meta:
 		unique_together = ('image', 'requested_width', 'requested_height', 'requested_max_width', 'requested_max_height', 'requested_method')
-
-
-class ImageMetadata(Entity):
-	"""Contains image metadata which is not central to the concept of an Image."""
-	image = models.OneToOneField(Image, related_name='metadata')
-	caption = models.TextField(help_text='May contain HTML', blank=True)
-	credit = models.CharField(max_length=100, blank=True)
-	artist = models.ForeignKey(getattr(settings, 'PHILO_PERSON_MODULE', 'auth.User'), blank=True, null=True)
-	creation_date = models.DateField(blank=True, null=True, help_text="The date that the image was created, not the date it was added to the system.")
-	
-	def __unicode__(self):
-		return u"Metadata for %s" % self.image
-
-
-class ImageGalleryOrder(models.Model):
-	gallery = models.ForeignKey('ImageGallery')
-	image = models.ForeignKey(Image)
-	order = models.PositiveIntegerField(blank=True, null=True)
-	
-	class Meta:
-		unique_together = ('image', 'gallery')
-		ordering = ('order',)
-
-
-class ImageGallery(Entity):
-	"""Represents a gallery of images."""
-	name = models.CharField(max_length=75)
-	images = models.ManyToManyField(Image, through=ImageGalleryOrder)
-	
-	@property
-	def gallery(self):
-		"""Ordinarily items with no order (i.e. order of `None`) would be placed before everything else. This property returns an iterator that places those items at the end. TODO: write a custom iterator that goes over a single ordered queryset and simply saves the items with no order for later."""
-		if not hasattr(self, '_gallery'):
-			unordered = Image.objects.filter(imagegalleryorder__order__isnull=True, imagegalleryorder__gallery=self)
-			ordered = self.images.filter(imagegalleryorder__order__isnull=False, imagegalleryorder__gallery=self).order_by('imagegalleryorder__order')
-			self._gallery = itertools.chain(ordered, unordered)
-		self._gallery, gallery = itertools.tee(self._gallery)
-		return gallery
-	
-	@property
-	def first(self):
-		"""Returns the first item in the gallery. This is necessary because the iterator returned by :prop:`gallery` can't be sliced or indexed."""
-		gallery = self.gallery
-		try:
-			return gallery.next()
-		except StopIteration:
-			return None
-	
-	def __unicode__(self):
-		return self.name
-	
-	class Meta:
-		verbose_name_plural = 'Image Galleries'
