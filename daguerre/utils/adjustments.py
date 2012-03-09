@@ -252,8 +252,8 @@ class Crop(Adjustment):
 		new_width, new_height = self.calculate()
 
 		if not self.areas:
-			x1 = (image_width - self.width) / 2
-			y1 = (image_height - self.height) / 2
+			x1 = (image_width - new_width) / 2
+			y1 = (image_height - new_height) / 2
 		else:
 			min_penalty = None
 			optimal_coords = None

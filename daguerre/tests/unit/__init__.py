@@ -1,0 +1,1 @@
+from daguerre.tests.unit.adjustments import FitTestCase, CropTestCase, FillTestCase
