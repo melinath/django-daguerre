@@ -41,7 +41,7 @@ class Adjustment(object):
 	def __init__(self, image, width=None, height=None, max_width=None, max_height=None, areas=None):
 		self.image = image
 		self.format = self.image.format
-		self.mimetype = "image/%s" % self.format.lower()
+		self.mimetype = None if self.format is None else "image/%s" % self.format.lower()
 
 		self.areas = areas
 
