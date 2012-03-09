@@ -2,8 +2,29 @@ import Image
 
 from django.test import TestCase
 
-from daguerre.tests.base import DaguerreTestCaseMixin
-from daguerre.utils.adjustments import Fit, Crop, Fill
+from daguerre.tests.base import DaguerreTestCaseMixin, ImageCreator
+from daguerre.utils.adjustments import Adjustment, Fit, Crop, Fill
+
+
+class AdjustmentTestCase(DaguerreTestCaseMixin, TestCase):
+	def setUp(self):
+		self.image_creator = ImageCreator()
+
+	def test_from_image(self):
+		im = Image.open(self.get_test_file_path('100x100.png'))
+		image = self.image_creator.create(im)
+		adjustment = Adjustment.from_image(image)
+		self.assertTrue(adjustment._crop is None)
+		self.assertTrue(adjustment._crop_area is None)
+		self.assertEqual(adjustment._storage_path, image.image.name)
+		self.assertEqual(adjustment._image, image)
+		self.assertEqual(list(adjustment.areas), list(image.areas.all()))
+		self.assertEqual(adjustment.format, 'PNG')
+		self.assertEqual(adjustment.mimetype, 'image/png')
+		self.assertTrue(adjustment.width is None)
+		self.assertTrue(adjustment.height is None)
+		self.assertTrue(adjustment.max_width is None)
+		self.assertTrue(adjustment.max_height is None)
 
 
 class FitTestCase(DaguerreTestCaseMixin, TestCase):
