@@ -1,3 +1,4 @@
+import datetime
 import mimetypes
 import os
 import itertools
@@ -5,10 +6,10 @@ from hashlib import sha1
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.base import File
 from django.core.files.images import ImageFile
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
-from django.core.files.uploadedfile import UploadedFile
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.template.defaultfilters import capfirst
@@ -121,32 +122,6 @@ class Area(models.Model):
 		unique_together = ('image', 'x1', 'y1', 'x2', 'y2')
 
 
-class TemporaryImageFile(UploadedFile):
-	"""HACK to allow setting of an AdjustedImage's image attribute with a generated (rather than uploaded) image file."""
-	def __init__(self, name, image, format, content_type):
-		if settings.FILE_UPLOAD_TEMP_DIR:
-			file = NamedTemporaryFile(suffix='.upload', dir=settings.FILE_UPLOAD_TEMP_DIR)
-		else:
-			file = NamedTemporaryFile(suffix='.upload')
-		image.save(file, format)
-		# Should we even bother calculating the size?
-		size = os.path.getsize(file.name)
-		super(TemporaryImageFile, self).__init__(file, name, content_type, size)
-	
-	def temporary_file_path(self):
-		return self.file.name
-	
-	def close(self):
-		try:
-			return self.file.close()
-		except OSError, e:
-			if e.errno != 2:
-				# Means the file was moved or deleted before the tempfile
-				# could unlink it. Still sets self.file.close_called and
-				# calls self.file.file.close() before the exception
-				raise
-
-
 class AdjustedImageManager(models.Manager):
 	def adjust(self, image, width=None, height=None, max_width=None, max_height=None, adjustment=DEFAULT_ADJUSTMENT, crop=None):
 		"""
@@ -185,18 +160,18 @@ class AdjustedImageManager(models.Manager):
 			f = adjusted._meta.get_field('adjusted')
 			ext = mimetypes.guess_extension(adjustment.mimetype)
 
-			filename = ''.join((sha1(''.join(unicode(arg) for arg in (width, height, max_width, max_height, adjustment, crop, image.image.name))).hexdigest()[::2], ext))
+			filename = ''.join((sha1(''.join(unicode(arg) for arg in (width, height, max_width, max_height, adjustment, crop, image.image.name, datetime.datetime.now().isoformat()))).hexdigest()[::2], ext))
 			filename = f.generate_filename(adjusted, filename)
-			
-			temp = TemporaryImageFile(filename, im, adjustment.format, adjustment.mimetype)
-			
-			adjusted.adjusted = temp
+
+			temp = NamedTemporaryFile()
+			im.save(temp, format=adjustment.format)
+			adjusted.adjusted = File(temp, name=filename)
 			# Try to handle race conditions gracefully.
 			try:
 				adjusted = self.get(**adjusted_image_query_kwargs)
 			except self.model.DoesNotExist:
 				adjusted.save()
-			else:
+			finally:
 				temp.close()
 		return adjusted
 
