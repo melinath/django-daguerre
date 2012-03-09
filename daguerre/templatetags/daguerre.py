@@ -31,13 +31,13 @@ class ImageResizeNode(template.Node):
 
 
 @register.tag
-def resize(parser, token):
+def adjust(parser, token):
 	"""
-	Returns an instance of :class:`ImageProxy`, which can calculate the appropriate url for the resized version of an image, as well as knowing the actual resized width and height for the given parameters.
+	Returns a url to the adjusted image, or (with ``as``) stores a variable in the context containing the results of :meth:`~Adjustment.info_dict`.
 	
 	Syntax::
 	
-		{% resize <image> [key=val key=val ...] [as <varname>] %}
+		{% adjust <image> [key=val key=val ...] [as <varname>] %}
 	
 	If only one of width/height is supplied, the proportions are automatically constrained.
 	Cropping and resizing will each only take place if the relevant variables are defined.
