@@ -132,12 +132,14 @@ class Adjustment(object):
 
 	@property
 	def url(self):
+		"""Returns a url for the adjusted image. This is only available for adjustments generated from an :class:`~Image`."""
 		if not hasattr(self, '_image'):
 			raise AttributeError
 		return u"%s?%s" % (reverse('daguerre_adjusted_image_redirect', kwargs={'storage_path': self._storage_path}), self.querydict.urlencode())
 
 	@property
 	def ajax_url(self):
+		"""Returns a url which can be used to fetch information about this adjustment via ajax. This is only available for adjustments generated from an :class:`~Image`."""
 		if not hasattr(self, '_image'):
 			raise AttributeError
 		querydict = self.querydict.copy()
@@ -145,6 +147,19 @@ class Adjustment(object):
 		return u"%s?%s" % (reverse('daguerre_ajax_adjustment_info', kwargs={'storage_path': self._storage_path}), querydict.urlencode())
 
 	def info_dict(self):
+		"""
+		Returns an information dictionary for the adjusted image without actually running the adjustment. The available information is:
+
+		* format: image mimetype.
+		* ident: storage path for the original image.
+		* width, height: width/height of the resized image.
+		* url: url for the resized image file.
+		* ajax_url: url to get this information via ajax.
+		* requested: a dictionary of information regarding the request. Contains keys for width, height, max_width, max_height, and crop.
+
+		This method is only available from adjustments instantiated from an :class:`~Image`.
+
+		"""
 		if not hasattr(self, '_image'):
 			raise AttributeError
 		return {
