@@ -123,13 +123,12 @@ class Area(models.Model):
 
 class TemporaryImageFile(UploadedFile):
 	"""HACK to allow setting of an AdjustedImage's image attribute with a generated (rather than uploaded) image file."""
-	def __init__(self, name, image, format):
+	def __init__(self, name, image, format, content_type):
 		if settings.FILE_UPLOAD_TEMP_DIR:
 			file = NamedTemporaryFile(suffix='.upload', dir=settings.FILE_UPLOAD_TEMP_DIR)
 		else:
 			file = NamedTemporaryFile(suffix='.upload')
 		image.save(file, format)
-		content_type = "image/%s" % format.lower()
 		# Should we even bother calculating the size?
 		size = os.path.getsize(file.name)
 		super(TemporaryImageFile, self).__init__(file, name, content_type, size)
@@ -184,12 +183,12 @@ class AdjustedImageManager(models.Manager):
 
 			im = adjustment.adjust()
 			f = adjusted._meta.get_field('adjusted')
-			ext = mimetypes.guess_extension('image/%s' % adjustment.format.lower())
+			ext = mimetypes.guess_extension(adjustment.mimetype)
 
 			filename = ''.join((sha1(''.join(unicode(arg) for arg in (width, height, max_width, max_height, adjustment, crop, image.image.name))).hexdigest()[::2], ext))
 			filename = f.generate_filename(adjusted, filename)
 			
-			temp = TemporaryImageFile(filename, im, adjustment.format)
+			temp = TemporaryImageFile(filename, im, adjustment.format, adjustment.mimetype)
 			
 			adjusted.adjusted = temp
 			# Try to handle race conditions gracefully.
