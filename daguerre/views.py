@@ -11,7 +11,6 @@ from django.http import HttpResponse, Http404, QueryDict
 from django.shortcuts import get_object_or_404
 
 from daguerre.cache import get_cache, set_cache
-from daguerre.middleware import private_ajax
 from daguerre.models import Image, AdjustedImage, Area
 from daguerre.utils import runmethod, DEFAULT_METHOD, calculations
 
@@ -223,7 +222,6 @@ def resize_image_file(request, path, width, height, max_width, max_height, metho
 	return runmethod(method, im, width=width, height=height, max_width=max_width, max_height=max_height)
 
 
-@private_ajax
 def ajax_resize_info(request, ident):
 	if not request.is_ajax():
 		raise Http404("Request is not AJAX.")
