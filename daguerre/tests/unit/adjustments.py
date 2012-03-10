@@ -2,6 +2,7 @@ import Image
 
 from django.test import TestCase
 
+from daguerre.models import Area
 from daguerre.tests.base import DaguerreTestCaseMixin, ImageCreator
 from daguerre.utils.adjustments import Adjustment, Fit, Crop, Fill
 
@@ -75,6 +76,10 @@ class CropTestCase(DaguerreTestCaseMixin, TestCase):
 
 		new_im = Image.open(self.get_test_file_path('100x50_crop.png'))
 		crop = Crop(im, height=50)
+		self.assertImageEqual(crop.adjust(), new_im)
+
+		new_im = Image.open(self.get_test_file_path('50x50_crop_area.png'))
+		crop = Crop(im, width=50, height=50, areas=[Area(x1=21, y1=46, x2=70, y2=95)])
 		self.assertImageEqual(crop.adjust(), new_im)
 
 
