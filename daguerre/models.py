@@ -32,10 +32,15 @@ class ImageManager(models.Manager):
 			try:
 				im = default_storage.open(storage_path, mixin=ImageFile)
 			except IOError:
-				raise self.model.DoesNotExist
+				raise self.model.DoesNotExist("Path could not be opened.")
+
+			try:
+				PILImage.open(im)
+			except IOError:
+				raise self.model.DoesNotExist("Path does not point to a valid image file.")
 
 			image = self.model()
-			image.image = im
+			image.image = storage_path
 			image.save()
 		return image
 
