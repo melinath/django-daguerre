@@ -2,7 +2,6 @@ import json
 
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 
-from daguerre.middleware import private_ajax
 from daguerre.models import Image, AdjustedImage
 from daguerre.utils import check_security_hash
 from daguerre.utils.adjustments import get_adjustment_class, DEFAULT_ADJUSTMENT, QUERY_PARAMS
@@ -59,7 +58,6 @@ def adjusted_image_redirect(request, storage_path):
 	return HttpResponseRedirect(adjusted.adjusted.url)
 
 
-@private_ajax
 def ajax_adjustment_info(request, storage_path):
 	if not request.is_ajax():
 		raise Http404("Request is not AJAX.")
