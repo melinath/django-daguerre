@@ -1,7 +1,7 @@
 from django.conf.urls.defaults import patterns, url
-from .views import adjusted_image_redirect, ajax_adjustment_info
+from daguerre.views import AdjustedImageRedirectView, AjaxAdjustmentInfoView
 
 urlpatterns = patterns('',
-	url(r'^adjust/(?P<storage_path>.+)$', adjusted_image_redirect, name="daguerre_adjusted_image_redirect"),
-	url(r'^ajax/adjust/info/(?P<storage_path>.+)$', ajax_adjustment_info, name="daguerre_ajax_adjustment_info"),
+	url(r'^adjust/(?P<storage_path>.+)$', AdjustedImageRedirectView.as_view(), name="daguerre_adjusted_image_redirect"),
+	url(r'^info/(?P<storage_path>.+)$', AjaxAdjustmentInfoView.as_view(), name="daguerre_ajax_adjustment_info"),
 )

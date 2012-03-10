@@ -1,88 +1,82 @@
 import json
 
 from django.http import HttpResponse, Http404, HttpResponseRedirect
+from django.views.generic import View
 
 from daguerre.models import Image, AdjustedImage
 from daguerre.utils import check_security_hash
 from daguerre.utils.adjustments import get_adjustment_class, DEFAULT_ADJUSTMENT, QUERY_PARAMS
 
 
-def clean_dim(dim):
-	if dim == '':
-		dim = None
-	if dim is not None:
+class BaseAdjustmentView(View):
+	int_params = set(('width', 'height', 'max_width', 'max_height'))
+	params = ('width', 'height', 'max_width', 'max_height', 'adjustment', 'crop')
+
+	def get_adjustment_kwargs(self):
+		"""Returns a dictionary of arguments which can be used to make an image adjustment."""
+		kwargs = {}
+		for key in self.params:
+			get_key = QUERY_PARAMS[key]
+			try:
+				value = self.request.GET[get_key]
+			except KeyError:
+				continue
+
+			if key in self.int_params:
+				if value == '':
+					continue
+				try:
+					value = int(value)
+				except ValueError, e:
+					raise Http404(e.message)
+
+			kwargs[key] = value
+
+		kwargs['adjustment'] = kwargs.get('adjustment', DEFAULT_ADJUSTMENT)
+		return kwargs
+
+	def get_image(self):
+		"""Returns an image for the storage path or raises 404."""
 		try:
-			dim = int(dim)
-		except ValueError, e:
+			return Image.objects.for_storage_path(self.kwargs['storage_path'])
+		except Image.DoesNotExist, e:
 			raise Http404(e.message)
-	return dim
 
 
-def adjusted_image_redirect(request, storage_path):
+class AdjustedImageRedirectView(BaseAdjustmentView):
 	"""
 	Returns a redirect to an :attr:`~AdjustedImage.adjusted` file, first creating the :class:`~AdjustedImage` if necessary.
 
 	:param storage_path: The path to the original image file, relative to the default storage.
 
 	"""
-	kwargs = {}
-
-	for key in ('width', 'height', 'max_width', 'max_height', 'crop', 'adjustment', 'security'):
-		get_key = QUERY_PARAMS[key]
+	def check_security(self, adjustment_kwargs):
+		"""Checks whether the request passes a security test, and raises a 404 otherwise."""
+		get_key = QUERY_PARAMS['security']
 		try:
-			kwargs[key] = request.GET[get_key]
+			security = self.request.GET[get_key]
 		except KeyError:
-			pass
+			raise Http404("Security hash missing.")
 
-	for key in ('width', 'height', 'max_width', 'max_height'):
-		try:
-			kwargs[key] = clean_dim(kwargs[key])
-		except KeyError:
-			pass
+		if not check_security_hash(security, self.kwargs['storage_path'], *[adjustment_kwargs.get(k) for k in self.params]):
+			raise Http404("Security check failed.")
 
-	try:
-		security = kwargs.pop('security')
-	except KeyError:
-		raise Http404("Security hash missing.")
-
-	kwargs['adjustment'] = kwargs.get('adjustment', DEFAULT_ADJUSTMENT)
-
-	if not check_security_hash(security, storage_path, *[kwargs.get(key) for key in ('width', 'height', 'max_width', 'max_height', 'adjustment', 'crop')]):
-		raise Http404("Security check failed.")
-
-	image = Image.objects.for_storage_path(storage_path)
-
-	# Once you have the Image, adjust it!
-	adjusted = AdjustedImage.objects.adjust(image, **kwargs)
-
-	return HttpResponseRedirect(adjusted.adjusted.url)
+	def get(self, request, *args, **kwargs):
+		adjustment_kwargs = self.get_adjustment_kwargs()
+		self.check_security(adjustment_kwargs)
+		image = self.get_image()
+		adjusted = AdjustedImage.objects.adjust(image, **adjustment_kwargs)
+		return HttpResponseRedirect(adjusted.adjusted.url)
 
 
-def ajax_adjustment_info(request, storage_path):
-	if not request.is_ajax():
-		raise Http404("Request is not AJAX.")
+class AjaxAdjustmentInfoView(BaseAdjustmentView):
+	"""Returns a JSON response containing the results of a call to :meth:`.Adjustment.info_dict` for the given parameters."""
+	def get(self, request, *args, **kwargs):
+		if not request.is_ajax():
+			raise Http404("Request is not AJAX.")
 
-	kwargs = {}
-
-	for key in ('width', 'height', 'max_width', 'max_height', 'crop', 'adjustment'):
-		get_key = QUERY_PARAMS[key]
-		try:
-			kwargs[key] = request.GET[get_key]
-		except KeyError:
-			pass
-
-	for key in ('width', 'height', 'max_width', 'max_height'):
-		try:
-			kwargs[key] = clean_dim(kwargs[key])
-		except KeyError:
-			pass
-
-	try:
-		image = Image.objects.for_storage_path(storage_path)
-	except Image.DoesNotExist:
-		raise Http404('Image file not found.')
-
-	adjustment_class = get_adjustment_class(kwargs.pop('adjustment', DEFAULT_ADJUSTMENT))
-	adjustment = adjustment_class.from_image(image, **kwargs)
-
-	return HttpResponse(json.dumps(adjustment.info_dict()), mimetype="application/json")
+		adjustment_kwargs = self.get_adjustment_kwargs()
+		image = self.get_image()
+		adjustment_class = get_adjustment_class(adjustment_kwargs.pop('adjustment'))
+		adjustment = adjustment_class.from_image(image, **adjustment_kwargs)
+		return HttpResponse(json.dumps(adjustment.info_dict()), mimetype="application/json")
