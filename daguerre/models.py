@@ -1,3 +1,4 @@
+import datetime
 import mimetypes
 import os
 import itertools
@@ -5,43 +6,59 @@ from hashlib import sha1
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.base import File
 from django.core.files.images import ImageFile
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
-from django.core.files.uploadedfile import UploadedFile
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.template.defaultfilters import capfirst
 from django.utils.encoding import smart_str, smart_unicode
 import Image as PILImage
 
-from daguerre.cache import clear_cache, get_cache_key
 from daguerre.validators import FileTypeValidator
-from daguerre.utils import runmethod, methods
+from daguerre.utils.adjustments import get_adjustment_class, adjustments, DEFAULT_ADJUSTMENT
 
 
 __all__ = ('Image', 'Area', 'AdjustedImage')
 
 
+class ImageManager(models.Manager):
+	def for_storage_path(self, storage_path):
+		"""Returns an Image for the given ``storage_path``, creating it if necessary."""
+		try:
+			image = self.get(image=storage_path)
+		except self.model.DoesNotExist:
+			try:
+				im = default_storage.open(storage_path, mixin=ImageFile)
+			except IOError:
+				raise self.model.DoesNotExist("Path could not be opened.")
+
+			try:
+				PILImage.open(im)
+			except IOError:
+				raise self.model.DoesNotExist("Path does not point to a valid image file.")
+
+			image = self.model()
+			image.image = storage_path
+			image.save()
+		return image
+
+
 class Image(models.Model):
 	"""A basic image. Has a name, a unique slug, an image file, a timestamp, and width/height fields."""
-	name = models.CharField(max_length=100)
-	slug = models.SlugField(max_length=100, unique=True)
+	name = models.CharField(max_length=100, blank=True)
 	
 	image = models.ImageField(upload_to='assets/images/%Y/%m/%d', validators=[FileTypeValidator(['.jpg', '.gif', '.png'])], help_text="Allowed file types: .jpg, .gif, and .png", height_field='height', width_field='width', max_length=255)
 	timestamp = models.DateTimeField(auto_now_add=True)
 	
 	height = models.PositiveIntegerField()
 	width = models.PositiveIntegerField()
-	
-	def save(self, *args, **kwargs):
-		super(Image, self).save(*args, **kwargs)
-	
-	def delete(self, *args, **kwargs):
-		super(Image, self).save(*args, **kwargs)
+
+	objects = ImageManager()
 	
 	def __unicode__(self):
-		return self.name
+		return self.name or self.image.name
 
 
 class Area(models.Model):
@@ -110,67 +127,57 @@ class Area(models.Model):
 		unique_together = ('image', 'x1', 'y1', 'x2', 'y2')
 
 
-class TemporaryImageFile(UploadedFile):
-	"""HACK to allow setting of an AdjustedImage's image attribute with a generated (rather than uploaded) image file."""
-	def __init__(self, name, image, format):
-		if settings.FILE_UPLOAD_TEMP_DIR:
-			file = NamedTemporaryFile(suffix='.upload', dir=settings.FILE_UPLOAD_TEMP_DIR)
-		else:
-			file = NamedTemporaryFile(suffix='.upload')
-		image.save(file, format)
-		content_type = "image/%s" % format.lower()
-		# Should we even bother calculating the size?
-		size = os.path.getsize(file.name)
-		super(TemporaryImageFile, self).__init__(file, name, content_type, size)
-	
-	def temporary_file_path(self):
-		return self.file.name
-	
-	def close(self):
-		try:
-			return self.file.close()
-		except OSError, e:
-			if e.errno != 2:
-				# Means the file was moved or deleted before the tempfile
-				# could unlink it. Still sets self.file.close_called and
-				# calls self.file.file.close() before the exception
-				raise
-
-
 class AdjustedImageManager(models.Manager):
-	def adjust_image(self, image, width=None, height=None, max_width=None, max_height=None, method='', crop=None):
-		"""Makes an AdjustedImage instance for the requested parameters from the given Image."""
-		image.image.seek(0)
-		im = PILImage.open(image.image)
-		format = im.format
-		
-		if crop is not None:
-			im = im.crop((crop.x1, crop.y1, crop.x2, crop.y2))
-			areas = None
-		else:
-			areas = image.areas.all()
-		
-		im = runmethod(method, im, width=width, height=height, max_width=max_width, max_height=max_height, areas=areas)
-		
-		adjusted = self.model(image=image, requested_width=width, requested_height=height, requested_max_width=max_width, requested_max_height=max_height, requested_method=method, requested_crop=crop)
-		f = adjusted._meta.get_field('adjusted')
-		ext = mimetypes.guess_extension('image/%s' % format.lower())
-		
-		# dot is included in ext.
-		arg_prefix = get_cache_key(width, height, max_width, max_height, method)[::4]
-		filename = "%s_%s%s" % (arg_prefix, image.slug, ext)
-		filename = f.generate_filename(adjusted, filename)
-		
-		temp = TemporaryImageFile(filename, im, format)
-		
-		adjusted.adjusted = temp
-		# Try to handle race conditions gracefully.
+	def adjust(self, image, width=None, height=None, max_width=None, max_height=None, adjustment=DEFAULT_ADJUSTMENT, crop=None):
+		"""
+		Fetches or creates an :class:`~AdjustedImage` instance for the requested parameters.
+
+		:param image: The :class:`~Image` instance which is to be adjusted.
+		:param width, height, max_width, max_height: The requested dimensions for the adjusted image.
+		:param crop: The name of an :class:`~Area` associated with the :class:`Image`; if the crop exists, it will be applied before any other adjustments or calculations.
+
+		"""
+
+		adjusted_image_kwargs = {
+			'image': image,
+			'requested_adjustment': adjustment,
+		}
+
+		adjustment_class = get_adjustment_class(adjustment)
+		adjustment = adjustment_class.from_image(image, crop=crop, width=width, height=height, max_width=max_width, max_height=max_height)
+
+		adjusted_image_kwargs.update({
+			'requested_width': width,
+			'requested_height': height,
+			'requested_max_width': max_width,
+			'requested_max_height': max_height,
+			'requested_crop': adjustment._crop_area
+		})
+
+		adjusted_image_query_kwargs = dict(("%s__isnull" % k, True) if v is None else (k, v) for k, v in adjusted_image_kwargs.iteritems())
+
 		try:
-			adjusted = self.get(image=image, requested_width=width, requested_height=height, requested_max_width=max_width, requested_max_height=max_height, requested_method=method, requested_crop=crop)
+			adjusted = self.get(**adjusted_image_query_kwargs)
 		except self.model.DoesNotExist:
-			adjusted.save()
-		else:
-			temp.close()
+			adjusted = self.model(**adjusted_image_kwargs)
+
+			im = adjustment.adjust()
+			f = adjusted._meta.get_field('adjusted')
+			ext = mimetypes.guess_extension(adjustment.mimetype)
+
+			filename = ''.join((sha1(''.join(unicode(arg) for arg in (width, height, max_width, max_height, adjustment, crop, image.image.name, datetime.datetime.now().isoformat()))).hexdigest()[::2], ext))
+			filename = f.generate_filename(adjusted, filename)
+
+			temp = NamedTemporaryFile()
+			im.save(temp, format=adjustment.format)
+			adjusted.adjusted = File(temp, name=filename)
+			# Try to handle race conditions gracefully.
+			try:
+				adjusted = self.get(**adjusted_image_query_kwargs)
+			except self.model.DoesNotExist:
+				adjusted.save()
+			finally:
+				temp.close()
 		return adjusted
 
 
@@ -193,15 +200,11 @@ class AdjustedImage(models.Model):
 	requested_height = models.PositiveIntegerField(db_index=True, blank=True, null=True)
 	requested_max_width = models.PositiveIntegerField(db_index=True, blank=True, null=True)
 	requested_max_height = models.PositiveIntegerField(db_index=True, blank=True, null=True)
-	requested_method = models.CharField(db_index=True, max_length=255, choices=[(slug, capfirst(slug)) for slug in methods])
+	requested_adjustment = models.CharField(db_index=True, max_length=255, choices=[(slug, capfirst(slug)) for slug in adjustments])
 	requested_crop = models.ForeignKey(Area, blank=True, null=True)
-	
-	def delete(self, *args, **kwargs):
-		super(AdjustedImage, self).delete(*args, **kwargs)
-		clear_cache(self.image.slug, self.requested_width, self.requested_height, self.requested_max_width, self.requested_max_height, self.requested_method, getattr(self.requested_crop, 'name', None))
 	
 	def __unicode__(self):
 		return u"(%s, %s) adjustment for %s" % (smart_unicode(self.requested_width), smart_unicode(self.requested_height), self.image)
 	
 	class Meta:
-		unique_together = ('image', 'requested_width', 'requested_height', 'requested_max_width', 'requested_max_height', 'requested_method')
+		unique_together = ('image', 'requested_width', 'requested_height', 'requested_max_width', 'requested_max_height', 'requested_adjustment')
