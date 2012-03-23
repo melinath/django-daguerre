@@ -46,7 +46,7 @@ class ImageManager(models.Manager):
 
 
 class Image(models.Model):
-	"""A basic image. Has a name, a unique slug, an image file, a timestamp, and width/height fields."""
+	"""A basic image. Has a name, an image file, a timestamp, and width/height fields."""
 	name = models.CharField(max_length=100, blank=True)
 	
 	image = models.ImageField(upload_to='assets/images/%Y/%m/%d', validators=[FileTypeValidator(['.jpg', '.gif', '.png'])], help_text="Allowed file types: .jpg, .gif, and .png", height_field='height', width_field='width', max_length=255)
