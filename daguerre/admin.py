@@ -76,10 +76,9 @@ class ImageAdmin(admin.ModelAdmin):
 	date_hierarchy = 'timestamp'
 	search_fields = ['name',]
 	list_filter = ('width', 'height')
-	prepopulated_fields = {'slug': ('name',)}
 	fieldsets = (
 		(None, {
-			'fields': ('name', 'slug', 'image', ('width', 'height', 'timestamp'))
+			'fields': ('name', 'image', ('width', 'height', 'timestamp'))
 		}),
 	)
 	
