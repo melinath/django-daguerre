@@ -4,6 +4,7 @@ from django import template
 from django.conf import settings
 from django.template.defaulttags import kwarg_re
 
+from daguerre.models import Image
 from daguerre.utils.adjustments import get_adjustment_class, DEFAULT_ADJUSTMENT
 
 
@@ -20,6 +21,17 @@ class ImageResizeNode(template.Node):
 		image = self.image.resolve(context)
 		kwargs = dict((k, v.resolve(context)) for k, v in self.kwargs.iteritems())
 
+		if hasattr(image, "name"):
+			image = image.name
+
+		if not isinstance(image, basestring):
+			return ''
+
+		try:
+			image = Image.objects.for_storage_path(image)
+		except Image.DoesNotExist:
+			return ''
+
 		adjustment_class = get_adjustment_class(kwargs.pop('adjustment', DEFAULT_ADJUSTMENT))
 		adjustment = adjustment_class.from_image(image, **kwargs)
 
@@ -33,14 +45,16 @@ class ImageResizeNode(template.Node):
 def adjust(parser, token):
 	"""
 	Returns a url to the adjusted image, or (with ``as``) stores a variable in the context containing the results of :meth:`~Adjustment.info_dict`.
-	
+
 	Syntax::
 	
 		{% adjust <image> [key=val key=val ...] [as <varname>] %}
-	
+
+	Where <image> is either an :class:`ImageFile` or a storage path for an image.
+
 	If only one of width/height is supplied, the proportions are automatically constrained.
 	Cropping and resizing will each only take place if the relevant variables are defined.
-	
+
 	The optional keyword arguments must be among:
 	
 	* width

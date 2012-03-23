@@ -1,7 +1,6 @@
 from django.core.files.storage import default_storage
 from django.http import Http404
 from django.test import TestCase, RequestFactory
-import Image as PILImage
 
 from daguerre.models import Image
 from daguerre.tests.base import DaguerreTestCaseMixin, ImageCreator
@@ -49,8 +48,7 @@ class BaseAdjustmentViewTestCase(DaguerreTestCaseMixin, TestCase):
 		self.view.kwargs['storage_path'] = 'totally-an-image.jpg'
 		self.assertRaises(Http404, self.view.get_image)
 
-		im = PILImage.open(self.get_test_file_path('100x100.png'))
-		image = image_creator.create(im)
+		image = image_creator.create('100x100.png')
 		self.view.kwargs['storage_path'] = image.image.name
 		result = self.view.get_image()
 		self.assertEqual(result, image)

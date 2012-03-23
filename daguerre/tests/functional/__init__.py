@@ -1,0 +1,1 @@
+from daguerre.tests.functional.templatetags import *
