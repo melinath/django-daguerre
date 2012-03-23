@@ -5,7 +5,6 @@ from django.conf import settings
 from django.template.defaulttags import kwarg_re
 
 from daguerre.utils.adjustments import get_adjustment_class, DEFAULT_ADJUSTMENT
-from daguerre.views import get_image_resize_info
 
 
 register = template.Library()
