@@ -36,7 +36,7 @@ class AdjustedImageBase(object):
 	PARAMETER_FIELDS = (
 		('requested_width', 'requested_height'),
 		('requested_max_width', 'requested_max_height'),
-		('requested_method', 'requested_crop')
+		('requested_adjustment', 'requested_crop')
 	)
 	IMAGE_FIELDS = ('as_html', 'path', ('width', 'height'))
 
@@ -91,7 +91,7 @@ class ImageAdmin(admin.ModelAdmin):
 					request._areas_changed = True
 					break
 		elif formset.model == AdjustedImage and getattr(request, '_areas_changed', False):
-			formset.instance.adjustedimage_set.filter(requested_method__in=['fill', 'crop']).delete()
+			formset.instance.adjustedimage_set.filter(requested_adjustment__in=['fill', 'crop']).delete()
 
 
 admin.site.register(Image, ImageAdmin)
