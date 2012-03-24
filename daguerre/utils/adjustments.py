@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from django.http import QueryDict
 import Image
 
-from daguerre.utils import make_security_hash
+from daguerre.utils import make_security_hash, AdjustmentInfoDict
 
 
 adjustments = {}
@@ -163,7 +163,7 @@ class Adjustment(object):
 		"""
 		if not hasattr(self, '_image'):
 			raise AttributeError
-		return {
+		return AdjustmentInfoDict({
 			'format': self.format,
 			'ident': self._storage_path,
 			'width': self.calculate()[0],
@@ -177,7 +177,7 @@ class Adjustment(object):
 			},
 			'url': self.url,
 			'ajax_url': self.ajax_url
-		}
+		})
 
 
 class Fit(Adjustment):

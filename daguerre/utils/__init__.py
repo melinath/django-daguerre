@@ -27,3 +27,9 @@ def make_security_hash(*args):
 
 def check_security_hash(sec_hash, *args):
 	return sec_hash == make_security_hash(*args)
+
+class AdjustmentInfoDict(dict):
+	"A simple dict subclass for making image data more usable in templates."
+	
+	def __unicode__(self):
+		return self.get('url', u'')
