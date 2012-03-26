@@ -1,8 +1,11 @@
 import os
 
 from django.core.files.images import ImageFile
-import Image as PILImage
-import ImageChops
+try:
+	from PIL import ImageChops, Image as PILImage
+except ImportError:
+	import Image as PILImage
+	import ImageChops
 
 import daguerre
 from daguerre.models import Image

@@ -3,7 +3,10 @@ from itertools import ifilter
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
-import Image
+try:
+	from PIL import Image
+except ImportError:
+	import Image
 
 from daguerre.utils import make_security_hash, AdjustmentInfoDict
 
