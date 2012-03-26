@@ -1,5 +1,8 @@
-import Image
 from django.test import TestCase
+try:
+	from PIL import Image
+except ImportError:
+	import Image
 
 from daguerre.models import Area
 from daguerre.tests.base import DaguerreTestCaseMixin, ImageCreator, get_test_file_path
