@@ -1,7 +1,9 @@
-import Image as PILImage
-
 from django.core.files.storage import default_storage
 from django.test import TestCase
+try:
+	from PIL import Image as PILImage
+except ImportError:
+	import Image as PILImage
 
 from daguerre.models import AdjustedImage, Area, Image
 from daguerre.tests.base import DaguerreTestCaseMixin, ImageCreator, get_test_file_path

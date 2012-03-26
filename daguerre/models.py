@@ -14,7 +14,10 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.template.defaultfilters import capfirst
 from django.utils.encoding import smart_str, smart_unicode
-import Image as PILImage
+try:
+	from PIL import Image as PILImage
+except ImportError:
+	import Image as PILImage
 
 from daguerre.validators import FileTypeValidator
 from daguerre.utils.adjustments import get_adjustment_class, adjustments, DEFAULT_ADJUSTMENT
