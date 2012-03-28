@@ -33,7 +33,7 @@ class ImageManager(models.Manager):
 			image = self.get(image=storage_path)
 		except self.model.DoesNotExist:
 			try:
-				im = default_storage.open(storage_path, mixin=ImageFile)
+				im = default_storage.open(storage_path)
 			except IOError:
 				raise self.model.DoesNotExist("Path could not be opened.")
 
