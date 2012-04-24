@@ -1,6 +1,7 @@
 from itertools import ifilter
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.files.storage import default_storage
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
 try:
@@ -56,7 +57,8 @@ class Adjustment(object):
 	@classmethod
 	def from_image(cls, image, crop=None, areas=None, **kwargs):
 		"""Generate an adjusted image based on an :class:`~Image` instance rather than a straight PIL image. Essentially adds a little sugar on top."""
-		pil_image = Image.open(image.image.path)
+		im_file = default_storage.open(image.image.name)
+		pil_image = Image.open(im_file)
 		area = None
 		if crop is not None:
 			try:
