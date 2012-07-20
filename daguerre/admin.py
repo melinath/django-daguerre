@@ -7,7 +7,7 @@ from daguerre.models import Image, Area, AdjustedImage
 
 class AreaInline(admin.TabularInline):
 	model = Area
-	template = 'admin/assets/image/area_inline.html'
+	template = 'admin/daguerre/image/area_inline.html'
 	extra = 0
 
 
@@ -23,7 +23,7 @@ class AdjustedImageBase(object):
 	readonly_fields = ('path', 'as_html', 'width', 'height')
 	
 	def as_html(self, obj):
-		return render_to_string('admin/assets/adjustedimage/as_html.html', {'obj': obj})
+		return render_to_string('admin/daguerre/adjustedimage/as_html.html', {'obj': obj})
 	as_html.short_description = 'image'
 	as_html.allow_tags = True
 	
