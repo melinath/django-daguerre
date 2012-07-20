@@ -52,7 +52,7 @@ class Image(models.Model):
 	"""A basic image. Has a name, an image file, a timestamp, and width/height fields."""
 	name = models.CharField(max_length=100, blank=True)
 	
-	image = models.ImageField(upload_to='assets/images/%Y/%m/%d', validators=[FileTypeValidator(['.jpg', '.gif', '.png'])], help_text="Allowed file types: .jpg, .gif, and .png", height_field='height', width_field='width', max_length=255)
+	image = models.ImageField(upload_to='daguerre/images/%Y/%m/%d', validators=[FileTypeValidator(['.jpg', '.gif', '.png'])], help_text="Allowed file types: .jpg, .gif, and .png", height_field='height', width_field='width', max_length=255)
 	timestamp = models.DateTimeField(auto_now_add=True)
 	
 	height = models.PositiveIntegerField()
@@ -193,7 +193,7 @@ class AdjustedImage(models.Model):
 	objects = AdjustedImageManager()
 	
 	image = models.ForeignKey(Image)
-	adjusted = models.ImageField(height_field='height', width_field='width', upload_to='assets/images/%Y/%m/%d/adjusted/', max_length=255)
+	adjusted = models.ImageField(height_field='height', width_field='width', upload_to='daguerre/images/%Y/%m/%d/adjusted/', max_length=255)
 	timestamp = models.DateTimeField(auto_now_add=True)
 	
 	width = models.PositiveIntegerField(db_index=True)
