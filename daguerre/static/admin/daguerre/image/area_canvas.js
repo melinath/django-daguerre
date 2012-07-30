@@ -530,7 +530,7 @@
 		return y / yScale;
 	};
 	
-	areaCanvas.redrawButton = $('<a href=""><img src="/static/admin/assets/image/arrow-circle-315.png" alt="Redraw" title="Redraw" /></a>');
+	areaCanvas.redrawButton = $('<a href=""><img src="/static/admin/daguerre/image/arrow-circle-315.png" alt="Redraw" title="Redraw" /></a>');
 	areaCanvas.redrawButton.click(function(e){
 		e.preventDefault();
 		areaCanvas.draw();
