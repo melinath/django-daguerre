@@ -2,4 +2,5 @@ Models
 ======
 
 .. automodule:: daguerre.models
-	:members:
+	:members: Image, AdjustedImage, Area, ImageManager, AdjustedImageManager
+	:undoc-members:
