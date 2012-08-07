@@ -28,3 +28,12 @@ Add the following or similar anywhere in your URLconf::
 	    url(r'^daguerre/', include('daguerre.urls')),
 	    ...
 	)
+
+Usage
+-----
+
+The easiest way to use Daguerre is through the ``{% adjust %}`` template tag::
+
+	{% adjust "storage/path/to/image.png" adjustment="fit" width=600 height=800 %}
+
+Read more in :doc:`template-tags`.
