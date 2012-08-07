@@ -28,10 +28,17 @@ __all__ = ('Image', 'Area', 'AdjustedImage')
 
 class ImageManager(models.Manager):
 	def for_storage_path(self, storage_path):
-		"""Returns an Image for the given ``storage_path``, creating it if necessary."""
+		"""
+		Returns an :class:`Image` for the given ``storage_path``, creating it
+		if necessary. If more than one :class:`Image` exists (which could
+		happen due to a race condition in image creation) then the first
+		instance encountered is returned.
+
+		"""
+		images = self.filter(image=storage_path)
 		try:
-			image = self.get(image=storage_path)
-		except self.model.DoesNotExist:
+			image = images[0]
+		except IndexError:
 			try:
 				im_file = default_storage.open(storage_path)
 			except IOError:
