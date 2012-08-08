@@ -1,13 +1,18 @@
 Adjustments
 ===========
 
-.. highlight:: html+django
+Daguerre provides a variety of adjustments to use when processing images.
 
-Daguerre includes several built-in adjustment methods that can be used for
-processing images.
+Built-In Adjustments
+--------------------
+
+.. highlight:: html+django
 
 .. automodule:: daguerre.utils.adjustments
 	:members: Crop, Fill, Fit
+
+Examples
+--------
 
 When used with the template tag, these adjustments should be referred to by
 their lowercase name::
