@@ -21,6 +21,7 @@ Contents
    getting-started
    template-tags
    adjustments
+   models
    project
 
 

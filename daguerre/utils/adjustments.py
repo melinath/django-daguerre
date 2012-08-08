@@ -241,7 +241,7 @@ adjustments['fit'] = Fit
 
 class Crop(Adjustment):
 	"""
-	Crops an image to the given width and height. :class:`~Area` instances which are passed in will be protected as much as possible during the crop. If ``width`` or ``height`` is not specified, the image may grow up to ``max_width`` or ``max_height`` respectively in the unspecified direction before being cropped.
+	Crops an image to the given width and height, without scaling it. :class:`~daguerre.models.Area` instances which are passed in will be protected as much as possible during the crop. If ``width`` or ``height`` is not specified, the image may grow up to ``max_width`` or ``max_height`` respectively in the unspecified direction before being cropped.
 
 	"""
 	def _calculate(self):
@@ -307,7 +307,7 @@ adjustments['crop'] = Crop
 
 class Fill(Adjustment):
 	"""
-	Crops the image to the requested ratio, then resizes it to the actual requested dimensions. If ``width`` or ``height`` is ``None``, then the unspecified dimension will be allowed to expand up to ``max_width`` or ``max_height``, respectively.
+	Crops the image to the requested ratio (using the same logic as :class:`.Crop` to protect :class:`~daguerre.models.Area` instances which are passed in), then resizes it to the actual requested dimensions. If ``width`` or ``height`` is ``None``, then the unspecified dimension will be allowed to expand up to ``max_width`` or ``max_height``, respectively.
 
 	"""
 	def _calculate(self):
