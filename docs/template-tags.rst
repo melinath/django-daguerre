@@ -19,6 +19,8 @@ Daguerre comes with three built-in options for the ``adjustment`` parameter: ``c
    can safely use multiple ``{% adjust %}`` tags for not-yet-processed images
    without impacting template rendering performance.
 
+.. _template-tag-examples:
+
 Examples
 --------
 
@@ -32,8 +34,24 @@ cropped)::
 
 	<img src="{% adjust "path/to/image.png" adjustment="fill" width=200 height=200 %}" />
 
+
+.. note::
+
+   When using the template tag, :class:`.Crop` and :class:`.Fill` will
+   automatically protect all :class:`.Area` instances that have been created
+   on an image.
+
+   You can create :class:`.Area` instances in the Django admin by editing an
+   :class:`.Image` instance.
+
 Fitting an image to a particular width and storing it as an :class:`AdjustmentInfoDict`::
 
 	{% adjust "path/to/image.png" adjustment="fit" width=300 as image %}
 	
 	<img src="{{ image }}" width="{{ image.width }}" height="{{ image.height }}" />
+
+Cropping an image to a particular pre-defined :class:`.Area`::
+
+	<img src="{% adjust "path/to/image.png" adjustment="crop" crop="my-area-name" %}" />
+
+	<img src="{% adjust "path/to/image.png" adjustment="fill" width=300 crop="my-area-name" %}" />
