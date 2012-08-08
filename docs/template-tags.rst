@@ -9,6 +9,16 @@ Template Tags
 Daguerre comes with three built-in options for the ``adjustment`` parameter: ``crop``,
 ``fill``, and ``fit``. You can read more in :doc:`adjustments`.
 
+.. note::
+   
+   The ``{% adjust %}`` tag handles images "lazily." The template tag
+   generates a URI for the image, but the actual image processing is later
+   handled by a view, only when the client hits the URI.
+
+   In this way the image processing does not hold up template rendering. You
+   can safely use multiple ``{% adjust %}`` tags for not-yet-processed images
+   without impacting template rendering performance.
+
 Examples
 --------
 
