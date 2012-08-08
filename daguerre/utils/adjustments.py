@@ -187,9 +187,9 @@ class Adjustment(object):
 
 class Fit(Adjustment):
 	"""
-	An adjustment where the image is resized to fit entirely within the given dimensions without cropping and maintaining the width/height ratio.
+	Resizes an image to fit entirely within the given dimensions without cropping and maintaining the width/height ratio.
 
-	Rather than constraining an image to a specific width and height, ``width`` or ``height` may be given as ``None``, in which case the image can expand in the unspecified direction up to ``max_width`` or ``max_height``, respectively, or indefinitely if the relevant dimension is not specified.
+	Rather than constraining an image to a specific width and height, ``width`` or ``height`` may be given as ``None``, in which case the image can expand in the unspecified direction up to ``max_width`` or ``max_height``, respectively, or indefinitely if the relevant dimension is not specified.
 
 	If neither width nor height is specified, this adjustment will simply return a copy of the image.
 
@@ -240,7 +240,10 @@ adjustments['fit'] = Fit
 
 
 class Crop(Adjustment):
-	"""Crops an image to the given width and height. :class:`~Area` instances which are passed in will be protected as much as possible during the crop. If ``width`` or ``height`` is not specified, the image may grow up to ``max_width`` or ``max_height`` respectively in the unspecified direction before being cropped."""
+	"""
+	Crops an image to the given width and height. :class:`~Area` instances which are passed in will be protected as much as possible during the crop. If ``width`` or ``height`` is not specified, the image may grow up to ``max_width`` or ``max_height`` respectively in the unspecified direction before being cropped.
+
+	"""
 	def _calculate(self):
 		image_width, image_height = self.image.size
 		not_none = lambda x: x is not None
@@ -303,7 +306,10 @@ adjustments['crop'] = Crop
 
 
 class Fill(Adjustment):
-	"""Crops the image to the requested ratio, then resizes it to the actual requested dimensions. If ``width`` or ``height`` is ``None``, then the unspecified dimension will be allowed to expand up to ``max_width`` or ``max_height``, respectively."""
+	"""
+	Crops the image to the requested ratio, then resizes it to the actual requested dimensions. If ``width`` or ``height`` is ``None``, then the unspecified dimension will be allowed to expand up to ``max_width`` or ``max_height``, respectively.
+
+	"""
 	def _calculate(self):
 		image_width, image_height = self.image.size
 		# If there are no restrictions, just return the original dimensions.
