@@ -10,6 +10,8 @@ You can install the latest version of Daguerre using ``pip``::
 
 You can clone the repository yourself at https://github.com/oberlin/django-daguerre.
 
+.. highlight:: python
+
 Setup
 -----
 
@@ -28,6 +30,8 @@ Add the following or similar anywhere in your URLconf::
 	    url(r'^daguerre/', include('daguerre.urls')),
 	    ...
 	)
+
+.. highlight:: html+django
 
 Usage
 -----

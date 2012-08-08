@@ -1,13 +1,13 @@
 Template Tags
 =============
 
+.. highlight:: html+django
+
 .. automodule:: daguerre.templatetags.daguerre
 	:members: adjust
 
 Daguerre comes with three built-in options for the ``adjustment`` parameter: ``crop``,
 ``fill``, and ``fit``. You can read more in :doc:`adjustments`.
-
-.. highlight:: html+django
 
 Examples
 --------
