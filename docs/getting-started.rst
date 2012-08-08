@@ -15,7 +15,7 @@ You can clone the repository yourself at https://github.com/oberlin/django-dague
 Setup
 -----
 
-Ensure that these are in your project's `INSTALLED_APPS`::
+Ensure that these are in your project's ``INSTALLED_APPS``::
 
 	INSTALLED_APPS = (
 	    'grappelli', # must appear before 'django.contrib.admin'
