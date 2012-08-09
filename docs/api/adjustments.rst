@@ -16,12 +16,9 @@ Built-In Adjustments
 
 .. autoclass:: Fit
 
-Examples
---------
-
 When used with the template tag, these adjustments should be referred to by
 their lowercase name::
 
 	{% adjust adjustment="fit" width=300 %}
 
-See :ref:`Template Tags <template-tag-examples>` for more examples.
+See :doc:`/guides/using-daguerre` for examples.
