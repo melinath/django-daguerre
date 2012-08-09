@@ -11,6 +11,7 @@ setup(
 		packages = find_packages(),
 		install_requires = [
 			'django-grappelli',
+			'PIL',
 		],
 		include_package_data = True
 	)
