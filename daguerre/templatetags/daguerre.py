@@ -11,7 +11,7 @@ from daguerre.utils.adjustments import get_adjustment_class, DEFAULT_ADJUSTMENT
 register = template.Library()
 
 
-class ImageResizeNode(template.Node):
+class AdjustmentNode(template.Node):
 	def __init__(self, image, kwargs=None, asvar=None):
 		self.image = image
 		self.kwargs = kwargs
@@ -48,9 +48,9 @@ def adjust(parser, token):
 
 	Syntax::
 	
-		{% adjust <image> [key=val key=val ...] [as <varname>] %}
+		{% adjust <storage_path> [key=val key=val ...] [as <varname>] %}
 
-	Where <image> is either an :class:`ImageFile` or a storage path for an image.
+	Where <storage_path> is the storage path for an image. This can be accessed as the ``name`` attribute of an ImageFieldFile.
 
 	If only one of width/height is supplied, the proportions are automatically constrained.
 	Cropping and resizing will each only take place if the relevant variables are defined.
@@ -63,6 +63,8 @@ def adjust(parser, token):
 	* max_height
 	* adjustment
 	* crop
+
+	.. seealso:: :class:`.AdjustedImageManager`
 	
 	"""
 	params = token.split_contents()
@@ -92,4 +94,4 @@ def adjust(parser, token):
 			raise template.TemplateSyntaxError("Invalid argument to `%s` tag: %s" % (tag, name))
 		kwargs[str(name)] = parser.compile_filter(value)
 	
-	return ImageResizeNode(image, kwargs=kwargs, asvar=asvar)
+	return AdjustmentNode(image, kwargs=kwargs, asvar=asvar)

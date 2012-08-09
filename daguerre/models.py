@@ -23,9 +23,6 @@ from daguerre.validators import FileTypeValidator
 from daguerre.utils.adjustments import get_adjustment_class, adjustments, DEFAULT_ADJUSTMENT
 
 
-__all__ = ('Image', 'Area', 'AdjustedImage')
-
-
 class ImageManager(models.Manager):
 	def for_storage_path(self, storage_path):
 		"""
@@ -143,7 +140,7 @@ class AdjustedImageManager(models.Manager):
 		Fetches or creates an :class:`~AdjustedImage` instance for the requested parameters.
 
 		:param image: The :class:`~Image` instance which is to be adjusted.
-		:param width, height, max_width, max_height: The requested dimensions for the adjusted image.
+		:param integers width, height, max_width, max_height: The requested dimensions for the adjusted image.
 		:param crop: The name of an :class:`~Area` associated with the :class:`Image`; if the crop exists, it will be applied before any other adjustments or calculations.
 
 		"""
