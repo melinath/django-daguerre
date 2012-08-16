@@ -3,3 +3,4 @@ include AUTHORS
 include MANIFEST.in
 recursive-include daguerre/static *
 recursive-include daguerre/templates *
+recursive-include daguerre/tests/data *.png
