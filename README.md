@@ -1,33 +1,37 @@
 Django Daguerre
 ===============
 
-Django Daguerre provides sophisticated models and template tags for
-managing, cropping, and scaling images. It can be used for generating
-thumbnails as well as for processing images in more complex ways.
+**Django Daguerre** makes it easy to adjust images on-the-fly without
+slowing down your templates and without needing to generate everything
+ahead of time with a cron job. You don't need to make any changes to
+your models; it **Just Works**.
+
+Requirements
+------------
+
+* Python 2.5+
+* PIL 1.1.7 (Or [Pillow](http://pypi.python.org/pypi/Pillow))
 
 Installation
 ------------
 
-You can install the latest version of Daguerre with `pip install git+https://github.com/oberlin/django-daguerre.git@master#egg=daguerre`.
+You can install the latest version of Daguerre using `pip`:
 
-Ensure that these are in your project's `INSTALLED_APPS`:
+    pip install git+https://github.com/oberlin/django-daguerre.git@master#egg=daguerre
 
-```python
-INSTALLED_APPS = (
-    'grappelli', # must appear before 'django.contrib.admin'
-    'daguerre', # may appear anywhere in the list
-    ...
-)
-```
+Setup
+-----
+
+Ensure that `'daguerre'` is in your project's `INSTALLED_APPS`:
+
+    INSTALLED_APPS = (
+        'daguerre',
+        ...
+    )
 
 Add the following or similar anywhere in your URLconf:
 
-```python
-urlpatterns = patterns('',
-    url(r'^grappelli/', include('grappelli.urls')),
-    url(r'^daguerre/', include('daguerre.urls')),
-    ...
-)
-```
-
-You may now begin using Daguerre!
+    urlpatterns = patterns('',
+        url(r'^daguerre/', include('daguerre.urls')),
+        ...
+    )

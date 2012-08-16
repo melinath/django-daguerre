@@ -7,8 +7,7 @@ from daguerre.models import Image, Area, AdjustedImage
 
 class AreaInline(admin.TabularInline):
 	model = Area
-	template = 'admin/daguerre/image/area_inline.html'
-	extra = 0
+	extra = 1
 
 
 class AdjustedImageForm(forms.ModelForm):
