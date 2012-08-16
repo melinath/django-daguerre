@@ -35,3 +35,13 @@ Add the following or similar anywhere in your URLconf:
         url(r'^daguerre/', include('daguerre.urls')),
         ...
     )
+
+Usage
+-----
+
+The easiest way to use Daguerre is through the `{% adjust %}` template tag:
+
+    {% load daguerre %}
+    <img src="{% adjust my_model.image.name width=128 height=256 %}" />
+
+For more on using Daguerre, [read the documentation](http://django-daguerre.readthedocs.org/).
