@@ -4,15 +4,15 @@ Project Details
 Authors
 -------
 
-**Django Daguerre** is primarily the work of Stephen Burrows with 
+**Django Daguerre** is primarily the work of Stephen Burrows, with 
 contributions from Harris Lapiroff. It was originally written for Oberlin
 College in Oberlin, Ohio.
 
 Contributing
 ------------
 
-**Django Daguerre** is a still nascent project and greatly appreciates any
-contributions---code, tests, documentation, bug reports, feature requests,
+**Django Daguerre** is a still-nascent project and greatly appreciates any
+contributions—code, tests, documentation, bug reports, feature requests,
 & al.
 
 Development is done through the official `GitHub repository`_. You may fork

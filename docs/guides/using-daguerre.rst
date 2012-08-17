@@ -22,13 +22,13 @@ magic. You don't need to change your models. It Just Works.
 Let's be lazy
 -------------
 
-So the :ttag:`{% adjust %}` tag renders as a URL which gets an
+So the :ttag:`{% adjust %}` tag renders as a URL, which gets an
 adjusted image, right? Well, yes, but in a very lazy fashion. It
 actually renders a URL to an adjustment view, which runs the
-adjustment (if necessary) and then redirects the user to the actual
+adjustment (if necessary), and then redirects the user to the actual
 adjusted image's URL.
 
-The upshot of this is that no matter how many :ttag:`{% adjust %}`
+The upshot is that no matter how many :ttag:`{% adjust %}`
 tags you have on a page, it will render as quickly when the
 thumbnails already exist as it will when the thumbnails still need
 to be created. The thumbnails will then be filled in as the user
@@ -90,7 +90,7 @@ Getting adjusted width and height
 The object being set to the ``image`` context variable is an
 :class:`.AdjustmentInfoDict` instance. In addition to rendering as
 the URL for an image, this object provides access to some other
-useful pieces of information - in particular, the width and height
+useful pieces of information—in particular, the width and height
 that the adjusted image *will have*, based on the width and height
 of the original image and the parameters given to the tag. This can
 help you avoid changes to page flow as adjusted images load.
