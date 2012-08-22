@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 version = __import__('daguerre').VERSION
 
 setup(
-		name='daguerre',
+		name='django-daguerre',
 		version='.'.join([str(v) for v in version]),
 		url="http://django-daguerre.readthedocs.org/",
 		description='Image management and processing for Django.',

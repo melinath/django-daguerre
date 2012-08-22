@@ -25,4 +25,7 @@ requests under Issues_.
 News
 ----
 
-No news is good news!
+August 22, 2012
+'''''''''''''''
+
+This is the first official release of **Django Daguerre**, version 0.1!
