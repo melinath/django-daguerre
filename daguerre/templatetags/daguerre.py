@@ -12,33 +12,42 @@ register = template.Library()
 
 
 class AdjustmentNode(template.Node):
-	def __init__(self, image, kwargs=None, asvar=None):
-		self.image = image
+	def __init__(self, storage_path, kwargs=None, asvar=None):
+		self.storage_path = storage_path
 		self.kwargs = kwargs
 		self.asvar = asvar
 	
 	def render(self, context):
-		image = self.image.resolve(context)
+		storage_path = self.storage_path.resolve(context)
 		kwargs = dict((k, v.resolve(context)) for k, v in self.kwargs.iteritems())
 
-		if hasattr(image, "name"):
-			image = image.name
+		adjustment = None
 
-		if not isinstance(image, basestring):
-			return ''
+		if isinstance(storage_path, basestring):
+			try:
+				image = Image.objects.for_storage_path(storage_path)
+			except Image.DoesNotExist:
+				pass
+			else:
+				adjustment_class = get_adjustment_class(kwargs.pop('adjustment', DEFAULT_ADJUSTMENT))
+				try:
+					adjustment = adjustment_class.from_image(image, **kwargs)
+				except IOError:
+					# IOError pops up if image.image doesn't reference
+					# a present file.
+					pass
 
-		try:
-			image = Image.objects.for_storage_path(image)
-		except Image.DoesNotExist:
-			return ''
-
-		adjustment_class = get_adjustment_class(kwargs.pop('adjustment', DEFAULT_ADJUSTMENT))
-		adjustment = adjustment_class.from_image(image, **kwargs)
+		if adjustment is None:
+			info_dict = {}
+			url = ''
+		else:
+			info_dict = adjustment.info_dict()
+			url = adjustment.url
 
 		if self.asvar is not None:
-			context[self.asvar] = adjustment.info_dict()
+			context[self.asvar] = info_dict
 			return ''
-		return adjustment.url
+		return url
 
 
 @register.tag
@@ -73,7 +82,7 @@ def adjust(parser, token):
 		raise template.TemplateSyntaxError('"%s" template tag requires at least two arguments' % tag)
 	
 	tag = params[0]
-	image = parser.compile_filter(params[1])
+	storage_path = parser.compile_filter(params[1])
 	params = params[2:]
 	asvar = None
 	
@@ -94,4 +103,4 @@ def adjust(parser, token):
 			raise template.TemplateSyntaxError("Invalid argument to `%s` tag: %s" % (tag, name))
 		kwargs[str(name)] = parser.compile_filter(value)
 	
-	return AdjustmentNode(image, kwargs=kwargs, asvar=asvar)
+	return AdjustmentNode(storage_path, kwargs=kwargs, asvar=asvar)
