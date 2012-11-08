@@ -37,6 +37,22 @@ class AdjustedImageTestCase(DaguerreTestCaseMixin, TestCase):
 		new_adjusted = AdjustedImage.objects.adjust(self.base_image, width=50, height=100, adjustment='crop')
 		self.assertEqual(adjusted, new_adjusted)
 
+	def test_readjust_multiple(self):
+		"""
+		If there are multiple adjusted versions of the image with the same
+		parameters, one of them should be returned rather than erroring out.
+
+		"""
+		new_im = PILImage.open(get_test_file_path('50x100_crop.png'))
+		adjusted1 = AdjustedImage.objects.adjust(self.base_image, width=50, height=100, adjustment='crop')
+		adjusted2 = AdjustedImage.objects.get(pk=adjusted1.pk)
+		adjusted2.pk = None
+		adjusted2.save()
+		self.assertNotEqual(adjusted1.pk, adjusted2.pk)
+
+		new_adjusted = AdjustedImage.objects.adjust(self.base_image, width=50, height=100, adjustment='crop')
+		self.assertTrue(new_adjusted == adjusted1 or new_adjusted == adjusted2)
+
 
 class ImageTestCase(DaguerreTestCaseMixin, TestCase):
 	def setUp(self):
@@ -58,3 +74,19 @@ class ImageTestCase(DaguerreTestCaseMixin, TestCase):
 		fp.write('hi')
 		fp.close()
 		self.assertRaises(Image.DoesNotExist, Image.objects.for_storage_path, 'totally-an-image.jpg')
+
+	def test_for_storage_path__multiple(self):
+		"""
+		If multiple Images exist for a certain storage path, one of them should
+		be returned rather than erroring out.
+
+		"""
+		image1 = self.image_creator.create('100x100.png')
+		image2 = Image.objects.get(pk=image1.pk)
+		image2.pk = None
+		image2.save()
+		self.assertNotEqual(image1.pk, image2.pk)
+
+		storage_path = image1.image.name
+		new_image = Image.objects.for_storage_path(storage_path)
+		self.assertTrue(new_image == image1 or new_image == image2)

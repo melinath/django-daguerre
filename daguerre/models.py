@@ -32,9 +32,8 @@ class ImageManager(models.Manager):
 		instance encountered is returned.
 
 		"""
-		images = self.filter(image=storage_path)
 		try:
-			image = images[0]
+			image = self.filter(image=storage_path)[:1][0]
 		except IndexError:
 			try:
 				im_file = default_storage.open(storage_path)
@@ -164,8 +163,8 @@ class AdjustedImageManager(models.Manager):
 		adjusted_image_query_kwargs = dict(("%s__isnull" % k, True) if v is None else (k, v) for k, v in adjusted_image_kwargs.iteritems())
 
 		try:
-			adjusted = self.get(**adjusted_image_query_kwargs)
-		except self.model.DoesNotExist:
+			adjusted = self.filter(**adjusted_image_query_kwargs)[:1][0]
+		except IndexError:
 			adjusted = self.model(**adjusted_image_kwargs)
 
 			im = adjustment.adjust()
