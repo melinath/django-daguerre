@@ -63,13 +63,27 @@ class ImageTestCase(DaguerreTestCaseMixin, TestCase):
 		storage_path = image.image.name
 		self.assertEqual(Image.objects.for_storage_path(storage_path), image)
 
-		image.delete()
+	def test_for_storage_path__exact(self):
+		"""
+		The created Image for a given path should store that exact path rather
+		than creating a copy of the file elsewhere.
+
+		"""
+		storage_path = 'exact_image_path.png'
+		img = PILImage.open(get_test_file_path('100x100.png'))
+		fp = default_storage.open(storage_path, 'w')
+		img.save(fp, 'png')
+		fp.close()
+
 		image = Image.objects.for_storage_path(storage_path)
 		self.assertEqual(image.image.name, storage_path)
 
-		# Nonexistant paths should raise Image.DoesNotExist.
+	def test_for_storage_path__nonexistant(self):
+		"""Nonexistant paths should raise Image.DoesNotExist."""
 		self.assertRaises(Image.DoesNotExist, Image.objects.for_storage_path, 'nonexistant.png')
 
+	def test_for_storage_path__not_image(self):
+		"""Paths that aren't images should raise Image.DoesNotExist."""
 		fp = default_storage.open('totally-an-image.jpg', 'w')
 		fp.write('hi')
 		fp.close()
