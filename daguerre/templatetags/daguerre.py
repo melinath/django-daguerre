@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django import template
 from django.conf import settings
+from django.core.files.images import ImageFile
 from django.template.defaulttags import kwarg_re
 
 from daguerre.models import Image
@@ -12,13 +13,19 @@ register = template.Library()
 
 
 class AdjustmentNode(template.Node):
-	def __init__(self, storage_path, kwargs=None, asvar=None):
-		self.storage_path = storage_path
+	def __init__(self, image, kwargs=None, asvar=None):
+		self.image = image
 		self.kwargs = kwargs
 		self.asvar = asvar
 	
 	def render(self, context):
-		storage_path = self.storage_path.resolve(context)
+		image = self.image.resolve(context)
+
+		if isinstance(image, ImageFile):
+			storage_path = image.name
+		else:
+			storage_path = image
+
 		kwargs = dict((k, v.resolve(context)) for k, v in self.kwargs.iteritems())
 
 		adjustment = None
@@ -57,9 +64,9 @@ def adjust(parser, token):
 
 	Syntax::
 	
-		{% adjust <storage_path> [key=val key=val ...] [as <varname>] %}
+		{% adjust <image> [key=val key=val ...] [as <varname>] %}
 
-	Where <storage_path> is the storage path for an image. This can be accessed as the ``name`` attribute of an ImageFieldFile.
+	Where <image> is either an image file (like you would get as an ImageField's value) or a direct storage path for an image.
 
 	If only one of width/height is supplied, the proportions are automatically constrained.
 	Cropping and resizing will each only take place if the relevant variables are defined.
@@ -82,7 +89,7 @@ def adjust(parser, token):
 		raise template.TemplateSyntaxError('"%s" template tag requires at least two arguments' % tag)
 	
 	tag = params[0]
-	storage_path = parser.compile_filter(params[1])
+	image = parser.compile_filter(params[1])
 	params = params[2:]
 	asvar = None
 	
@@ -103,4 +110,4 @@ def adjust(parser, token):
 			raise template.TemplateSyntaxError("Invalid argument to `%s` tag: %s" % (tag, name))
 		kwargs[str(name)] = parser.compile_filter(value)
 	
-	return AdjustmentNode(storage_path, kwargs=kwargs, asvar=asvar)
+	return AdjustmentNode(image, kwargs=kwargs, asvar=asvar)

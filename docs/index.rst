@@ -17,7 +17,7 @@ your models; it **Just Works**.
 .. code-block:: html+django
 
     {% load daguerre %}
-    <img src="{% adjust my_model.image.name width=200 height=400 %}" />
+    <img src="{% adjust my_model.image width=200 height=400 %}" />
 
 Contents
 --------

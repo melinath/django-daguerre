@@ -14,10 +14,10 @@ template tag:
 .. code-block:: html+django
 
     {% load daguerre %}
-    <img src="{% adjust my_model.image.name width=128 height=256 %}" />
+    <img src="{% adjust my_model.image width=128 height=256 %}" />
 
-:mod:`daguerre` works directly with image storage paths. There is no
-magic. You don't need to change your models. It Just Works.
+:mod:`daguerre` works directly with any ImageField (or storage path).
+There is no magic. You don't need to change your models. It Just Works.
 
 Let's be lazy
 -------------
@@ -49,7 +49,7 @@ additional parameter to the tag:
 
 .. code-block:: html+django
 
-    <img src="{% adjust my_model.image.name width=128 height=256 adjustment="fit" %}" />
+    <img src="{% adjust my_model.image width=128 height=256 adjustment="fit" %}" />
 
 Take this picture:
 
@@ -84,7 +84,7 @@ Getting adjusted width and height
 .. code-block:: html+django
 
     {% load daguerre %}
-    {% adjust my_model.image.name width=128 height=128 adjustment="fit" as image %}
+    {% adjust my_model.image width=128 height=128 adjustment="fit" as image %}
     <img src="{{ image }}" width={{ image.width }} height={{ image.height }} />
 
 The object being set to the ``image`` context variable is an
@@ -105,7 +105,7 @@ you've selected. For example:
 .. code-block:: html+django
 
     {% load daguerre %}
-    <img src="{% adjust my_model.image.name width=128 height=128 adjustment="fit" crop="face" %}" />
+    <img src="{% adjust my_model.image width=128 height=128 adjustment="fit" crop="face" %}" />
 
 This would first crop the image to the "face" :class:`.Area` (if available)
 and then fit that cropped image into a 128x128 box.
