@@ -6,6 +6,7 @@ from django.core.files.images import ImageFile
 from django.template.defaulttags import kwarg_re
 
 from daguerre.models import Image
+from daguerre.utils import AdjustmentInfoDict
 from daguerre.utils.adjustments import get_adjustment_class, DEFAULT_ADJUSTMENT
 
 
@@ -45,7 +46,7 @@ class AdjustmentNode(template.Node):
 					pass
 
 		if adjustment is None:
-			info_dict = {}
+			info_dict = AdjustmentInfoDict()
 			url = ''
 		else:
 			info_dict = adjustment.info_dict()
