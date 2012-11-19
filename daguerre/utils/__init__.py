@@ -1,6 +1,7 @@
 from hashlib import sha1
 
 from django.conf import settings
+from django.utils.encoding import smart_str
 from django.utils.translation import ugettext_lazy as _
 import mimetypes
 
@@ -22,7 +23,7 @@ def convert_filetype(ftype):
 
 
 def make_security_hash(*args):
-	return sha1(''.join([unicode(arg) for arg in args]) + settings.SECRET_KEY).hexdigest()[::2]
+	return sha1(smart_str(u''.join([unicode(arg) for arg in args]) + settings.SECRET_KEY)).hexdigest()[::2]
 
 
 def check_security_hash(sec_hash, *args):
