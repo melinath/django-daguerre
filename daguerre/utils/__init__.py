@@ -22,8 +22,16 @@ def convert_filetype(ftype):
 		raise ValueError(_('Invalid MIME-type: %s' % ftype))
 
 
+def make_hash(*args, **kwargs):
+	start = kwargs.get('start', None)
+	stop = kwargs.get('stop', None)
+	step = kwargs.get('step', None)
+	return sha1(smart_str(u''.join([unicode(arg) for arg in args]))).hexdigest()[start:stop:step]
+
+
 def make_security_hash(*args):
-	return sha1(smart_str(u''.join([unicode(arg) for arg in args]) + settings.SECRET_KEY)).hexdigest()[::2]
+	args = args + (settings.SECRET_KEY,)
+	return make_hash(*args, step=2)
 
 
 def check_security_hash(sec_hash, *args):

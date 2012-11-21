@@ -20,6 +20,7 @@ except ImportError:
 	import Image as PILImage
 
 from daguerre.validators import FileTypeValidator
+from daguerre.utils import make_hash
 from daguerre.utils.adjustments import get_adjustment_class, adjustments, DEFAULT_ADJUSTMENT
 
 
@@ -171,7 +172,8 @@ class AdjustedImageManager(models.Manager):
 			f = adjusted._meta.get_field('adjusted')
 			ext = mimetypes.guess_extension(adjustment.mimetype)
 
-			filename = ''.join((sha1(''.join(unicode(arg) for arg in (width, height, max_width, max_height, adjustment, crop, image.image.name, datetime.datetime.now().isoformat()))).hexdigest()[::2], ext))
+			args = (width, height, max_width, max_height, adjustment, crop, image.image.name, datetime.datetime.now().isoformat())
+			filename = ''.join((make_hash(*args, step=2), ext))
 			filename = f.generate_filename(adjusted, filename)
 
 			temp = NamedTemporaryFile()
