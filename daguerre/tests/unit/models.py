@@ -53,6 +53,14 @@ class AdjustedImageTestCase(DaguerreTestCaseMixin, TestCase):
 		new_adjusted = AdjustedImage.objects.adjust(self.base_image, width=50, height=100, adjustment='crop')
 		self.assertTrue(new_adjusted == adjusted1 or new_adjusted == adjusted2)
 
+	def test_adjust__nonexistant(self):
+		"""
+		Adjusting an Image for a path that (no longer) exists should raise a DoesNotExist.
+
+		"""
+		img = Image.objects.create(image='nonexistant.png', height=200, width=200)
+		self.assertRaises(AdjustedImage.DoesNotExist, AdjustedImage.objects.adjust, img)
+
 
 class ImageTestCase(DaguerreTestCaseMixin, TestCase):
 	def setUp(self):

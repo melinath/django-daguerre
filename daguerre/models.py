@@ -38,8 +38,8 @@ class ImageManager(models.Manager):
 		except IndexError:
 			try:
 				im_file = default_storage.open(storage_path)
-			except IOError:
-				raise self.model.DoesNotExist("Path could not be opened.")
+			except IOError, e:
+				raise self.model.DoesNotExist(e.message)
 
 			try:
 				PILImage.open(im_file)
@@ -151,7 +151,12 @@ class AdjustedImageManager(models.Manager):
 		}
 
 		adjustment_class = get_adjustment_class(adjustment)
-		adjustment = adjustment_class.from_image(image, crop=crop, width=width, height=height, max_width=max_width, max_height=max_height)
+
+		# If the image's file no longer exists, this raises IOError.
+		try:
+			adjustment = adjustment_class.from_image(image, crop=crop, width=width, height=height, max_width=max_width, max_height=max_height)
+		except IOError, e:
+			raise AdjustedImage.DoesNotExist(e.message)
 
 		adjusted_image_kwargs.update({
 			'requested_width': width,

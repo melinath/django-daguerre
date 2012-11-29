@@ -65,7 +65,10 @@ class AdjustedImageRedirectView(BaseAdjustmentView):
 		adjustment_kwargs = self.get_adjustment_kwargs()
 		self.check_security(adjustment_kwargs)
 		image = self.get_image()
-		adjusted = AdjustedImage.objects.adjust(image, **adjustment_kwargs)
+		try:
+			adjusted = AdjustedImage.objects.adjust(image, **adjustment_kwargs)
+		except AdjustedImage.DoesNotExist, e:
+			raise Http404(e.message)
 		return HttpResponseRedirect(adjusted.adjusted.url)
 
 
@@ -78,5 +81,8 @@ class AjaxAdjustmentInfoView(BaseAdjustmentView):
 		adjustment_kwargs = self.get_adjustment_kwargs()
 		image = self.get_image()
 		adjustment_class = get_adjustment_class(adjustment_kwargs.pop('adjustment'))
-		adjustment = adjustment_class.from_image(image, **adjustment_kwargs)
+		try:
+			adjustment = adjustment_class.from_image(image, **adjustment_kwargs)
+		except IOError, e:
+			raise Http404(e.message)
 		return HttpResponse(json.dumps(adjustment.info_dict()), mimetype="application/json")

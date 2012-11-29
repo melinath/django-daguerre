@@ -81,3 +81,44 @@ class AdjustedImageRedirectViewTestCase(DaguerreTestCaseMixin, TestCase):
 		self.view.request = factory.get('/', get_params)
 		# I wish we had an assertNotRaises...
 		self.assertTrue(self.view.check_security(adjustment_kwargs) is None)
+
+	def test_nonexistant(self):
+		"""
+		A 404 should be raised if the original image's image doesn't exist.
+
+		"""
+		factory = RequestFactory()
+		adjustment_kwargs = {
+			'width': 10,
+			'height': 5,
+		}
+		storage_path = 'nonexistant.png'
+		img = Image.objects.create(image=storage_path, height=200, width=200)
+		self.view.kwargs = {'storage_path': storage_path}
+		get_params = {QUERY_PARAMS['security']: make_security_hash(storage_path, *[adjustment_kwargs.get(k) for k in self.view.params])}
+		self.view.request = factory.get('/', get_params)
+		self.assertRaises(Http404, self.view.get, self.view.request)
+
+
+class AjaxAdjustmentInfoViewTestCase(DaguerreTestCaseMixin, TestCase):
+	def setUp(self):
+		TestCase.setUp(self)
+		self.view = AjaxAdjustmentInfoView()
+
+	def test_nonexistant(self):
+		"""
+		A 404 should be raised if the original image's image doesn't exist.
+
+		"""
+		factory = RequestFactory()
+		adjustment_kwargs = {
+			'width': 10,
+			'height': 5,
+		}
+		storage_path = 'nonexistant.png'
+		img = Image.objects.create(image=storage_path, height=200, width=200)
+		self.view.kwargs = {'storage_path': storage_path}
+		get_params = {QUERY_PARAMS['security']: make_security_hash(storage_path, *[adjustment_kwargs.get(k) for k in self.view.params])}
+		self.view.request = factory.get('/', get_params,
+							  			HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+		self.assertRaises(Http404, self.view.get, self.view.request)
