@@ -24,6 +24,12 @@ from daguerre.utils import make_hash
 from daguerre.utils.adjustments import get_adjustment_class, adjustments, DEFAULT_ADJUSTMENT
 
 
+#: Formats that we trust to be able to handle gracefully.
+KEEP_FORMATS = ('PNG', 'JPEG', 'GIF')
+#: Default format to convert other file types to.
+DEFAULT_FORMAT = 'PNG'
+
+
 class ImageManager(models.Manager):
 	def for_storage_path(self, storage_path):
 		"""
@@ -34,7 +40,7 @@ class ImageManager(models.Manager):
 
 		"""
 		try:
-			image = self.filter(image=storage_path)[:1][0]
+			image = self.filter(storage_path=storage_path)[:1][0]
 		except IndexError:
 			try:
 				im_file = default_storage.open(storage_path)
@@ -42,13 +48,24 @@ class ImageManager(models.Manager):
 				raise self.model.DoesNotExist(e.message)
 
 			try:
-				PILImage.open(im_file)
+				im = PILImage.open(im_file)
 			except IOError:
 				raise self.model.DoesNotExist("Path does not point to a valid image file.")
 
-			image = self.model()
-			image.image = storage_path
-			image.save()
+			image = self.model(storage_path=storage_path)
+			if im.format in KEEP_FORMATS:
+				image.image = storage_path
+				image.save()
+			else:
+				temp = NamedTemporaryFile()
+				try:
+					im.save(temp, format=DEFAULT_FORMAT)
+					root_name = os.path.splitext(os.path.basename(storage_path))[0]
+					filename = ''.join((root_name, '.', DEFAULT_FORMAT.lower()))
+					image.image = File(temp, name=filename)
+					image.save()
+				finally:
+					temp.close()
 		return image
 
 

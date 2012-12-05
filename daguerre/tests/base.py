@@ -31,6 +31,9 @@ class ImageCreator(object):
 	def create(self, test_path):
 		pil_image = PILImage.open(get_test_file_path(test_path))
 		image = Image()
-		image.image = ImageFile(open(pil_image.filename))
+		with open(pil_image.filename, 'r') as f:
+			image.image = ImageFile(f)
+			image.save()
+		image.storage_path = image.image.name
 		image.save()
 		return image
