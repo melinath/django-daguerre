@@ -56,6 +56,7 @@ class Image(models.Model):
 	"""A basic image. Has a name, an image file, a timestamp, and width/height fields."""
 	name = models.CharField(max_length=100, blank=True)
 	
+	storage_path = models.CharField(max_length=300, db_index=True)
 	image = models.ImageField(upload_to='daguerre/images/%Y/%m/%d', validators=[FileTypeValidator(['.jpg', '.gif', '.png'])], help_text="Allowed file types: .jpg, .gif, and .png", height_field='height', width_field='width', max_length=255)
 	timestamp = models.DateTimeField(auto_now_add=True)
 	
