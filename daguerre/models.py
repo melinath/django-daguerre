@@ -20,7 +20,7 @@ except ImportError:
 	import Image as PILImage
 
 from daguerre.validators import FileTypeValidator
-from daguerre.utils import make_hash
+from daguerre.utils import make_hash, AdjustmentInfoDict
 from daguerre.utils.adjustments import get_adjustment_class, adjustments, DEFAULT_ADJUSTMENT
 
 
@@ -237,5 +237,22 @@ class AdjustedImage(models.Model):
 	def __unicode__(self):
 		return u"(%s, %s) adjustment for %s" % (smart_unicode(self.requested_width), smart_unicode(self.requested_height), self.image)
 	
+	def info_dict(self):
+		"""
+		Returns a basic info dict for this adjusted image.
+
+		"""
+		return AdjustmentInfoDict({
+			'width': self.width,
+			'height': self.height,
+			'requested': {
+				'width': self.requested_width,
+				'height': self.requested_height,
+				'max_width': self.requested_max_width,
+				'max_height': self.requested_max_height,
+			},
+			'url': self.adjusted.url,
+		})
+
 	class Meta:
 		unique_together = ('image', 'requested_width', 'requested_height', 'requested_max_width', 'requested_max_height', 'requested_adjustment')

@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
 from django import template
-from django.conf import settings
 from django.core.files.images import ImageFile
 from django.template.defaulttags import kwarg_re
 
-from daguerre.models import Image
+from daguerre.models import Image, AdjustedImage
 from daguerre.utils import AdjustmentInfoDict
 from daguerre.utils.adjustments import get_adjustment_class, DEFAULT_ADJUSTMENT
 
@@ -14,7 +13,7 @@ register = template.Library()
 
 
 class AdjustmentNode(template.Node):
-	def __init__(self, image, kwargs=None, asvar=None):
+	def __init__(self, image, kwargs, asvar=None):
 		self.image = image
 		self.kwargs = kwargs
 		self.asvar = asvar
@@ -47,15 +46,115 @@ class AdjustmentNode(template.Node):
 
 		if adjustment is None:
 			info_dict = AdjustmentInfoDict()
-			url = ''
 		else:
 			info_dict = adjustment.info_dict()
-			url = adjustment.url
 
 		if self.asvar is not None:
 			context[self.asvar] = info_dict
 			return ''
-		return url
+		return info_dict
+
+
+class BulkAdjustmentNode(template.Node):
+	def __init__(self, iterable, attribute, kwargs, asvar):
+		self.iterable = iterable
+		self.attribute = attribute
+		self.kwargs = kwargs
+		self.asvar = asvar
+
+	def render(self, context):
+		iterable = self.iterable.resolve(context)
+		attribute = self.attribute.resolve(context)
+
+		result_dict = {}
+
+		items_dict = {}
+		for item in iterable:
+			path = getattr(item, attribute, None)
+			if isinstance(path, ImageFile):
+				path = path.name
+			if isinstance(path, basestring):
+				items_dict.setdefault(path, []).append(item)
+			else:
+				result_dict[item] = AdjustmentInfoDict()
+
+		images = Image.objects.filter(storage_path__in=items_dict)
+		image_pk_dict = dict((image.pk, image) for image in images)
+		image_path_dict = dict((image.storage_path, image) for image in images)
+
+		# kwargs is used for any adjustments; query_kwargs is used to find
+		# old already-created adjustments.
+		kwargs = dict((k, v.resolve(context)) for k, v in self.kwargs.iteritems())
+		requested_adjustment = kwargs.pop('adjustment', DEFAULT_ADJUSTMENT)
+
+		query_kwargs = {
+			'requested_adjustment': requested_adjustment
+		}
+		for key in ('width', 'height', 'max_width', 'max_height'):
+			value = kwargs.get(key)
+			if value is None:
+				query_kwargs['requested_{0}__isnull'.format(key)] = True
+			else:
+				query_kwargs['requested_{0}'.format(key)] = value
+
+		adjusted_images = AdjustedImage.objects.filter(image_id__in=image_pk_dict,
+													   **query_kwargs)
+		# First assign all the values that have been previously adjusted.
+		for adjusted_image in adjusted_images:
+			if adjusted_image.image_id not in image_pk_dict:
+				continue
+			image = image_pk_dict[adjusted_image.image_id]
+			if image.storage_path not in items_dict:
+				continue
+			info_dict = adjusted_image.info_dict()
+			for item in items_dict[image.storage_path]:
+				result_dict[item] = info_dict
+			del image_pk_dict[adjusted_image.image_id]
+			del items_dict[image.storage_path]
+
+		# Then make sure each remaining item has an associated image,
+		# and assign it.
+		for path, items in items_dict.iteritems():
+			if path in image_path_dict:
+				image = image_path_dict[path]
+			else:
+				try:
+					image = Image.objects.for_storage_path(path)
+				except Image.DoesNotExist:
+					image = None
+			adjustment = None
+			if image is not None:
+				adjustment_class = get_adjustment_class(requested_adjustment)
+				try:
+					adjustment = adjustment_class.from_image(image, **kwargs)
+				except IOError:
+					pass
+			if adjustment is None:
+				info_dict = AdjustmentInfoDict()
+			else:
+				info_dict = adjustment.info_dict()
+			for item in items:
+				result_dict[item] = info_dict
+
+		context[self.asvar] = result_dict
+		return ''
+
+
+def _get_kwargs(parser, tag_name, bits):
+	"""Helper function to get kwargs from a list of bits."""
+	valid_kwargs = ('width', 'height', 'max_width', 'max_height', 'adjustment', 'crop')
+	kwargs = {}
+	
+	for bit in bits:
+		match = kwarg_re.match(bit)
+		if not match:
+			raise template.TemplateSyntaxError("Malformed arguments to `%s` tag" % tag_name)
+		name, value = match.groups()
+		if name not in valid_kwargs:
+			raise template.TemplateSyntaxError("Invalid argument to `%s` tag: %s" % (tag_name, name))
+		kwargs[str(name)] = parser.compile_filter(value)
+
+	return kwargs
 
 
 @register.tag
@@ -84,31 +183,49 @@ def adjust(parser, token):
 	.. seealso:: :class:`.AdjustedImageManager`
 	
 	"""
-	params = token.split_contents()
+	bits = token.split_contents()
+	tag_name = bits[0]
 	
-	if len(params) < 2:
-		raise template.TemplateSyntaxError('"%s" template tag requires at least two arguments' % tag)
-	
-	tag = params[0]
-	image = parser.compile_filter(params[1])
-	params = params[2:]
+	if len(bits) < 2:
+		raise template.TemplateSyntaxError('"{0}" template tag requires at '
+										   'least two arguments'.format(tag_name))
+
+	image = parser.compile_filter(bits[1])
+	bits = bits[2:]
 	asvar = None
 	
-	if len(params) > 1:
-		if params[-2] == 'as':
-			asvar = params[-1]
-			params = params[:-2]
+	if len(bits) > 1:
+		if bits[-2] == 'as':
+			asvar = bits[-1]
+			bits = bits[:-2]
 	
-	valid_kwargs = ('width', 'height', 'max_width', 'max_height', 'adjustment', 'crop')
-	kwargs = {}
+	return AdjustmentNode(image, _get_kwargs(parser, tag_name, bits), asvar=asvar)
+
+
+@register.tag
+def adjust_bulk(parser, token):
+	"""
+	{% adjust_bulk <iterable> <attribute> [key=val key=val ...] as varname %}
+	"""
+	bits = token.split_contents()
+	tag_name = bits[0]
 	
-	for param in params:
-		match = kwarg_re.match(param)
-		if not match:
-			raise template.TemplateSyntaxError("Malformed arguments to `%s` tag" % tag)
-		name, value = match.groups()
-		if name not in valid_kwargs:
-			raise template.TemplateSyntaxError("Invalid argument to `%s` tag: %s" % (tag, name))
-		kwargs[str(name)] = parser.compile_filter(value)
-	
-	return AdjustmentNode(image, kwargs=kwargs, asvar=asvar)
+	if len(bits) < 5:
+		raise template.TemplateSyntaxError('"{0}" template tag requires at '
+										   'least five arguments'.format(tag_name))
+
+	if bits[-2] != 'as':
+		raise template.TemplateSyntaxError('The second to last argument to '
+										   '{0} must be "as".'.format(tag_name))
+
+	iterable = parser.compile_filter(bits[1])
+	attribute = parser.compile_filter(bits[2])
+	asvar = bits[-1]
+	bits = bits[3:-2]
+
+	kwargs = _get_kwargs(parser, tag_name, bits)
+	if 'crop' in kwargs:
+		raise template.TemplateSyntaxError('{% {0} %} does not currently support '
+										   'cropping.'.format(tag_name))
+
+	return BulkAdjustmentNode(iterable, attribute, kwargs, asvar)
