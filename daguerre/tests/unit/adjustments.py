@@ -5,29 +5,8 @@ except ImportError:
 	import Image
 
 from daguerre.models import Area
-from daguerre.tests.base import DaguerreTestCaseMixin, ImageCreator, get_test_file_path
-from daguerre.utils.adjustments import Adjustment, Fit, Crop, Fill
-
-
-class AdjustmentTestCase(DaguerreTestCaseMixin, TestCase):
-	def setUp(self):
-		self.image_creator = ImageCreator()
-		TestCase.setUp(self)
-
-	def test_from_image(self):
-		image = self.image_creator.create('100x100.png')
-		adjustment = Adjustment.from_image(image)
-		self.assertTrue(adjustment._crop is None)
-		self.assertTrue(adjustment._crop_area is None)
-		self.assertEqual(adjustment._storage_path, image.image.name)
-		self.assertEqual(adjustment._image, image)
-		self.assertEqual(list(adjustment.areas), list(image.areas.all()))
-		self.assertEqual(adjustment.format, 'PNG')
-		self.assertEqual(adjustment.mimetype, 'image/png')
-		self.assertTrue(adjustment.width is None)
-		self.assertTrue(adjustment.height is None)
-		self.assertTrue(adjustment.max_width is None)
-		self.assertTrue(adjustment.max_height is None)
+from daguerre.tests.base import DaguerreTestCaseMixin, get_test_file_path
+from daguerre.utils.adjustments import Fit, Crop, Fill
 
 
 class FitTestCase(DaguerreTestCaseMixin, TestCase):

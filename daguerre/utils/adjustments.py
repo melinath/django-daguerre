@@ -1,9 +1,5 @@
 from itertools import ifilter
 
-from django.core.exceptions import ObjectDoesNotExist
-from django.core.files.storage import default_storage
-from django.core.urlresolvers import reverse
-from django.http import QueryDict
 try:
 	from PIL import Image
 except ImportError:
@@ -14,15 +10,6 @@ from daguerre.utils import make_security_hash, AdjustmentInfoDict
 
 adjustments = {}
 DEFAULT_ADJUSTMENT = 'fit'
-QUERY_PARAMS = {
-	'width': 'w',
-	'height': 'h',
-	'max_width': 'max_w',
-	'max_height': 'max_h',
-	'adjustment': 'a',
-	'security': 's',
-	'crop': 'c'
-}
 
 
 def get_adjustment_class(slug):
@@ -54,37 +41,6 @@ class Adjustment(object):
 		self.max_width = max_width
 		self.max_height = max_height
 
-	@classmethod
-	def from_image(cls, image, crop=None, areas=None, **kwargs):
-		"""Generate an adjusted image based on an :class:`~Image` instance rather than a straight PIL image. Essentially adds a little sugar on top."""
-		im_file = default_storage.open(image.image.name)
-		pil_image = Image.open(im_file)
-		area = None
-		if crop is not None:
-			try:
-				area = image.areas.get(name=crop)
-			except ObjectDoesNotExist:
-				crop = None
-			else:
-				# For now, just ignore all the areas if there is a
-				# valid crop.  Technically, it would probably be
-				# better to "crop" the areas as well.
-				areas = None
-				pil_image = pil_image.crop((area.x1,
-											area.y1,
-											area.x2,
-											area.y2))
-		
-		if areas is None and crop is None:
-			areas = image.areas.all()
-
-		instance = cls(pil_image, areas=areas, **kwargs)
-		instance._image = image
-		instance._crop = crop
-		instance._crop_area = area
-		instance._storage_path = image.image.name
-		return instance
-
 	def calculate(self):
 		"""Calculates the dimensions of the adjusted image without actually manipulating the image."""
 		if not hasattr(self, '_calculated'):
@@ -110,79 +66,6 @@ class Adjustment(object):
 
 	def _adjust(self):
 		raise NotImplementedError
-
-	@property
-	def querydict(self):
-		"""Returns a querydict for this adjustment."""
-		if not hasattr(self, '_querydict'):
-			qd = QueryDict('', mutable=True)
-			for adjustment, cls in adjustments.iteritems():
-				if cls == self.__class__:
-					break
-			else:
-				raise ValueError("Unregistered adjustment.")
-
-			storage_path = self._storage_path
-			security = make_security_hash(storage_path, self.width, self.height, self.max_width, self.max_height, adjustment, self._crop)
-
-			qd[QUERY_PARAMS['adjustment']] = adjustment
-			qd[QUERY_PARAMS['security']] = security
-			for attr in ('width', 'height', 'max_width', 'max_height'):
-				value = getattr(self, attr)
-				if value is not None:
-					qd[QUERY_PARAMS[attr]] = value
-			if self._crop is not None:
-				qd[QUERY_PARAMS['crop']] = self._crop
-			self._querydict = qd
-		return self._querydict
-
-	@property
-	def url(self):
-		"""Returns a url for the adjusted image. This is only available for adjustments generated from an :class:`~Image`."""
-		if not hasattr(self, '_image'):
-			raise AttributeError
-		return u"%s?%s" % (reverse('daguerre_adjusted_image_redirect', kwargs={'storage_path': self._storage_path}), self.querydict.urlencode())
-
-	@property
-	def ajax_url(self):
-		"""Returns a url which can be used to fetch information about this adjustment via ajax. This is only available for adjustments generated from an :class:`~Image`."""
-		if not hasattr(self, '_image'):
-			raise AttributeError
-		querydict = self.querydict.copy()
-		querydict.pop(QUERY_PARAMS['security'])
-		return u"%s?%s" % (reverse('daguerre_ajax_adjustment_info', kwargs={'storage_path': self._storage_path}), querydict.urlencode())
-
-	def info_dict(self):
-		"""
-		Returns an information dictionary for the adjusted image without actually running the adjustment. The available information is:
-
-		* format: image mimetype.
-		* ident: storage path for the original image.
-		* width, height: width/height of the resized image.
-		* url: url for the resized image file.
-		* ajax_url: url to get this information via ajax.
-		* requested: a dictionary of information regarding the request. Contains keys for width, height, max_width, max_height, and crop.
-
-		This method is only available from adjustments instantiated from an :class:`~Image`.
-
-		"""
-		if not hasattr(self, '_image'):
-			raise AttributeError
-		return AdjustmentInfoDict({
-			'format': self.format,
-			'ident': self._storage_path,
-			'width': self.calculate()[0],
-			'height': self.calculate()[1],
-			'requested': {
-				'width': self.width,
-				'height': self.height,
-				'max_width': self.max_width,
-				'max_height': self.max_height,
-				'crop': self._crop
-			},
-			'url': self.url,
-			'ajax_url': self.ajax_url
-		})
 
 
 class Fit(Adjustment):

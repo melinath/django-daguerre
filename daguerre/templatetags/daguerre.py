@@ -1,48 +1,47 @@
 from __future__ import absolute_import
 
 from django import template
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.images import ImageFile
 from django.template.defaulttags import kwarg_re
 
 from daguerre.models import Image, AdjustedImage
 from daguerre.utils import AdjustmentInfoDict
-from daguerre.utils.adjustments import get_adjustment_class, DEFAULT_ADJUSTMENT
+from daguerre.utils.adjustment_helpers import AdjustmentHelper
 
 
 register = template.Library()
 
 
-class BaseAdjustmentNode(template.Node):
-	def _resolve_kwargs(self, kwargs, context):
-		"""
-		Given a key/var dictionary, resolves the variables and returns
-		a tuple of the requested adjustment, a dictionary for making
-		adjustments, and a dictionary for fetching :class:`AdjustedImage`
-		instances.
+class AdjustmentNode(template.Node):
+	def __init__(self, storage_path, kwargs, asvar=None):
+		self.storage_path = storage_path
+		self.kwargs = kwargs
+		self.asvar = asvar
 
-		.. note::
+	def render(self, context):
+		storage_path = self.storage_path.resolve(context)
 
-			The dictionary for fetching :class:`AdjustedImage` instances
-			will *not* include crop information, since that requires an
-			:class:`Image` instance.
+		if isinstance(storage_path, ImageFile):
+			storage_path = storage_path.name
 
-		"""
-		kwargs = dict((k, v.resolve(context)) for k, v in kwargs.iteritems())
+		kwargs = dict((k, v.resolve(context)) for k, v in self.kwargs.iteritems())
+		helper = AdjustmentHelper(storage_path, **kwargs)
+		info_dict = helper.info_dict()
 
-		query_kwargs = {
-			'requested_adjustment': kwargs.pop('adjustment', DEFAULT_ADJUSTMENT)
-		}
-		for key in ('width', 'height', 'max_width', 'max_height'):
-			value = kwargs.get(key)
-			if value is None:
-				query_kwargs['requested_{0}__isnull'.format(key)] = True
-			else:
-				query_kwargs['requested_{0}'.format(key)] = value
+		if self.asvar is not None:
+			context[self.asvar] = info_dict
+			return ''
+		return info_dict
 
-		return kwargs, query_kwargs
 
-	def _get_images(self, storage_paths, context, create=True):
+class BulkAdjustmentNode(template.Node):
+	def __init__(self, iterable, attribute, kwargs, asvar):
+		self.iterable = iterable
+		self.attribute = attribute
+		self.kwargs = kwargs
+		self.asvar = asvar
+
+	def _get_images(self, storage_paths, context):
 		"""
 		Fetches images from a cache in the current context.
 
@@ -69,95 +68,15 @@ class BaseAdjustmentNode(template.Node):
 				misses.discard(path)
 
 		# Try to create any images still missing.
-		if misses and create:
+		if misses:
 			for path in misses:
 				try:
 					image = Image.objects._create_for_storage_path(path)
 				except IOError:
 					pass
+				else:
+					image_cache[path] = found[path] = image
 		return found
-
-	def _get_image(self, storage_path, context):
-		"""
-		Fetches a single image from a cache in the current context.
-
-		"""
-		try:
-			return self._get_images([storage_path], context)[storage_path]
-		except KeyError:
-			raise Image.DoesNotExist
-
-
-class AdjustmentNode(BaseAdjustmentNode):
-	def __init__(self, storage_path, kwargs, asvar=None):
-		self.storage_path = storage_path
-		self.kwargs = kwargs
-		self.asvar = asvar
-	
-	def _complete(self, context, info_dict=None):
-		if info_dict is None:
-			info_dict = AdjustmentInfoDict()
-		if self.asvar is not None:
-			context[self.asvar] = info_dict
-			return ''
-		return info_dict
-
-	def render(self, context):
-		storage_path = self.storage_path.resolve(context)
-
-		if isinstance(storage_path, ImageFile):
-			storage_path = storage_path.name
-
-		if not isinstance(storage_path, basestring):
-			return self._complete(context)
-
-		kwargs, query_kwargs = self._resolve_kwargs(self.kwargs, context)
-
-		if 'crop' in kwargs:
-			try:
-				image = self._get_image(storage_path, context)
-			except Image.DoesNotExist:
-				return self._complete(context)
-			try:
-				area = image.areas.get(name=kwargs['crop'])
-			except ObjectDoesNotExist:
-				del kwargs['crop']
-				query_kwargs['requested_crop__isnull'] = True
-			else:
-				query_kwargs['requested_crop'] = area
-
-		# First try to fetch a previously-adjusted image.
-		try:
-			adjusted_image = AdjustedImage.objects.filter(image__storage_path=storage_path, **query_kwargs)[:1][0]
-		except IndexError:
-			pass
-		else:
-			return self._complete(context, adjusted_image.info_dict())
-
-		# If there is no previously-adjusted image, set up a lazy
-		# adjustment info dict.
-		try:
-			image = self._get_image(storage_path, context)
-		except Image.DoesNotExist:
-			return self._complete(context)
-
-		adjustment_class = get_adjustment_class(query_kwargs['requested_adjustment'])
-		try:
-			adjustment = adjustment_class.from_image(image, **kwargs)
-		except IOError:
-			# IOError pops up if image.image doesn't reference
-			# a present file.
-			return self._complete(context)
-
-		return self._complete(context, adjustment.info_dict())
-
-
-class BulkAdjustmentNode(BaseAdjustmentNode):
-	def __init__(self, iterable, attribute, kwargs, asvar):
-		self.iterable = iterable
-		self.attribute = attribute
-		self.kwargs = kwargs
-		self.asvar = asvar
 
 	def render(self, context):
 		iterable = self.iterable.resolve(context)
@@ -175,40 +94,49 @@ class BulkAdjustmentNode(BaseAdjustmentNode):
 			else:
 				result_dict[item] = AdjustmentInfoDict()
 
-		kwargs, query_kwargs = self._resolve_kwargs(self.kwargs, context)
+		kwargs = dict((k, v.resolve(context)) for k, v in self.kwargs.iteritems())
 
 		# First try to fetch all previously-adjusted images.
-		# For now, this requires first fetching images with the storage path.
-		images = self._get_images(items_dict, context, create=False).values()
-		image_pk_dict = dict((image.pk, image) for image in images)
-		adjusted_images = AdjustedImage.objects.filter(image_id__in=image_pk_dict, **query_kwargs)
+		# The keys of items_dict are storage paths, and we don't want any
+		# adjustments with requested crops for bulk! (Maybe later.)
 
+		# Make a fake helper...
+		helper = AdjustmentHelper('', **kwargs)
+		helper._crop_area = None
+		query_kwargs = helper.get_query_kwargs()
+		del query_kwargs['storage_path']
+		query_kwargs['storage_path__in'] = items_dict
+
+		adjusted_images = AdjustedImage.objects.filter(**query_kwargs)
 		for adjusted_image in adjusted_images:
-			if adjusted_image.image_id not in image_pk_dict:
-				continue
-			image = image_pk_dict[adjusted_image.image_id]
-			if image.storage_path not in items_dict:
+			path = adjusted_image.storage_path
+			if path not in items_dict:
 				continue
 			info_dict = adjusted_image.info_dict()
-			for item in items_dict[image.storage_path]:
+			for item in items_dict[path]:
 				result_dict[item] = info_dict
-			del image_pk_dict[adjusted_image.image_id]
-			del items_dict[image.storage_path]
+			del items_dict[path]
 
-		# Then make sure each remaining item has an associated image,
-		# and assign it.
-		images = self._get_images(items_dict, context, create=True)
+		# Then get lazy info dicts for Images that already exist.
+		if items_dict:
+			images = Image.objects.filter(storage_path__in=items_dict)
+			for image in images:
+				path = image.storage_path
+				if path not in items_dict:
+					continue
+				helper = AdjustmentHelper(image, **kwargs)
+				info_dict = helper.info_dict(fetch_first=False)
+				for item in items_dict[path]:
+					result_dict[item] = info_dict
+				del items_dict[path]
 
-		for path, items in items_dict.iteritems():
-			adjustment_class = get_adjustment_class(query_kwargs['requested_adjustment'])
-			try:
-				adjustment = adjustment_class.from_image(images[path], **kwargs)
-			except (IOError, KeyError):
-				info_dict = AdjustmentInfoDict()
-			else:
-				info_dict = adjustment.info_dict()
-			for item in items:
-				result_dict[item] = info_dict
+		# And finally make Images which didn't already exist.
+		if items_dict:
+			for path, items in items_dict.iteritems():
+				helper = AdjustmentHelper(path, **kwargs)
+				info_dict = helper.info_dict(fetch_first=False)
+				for item in items:
+					result_dict[item] = info_dict
 
 		context[self.asvar] = result_dict
 		return ''
