@@ -14,8 +14,6 @@ except ImportError:
 	import Image as PILImage
 
 from daguerre.validators import FileTypeValidator
-from daguerre.utils import AdjustmentInfoDict
-from daguerre.utils.adjustments import adjustments
 
 
 #: Formats that we trust to be able to handle gracefully.
@@ -148,27 +146,15 @@ class Area(models.Model):
 		unique_together = ('image', 'x1', 'y1', 'x2', 'y2')
 
 
-class AdjustedImageManager(models.Manager):
-	def adjust(self, image_or_storage_path, **kwargs):
-		"""
-		Fetches or creates an :class:`~AdjustedImage` instance for the requested parameters.
-
-		:param image_or_storage_path: The :class:`~Image` instance which is to be adjusted, or a storage path for an image which is to be adjusted.
-		:param kwargs: The parameters for adjusting the image.
-
-		"""
-		from daguerre.utils.adjustment_helpers import AdjustmentHelper
-		helper = AdjustmentHelper(image_or_storage_path, **kwargs)
-		try:
-			return helper.adjust()
-		except (IOError, Image.DoesNotExist), e:
-			raise AdjustedImage.DoesNotExist(e.message)
+def _adjustment_choice_iter():
+	# By lazily importing the adjustments dict, we can prevent an import loop.
+	from daguerre.utils.adjustments import adjustments
+	for slug in adjustments:
+		yield (slug, capfirst(slug))
 
 
 class AdjustedImage(models.Model):
 	"""Represents a "cached" managed image adjustment."""
-	objects = AdjustedImageManager()
-
 	storage_path = models.CharField(max_length=300, db_index=True)
 	adjusted = models.ImageField(height_field='height', width_field='width', upload_to='daguerre/images/%Y/%m/%d/adjusted/', max_length=255)
 	timestamp = models.DateTimeField(auto_now_add=True)
@@ -180,25 +166,8 @@ class AdjustedImage(models.Model):
 	requested_height = models.PositiveIntegerField(db_index=True, blank=True, null=True)
 	requested_max_width = models.PositiveIntegerField(db_index=True, blank=True, null=True)
 	requested_max_height = models.PositiveIntegerField(db_index=True, blank=True, null=True)
-	requested_adjustment = models.CharField(db_index=True, max_length=255, choices=[(slug, capfirst(slug)) for slug in adjustments])
+	requested_adjustment = models.CharField(db_index=True, max_length=255, choices=_adjustment_choice_iter())
 	requested_crop = models.ForeignKey(Area, blank=True, null=True)
 
 	def __unicode__(self):
 		return u"(%s, %s) adjustment for %s" % (smart_unicode(self.requested_width), smart_unicode(self.requested_height), self.storage_path)
-
-	def info_dict(self):
-		"""
-		Returns a basic info dict for this adjusted image.
-
-		"""
-		return AdjustmentInfoDict({
-			'width': self.width,
-			'height': self.height,
-			'requested': {
-				'width': self.requested_width,
-				'height': self.requested_height,
-				'max_width': self.requested_max_width,
-				'max_height': self.requested_max_height,
-			},
-			'url': self.adjusted.url,
-		})

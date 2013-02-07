@@ -3,7 +3,7 @@ from django.test import TestCase, RequestFactory
 
 from daguerre.models import Image
 from daguerre.tests.base import DaguerreTestCaseMixin
-from daguerre.utils.adjustment_helpers import AdjustmentHelper
+from daguerre.utils.adjustments import AdjustmentHelper
 from daguerre.views import AdjustedImageRedirectView, AjaxAdjustmentInfoView
 
 

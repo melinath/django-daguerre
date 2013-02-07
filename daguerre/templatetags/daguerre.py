@@ -5,8 +5,7 @@ from django.core.files.images import ImageFile
 from django.template.defaulttags import kwarg_re
 
 from daguerre.models import Image, AdjustedImage
-from daguerre.utils import AdjustmentInfoDict
-from daguerre.utils.adjustment_helpers import AdjustmentHelper
+from daguerre.utils.adjustments import AdjustmentHelper, AdjustmentInfoDict
 
 
 register = template.Library()

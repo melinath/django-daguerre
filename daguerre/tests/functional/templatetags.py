@@ -2,7 +2,7 @@ from django.template import Template, Context
 from django.test import TestCase
 
 from daguerre.tests.base import DaguerreTestCaseMixin, ImageCreator
-from daguerre.utils.adjustment_helpers import AdjustmentHelper
+from daguerre.utils.adjustments import AdjustmentHelper
 
 
 class AdjustTemplatetagTestCase(DaguerreTestCaseMixin, TestCase):

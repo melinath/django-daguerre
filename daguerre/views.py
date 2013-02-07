@@ -4,7 +4,7 @@ from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.views.generic import View
 
 from daguerre.models import Image
-from daguerre.utils.adjustment_helpers import AdjustmentHelper
+from daguerre.utils.adjustments import AdjustmentHelper
 
 
 class AdjustedImageRedirectView(View):
