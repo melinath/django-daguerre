@@ -31,6 +31,29 @@ DEFAULT_FORMAT = 'PNG'
 
 
 class ImageManager(models.Manager):
+	def _create_for_storage_path(self, storage_path):
+		# Raises IOError if file doesn't exist.
+		im_file = default_storage.open(storage_path)
+
+		# Raises IOError if the file isn't a valid image.
+		im = PILImage.open(im_file)
+
+		image = self.model(storage_path=storage_path)
+		if im.format in KEEP_FORMATS:
+			image.image = storage_path
+			image.save()
+		else:
+			temp = NamedTemporaryFile()
+			try:
+				im.save(temp, format=DEFAULT_FORMAT)
+				root_name = os.path.splitext(os.path.basename(storage_path))[0]
+				filename = ''.join((root_name, '.', DEFAULT_FORMAT.lower()))
+				image.image = File(temp, name=filename)
+				image.save()
+			finally:
+				temp.close()
+		return image
+
 	def for_storage_path(self, storage_path):
 		"""
 		Returns an :class:`Image` for the given ``storage_path``, creating it
@@ -40,33 +63,12 @@ class ImageManager(models.Manager):
 
 		"""
 		try:
-			image = self.filter(storage_path=storage_path)[:1][0]
+			return self.filter(storage_path=storage_path)[:1][0]
 		except IndexError:
 			try:
-				im_file = default_storage.open(storage_path)
+				return self._create_for_storage_path(storage_path)
 			except IOError, e:
 				raise self.model.DoesNotExist(e.message)
-
-			try:
-				im = PILImage.open(im_file)
-			except IOError:
-				raise self.model.DoesNotExist("Path does not point to a valid image file.")
-
-			image = self.model(storage_path=storage_path)
-			if im.format in KEEP_FORMATS:
-				image.image = storage_path
-				image.save()
-			else:
-				temp = NamedTemporaryFile()
-				try:
-					im.save(temp, format=DEFAULT_FORMAT)
-					root_name = os.path.splitext(os.path.basename(storage_path))[0]
-					filename = ''.join((root_name, '.', DEFAULT_FORMAT.lower()))
-					image.image = File(temp, name=filename)
-					image.save()
-				finally:
-					temp.close()
-		return image
 
 
 class Image(models.Model):
