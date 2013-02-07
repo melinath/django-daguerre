@@ -115,3 +115,30 @@ and then fit that cropped image into a 128x128 box.
     If a named crop is being used, :class:`.Area`\ s will be
     ignored even if you're using a fill or crop adjustment. (This may
     change in the future.)
+
+
+.. templatetag:: {% adjust_bulk %}
+
+{% adjust_bulk %}
++++++++++++++++++
+
+If you are using a large number of similar adjustments in one
+template - say, looping over a queryset and adjusting the same
+attribute each time - you can save yourself queries by using
+:ttag:`{% adjust_bulk %}`.
+
+.. code-block:: html+django
+
+    {% load daguerre %}
+    {% adjust_bulk my_queryset "image" width=200 height=400 as adjusted_list %}
+    {% for my_model, image in adjusted_list %}
+      <img src="{{ image }}" />
+    {% endfor %}
+
+The syntax is similar to :ttag:`{% adjust %}`, except that:
+
+* ``as <varname>`` is required.
+* an iterable (``my_queryset``) and an attribute to be accessed on each
+  item in the iterable (``"image"``) are provided in place of an image
+  file or storage path.
+* :ttag:`{% adjust_bulk %}` **doesn't support named crops**.

@@ -96,14 +96,14 @@ class BulkAdjustmentNode(template.Node):
 		kwargs = dict((k, v.resolve(context)) for k, v in self.kwargs.iteritems())
 
 		# First try to fetch all previously-adjusted images.
-		# The keys of items_dict are storage paths, and we don't want any
-		# adjustments with requested crops for bulk! (Maybe later.)
 
 		# Make a fake helper...
 		helper = AdjustmentHelper('', **kwargs)
+		# We don't want to support crops for bulk. (Maybe later.)
 		helper._crop_area = None
 		query_kwargs = helper.get_query_kwargs()
 		del query_kwargs['storage_path']
+		# The keys of items_dict are storage paths.
 		query_kwargs['storage_path__in'] = items_dict
 
 		adjusted_images = AdjustedImage.objects.filter(**query_kwargs)
@@ -161,7 +161,7 @@ def _get_kwargs(parser, tag_name, bits):
 @register.tag
 def adjust(parser, token):
 	"""
-	Returns a url to the adjusted image, or (with ``as``) stores a variable in the context containing the results of :meth:`~Adjustment.info_dict`.
+	Returns a url to the adjusted image, or (with ``as``) stores a variable in the context containing an :class:`~AdjustmentInfoDict`.
 
 	Syntax::
 	
@@ -180,8 +180,6 @@ def adjust(parser, token):
 	* max_height
 	* adjustment
 	* crop
-
-	.. seealso:: :class:`.AdjustedImageManager`
 	
 	"""
 	bits = token.split_contents()
@@ -206,7 +204,13 @@ def adjust(parser, token):
 @register.tag
 def adjust_bulk(parser, token):
 	"""
-	{% adjust_bulk <iterable> <attribute> [key=val key=val ...] as varname %}
+	Stores a variable in the context mapping instances from the iterable with adjusted images for those instances.
+
+	Syntax:: 
+	
+		{% adjust_bulk <iterable> <attribute> [key=val key=val ...] as varname %}
+
+	The keyword arguments have the same meaning as for :ttag:`{% adjust %}`.
 	"""
 	bits = token.split_contents()
 	tag_name = bits[0]

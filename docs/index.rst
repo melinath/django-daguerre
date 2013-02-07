@@ -19,6 +19,11 @@ your models; it **Just Works**.
     {% load daguerre %}
     <img src="{% adjust my_model.image width=200 height=400 %}" />
 
+    {% adjust_bulk my_queryset "image" width=200 height=400 as adjusted_dict %}
+    {% for my_model, image in adjusted_dict.iteritems %}
+      <img src="{{ image }}" />
+    {% endfor %}
+
 Contents
 --------
 
