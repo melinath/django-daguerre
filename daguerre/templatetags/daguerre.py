@@ -111,7 +111,7 @@ class BulkAdjustmentNode(template.Node):
 			path = adjusted_image.storage_path
 			if path not in items_dict:
 				continue
-			info_dict = adjusted_image.info_dict()
+			info_dict = helper._adjusted_image_info_dict(adjusted_image)
 			for item in items_dict[path]:
 				result_dict[item] = info_dict
 			del items_dict[path]

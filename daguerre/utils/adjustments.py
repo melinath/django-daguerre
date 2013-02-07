@@ -385,6 +385,30 @@ class AdjustmentHelper(object):
 		adjustment_class = get_adjustment_class(self.adjustment)
 		return adjustment_class(pil_image, areas=areas, **self.kwargs)
 
+	def _adjusted_image_info_dict(self, adjusted_image):
+		return AdjustmentInfoDict({
+			'width': adjusted_image.width,
+			'height': adjusted_image.height,
+			'requested': {
+				'width': adjusted_image.requested_width,
+				'height': adjusted_image.requested_height,
+				'max_width': adjusted_image.requested_max_width,
+				'max_height': adjusted_image.requested_max_height,
+			},
+			'url': adjusted_image.adjusted.url,
+		})
+
+	def _adjustment_info_dict(self, adjustment):
+		return AdjustmentInfoDict({
+			'format': adjustment.format,
+			'ident': self.storage_path,
+			'width': adjustment.calculate()[0],
+			'height': adjustment.calculate()[1],
+			'requested': self.kwargs.copy(),
+			'url': u"{0}?{1}".format(reverse('daguerre_adjusted_image_redirect', kwargs={'storage_path': self.storage_path}), self.to_querydict(secure=True).urlencode()),
+			'ajax_url': u"{0}?{1}".format(reverse('daguerre_ajax_adjustment_info', kwargs={'storage_path': self.storage_path}), self.to_querydict(secure=False).urlencode()),
+		})
+
 	def info_dict(self, fetch_first=True):
 		"""
 		Main method. The AdjustmentHelper should be able to calculate
@@ -402,17 +426,7 @@ class AdjustmentHelper(object):
 			except IndexError:
 				pass
 			else:
-				return AdjustmentInfoDict({
-					'width': self.width,
-					'height': self.height,
-					'requested': {
-						'width': self.requested_width,
-						'height': self.requested_height,
-						'max_width': self.requested_max_width,
-						'max_height': self.requested_max_height,
-					},
-					'url': self.adjusted.url,
-				})
+				return self._adjusted_image_info_dict(adjusted)
 
 		# If that fails, try to do a lazy adjustment based on the image.
 		image = self.get_image()
@@ -422,15 +436,7 @@ class AdjustmentHelper(object):
 			except IOError:
 				pass
 			else:
-				return AdjustmentInfoDict({
-					'format': adjustment.format,
-					'ident': self.storage_path,
-					'width': adjustment.calculate()[0],
-					'height': adjustment.calculate()[1],
-					'requested': self.kwargs.copy(),
-					'url': u"{0}?{1}".format(reverse('daguerre_adjusted_image_redirect', kwargs={'storage_path': self.storage_path}), self.to_querydict(secure=True).urlencode()),
-					'ajax_url': u"{0}?{1}".format(reverse('daguerre_ajax_adjustment_info', kwargs={'storage_path': self.storage_path}), self.to_querydict(secure=False).urlencode()),
-				})
+				return self._adjustment_info_dict(adjustment)
 		return AdjustmentInfoDict()
 
 	def adjust(self):
