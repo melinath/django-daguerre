@@ -137,7 +137,7 @@ class BulkAdjustmentNode(template.Node):
 				for item in items:
 					result_dict[item] = info_dict
 
-		context[self.asvar] = result_dict
+		context[self.asvar] = [(item, result_dict[item]) for item in iterable]
 		return ''
 
 
