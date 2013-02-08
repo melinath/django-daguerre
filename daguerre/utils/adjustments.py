@@ -4,6 +4,7 @@ from itertools import ifilter
 
 from django.conf import settings
 from django.core.files.base import File
+from django.core.files.images import ImageFile
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.core.urlresolvers import reverse
@@ -252,8 +253,7 @@ class AdjustmentInfoDict(dict):
 		return self.get('url', u'')
 
 
-class AdjustmentHelper(object):
-	int_params = set(('width', 'height', 'max_width', 'max_height'))
+class BaseAdjustmentHelper(object):
 	param_map = {
 		'width': 'w',
 		'height': 'h',
@@ -264,15 +264,100 @@ class AdjustmentHelper(object):
 		'crop': 'c'
 	}
 
+	def __init__(self, **kwargs):
+		self.kwargs = kwargs
+		self.adjustment = kwargs.pop('adjustment', DEFAULT_ADJUSTMENT)
+		self.adjustment_class = get_adjustment_class(self.adjustment)
+
+	def get_crop_area(self):
+		return None
+
+	def get_query_kwargs(self):
+		if not hasattr(self, '_query_kwargs'):
+			query_kwargs = {
+				'requested_adjustment': self.adjustment,
+			}
+			for key in ('width', 'height', 'max_width', 'max_height'):
+				value = self.kwargs.get(key)
+				if value is None:
+					query_kwargs['requested_{0}__isnull'.format(key)] = True
+				else:
+					query_kwargs['requested_{0}'.format(key)] = value
+			area = self.get_crop_area()
+			if area is None:
+				query_kwargs['requested_crop__isnull'] = True
+			else:
+				query_kwargs['requested_crop'] = area
+			self._query_kwargs = query_kwargs
+		return self._query_kwargs
+
+	def adjustment_for_image(self, image):
+		# Will raise IOError if the file doesn't exist or isn't an image.
+		im_file = default_storage.open(image.image.name)
+		pil_image = PILImage.open(im_file)
+		return self.adjustment_class(pil_image, **self.kwargs)
+
+	def _adjusted_image_info_dict(self, adjusted_image):
+		return AdjustmentInfoDict({
+			'width': adjusted_image.width,
+			'height': adjusted_image.height,
+			'requested': {
+				'width': adjusted_image.requested_width,
+				'height': adjusted_image.requested_height,
+				'max_width': adjusted_image.requested_max_width,
+				'max_height': adjusted_image.requested_max_height,
+			},
+			'url': adjusted_image.adjusted.url,
+		})
+
+	@classmethod
+	def make_security_hash(cls, kwargs):
+		kwargs = SortedDict(kwargs)
+		kwargs.keyOrder.sort()
+		args = kwargs.keys() + kwargs.values()
+		return make_hash(settings.SECRET_KEY, step=2, *args)
+
+	def to_querydict(self, secure=False):
+		qd = QueryDict('', mutable=True)
+		kwargs = self.kwargs.copy()
+		kwargs['adjustment'] = self.adjustment
+
+		if secure:
+			kwargs['security'] = self.make_security_hash(kwargs)
+
+		for k, v in kwargs.iteritems():
+			qd[self.param_map[k]] = v
+
+		return qd
+
+	def _image_info_dict(self, image):
+		try:
+			adjustment = self.adjustment_for_image(image)
+		except IOError:
+			return AdjustmentInfoDict()
+		return AdjustmentInfoDict({
+			'format': adjustment.format,
+			'width': adjustment.calculate()[0],
+			'height': adjustment.calculate()[1],
+			'requested': self.kwargs.copy(),
+			'url': u"{0}?{1}".format(reverse('daguerre_adjusted_image_redirect', kwargs={'storage_path': image.storage_path}), self.to_querydict(secure=True).urlencode()),
+			'ajax_url': u"{0}?{1}".format(reverse('daguerre_ajax_adjustment_info', kwargs={'storage_path': image.storage_path}), self.to_querydict(secure=False).urlencode()),
+		})
+
+
+class AdjustmentHelper(BaseAdjustmentHelper):
+	int_params = set(('width', 'height', 'max_width', 'max_height'))
+
 	def __init__(self, image_or_storage_path, **kwargs):
 		if isinstance(image_or_storage_path, Image):
 			self._image = image_or_storage_path
 			self.storage_path = self._image.storage_path
+		elif isinstance(image_or_storage_path, ImageFile):
+			self.storage_path = image_or_storage_path.name
 		else:
 			self.storage_path = image_or_storage_path
 
-		self.kwargs = kwargs
-		self.adjustment = kwargs.pop('adjustment', DEFAULT_ADJUSTMENT)
+		super(AdjustmentHelper, self).__init__(**kwargs)
 
 	def get_image(self):
 		if not hasattr(self, '_image'):
@@ -306,47 +391,13 @@ class AdjustmentHelper(object):
 
 	def get_query_kwargs(self):
 		if not hasattr(self, '_query_kwargs'):
-			query_kwargs = {
-				'requested_adjustment': self.adjustment,
-				'storage_path': self.storage_path,
-			}
-			for key in ('width', 'height', 'max_width', 'max_height'):
-				value = self.kwargs.get(key)
-				if value is None:
-					query_kwargs['requested_{0}__isnull'.format(key)] = True
-				else:
-					query_kwargs['requested_{0}'.format(key)] = value
-			area = self.get_crop_area()
-			if area is None:
-				query_kwargs['requested_crop__isnull'] = True
-			else:
-				query_kwargs['requested_crop'] = area
-			self._query_kwargs = query_kwargs
+			super(AdjustmentHelper, self).get_query_kwargs()
+			self._query_kwargs['storage_path'] = self.storage_path
 		return self._query_kwargs
-
-	@classmethod
-	def make_security_hash(cls, kwargs):
-		kwargs = SortedDict(kwargs)
-		kwargs.keyOrder.sort()
-		args = kwargs.keys() + kwargs.values()
-		return make_hash(settings.SECRET_KEY, step=2, *args)
 
 	@classmethod
 	def check_security_hash(cls, sec_hash, kwargs):
 		return sec_hash == cls.make_security_hash(kwargs)
-
-	def to_querydict(self, secure=False):
-		qd = QueryDict('', mutable=True)
-		kwargs = self.kwargs.copy()
-		kwargs['adjustment'] = self.adjustment
-
-		if secure:
-			kwargs['security'] = self.make_security_hash(kwargs)
-
-		for k, v in kwargs.iteritems():
-			qd[self.param_map[k]] = v
-
-		return qd
 
 	@classmethod
 	def from_querydict(cls, image_or_storage_path, querydict, secure=False):
@@ -382,34 +433,9 @@ class AdjustmentHelper(object):
 			areas = None
 			pil_image = pil_image.crop((crop_area.x1, crop_area.y1, crop_area.x2, crop_area.y2))
 
-		adjustment_class = get_adjustment_class(self.adjustment)
-		return adjustment_class(pil_image, areas=areas, **self.kwargs)
+		return self.adjustment_class(pil_image, areas=areas, **self.kwargs)
 
-	def _adjusted_image_info_dict(self, adjusted_image):
-		return AdjustmentInfoDict({
-			'width': adjusted_image.width,
-			'height': adjusted_image.height,
-			'requested': {
-				'width': adjusted_image.requested_width,
-				'height': adjusted_image.requested_height,
-				'max_width': adjusted_image.requested_max_width,
-				'max_height': adjusted_image.requested_max_height,
-			},
-			'url': adjusted_image.adjusted.url,
-		})
-
-	def _adjustment_info_dict(self, adjustment):
-		return AdjustmentInfoDict({
-			'format': adjustment.format,
-			'ident': self.storage_path,
-			'width': adjustment.calculate()[0],
-			'height': adjustment.calculate()[1],
-			'requested': self.kwargs.copy(),
-			'url': u"{0}?{1}".format(reverse('daguerre_adjusted_image_redirect', kwargs={'storage_path': self.storage_path}), self.to_querydict(secure=True).urlencode()),
-			'ajax_url': u"{0}?{1}".format(reverse('daguerre_ajax_adjustment_info', kwargs={'storage_path': self.storage_path}), self.to_querydict(secure=False).urlencode()),
-		})
-
-	def info_dict(self, fetch_first=True):
+	def info_dict(self):
 		"""
 		Main method. The AdjustmentHelper should be able to calculate
 		an appropriate info dict with minimal effort just by running
@@ -418,9 +444,10 @@ class AdjustmentHelper(object):
 		"""
 		kwargs = self.get_query_kwargs()
 
-		# First try to fetch a previously-adjusted image and return its info
-		# dict. We also have the option of skipping this step.
-		if fetch_first:
+		# If there's no storage path, don't even bother trying.
+		if self.storage_path:
+			# First try to fetch a previously-adjusted image and return
+			# its info dict.
 			try:
 				adjusted = AdjustedImage.objects.filter(**kwargs)[:1][0]
 			except IndexError:
@@ -428,15 +455,10 @@ class AdjustmentHelper(object):
 			else:
 				return self._adjusted_image_info_dict(adjusted)
 
-		# If that fails, try to do a lazy adjustment based on the image.
-		image = self.get_image()
-		if image is not None:
-			try:
-				adjustment = self.adjustment_for_image(image)
-			except IOError:
-				pass
-			else:
-				return self._adjustment_info_dict(adjustment)
+			# If that fails, try to do a lazy adjustment based on the image.
+			image = self.get_image()
+			if image is not None:
+				return self._image_info_dict(image)
 		return AdjustmentInfoDict()
 
 	def adjust(self):
@@ -484,3 +506,70 @@ class AdjustmentHelper(object):
 		finally:
 			temp.close()
 		return adjusted
+
+
+class BulkAdjustmentHelper(BaseAdjustmentHelper):
+	def __init__(self, iterable, attribute, **kwargs):
+		self.iterable = list(iterable)
+		self.attribute = attribute
+		self.remaining = {}
+		self.adjusted = {}
+
+		for item in iterable:
+			path = getattr(item, attribute, None)
+			if isinstance(path, ImageFile):
+				path = path.name
+			# Skip empty paths (such as from an ImageFieldFile with no image.)
+			if path and isinstance(path, basestring):
+				self.remaining.setdefault(path, []).append(item)
+			else:
+				self.adjusted[item] = AdjustmentInfoDict()
+
+		super(BulkAdjustmentHelper, self).__init__(**kwargs)
+
+	def get_query_kwargs(self):
+		if not hasattr(self, '_query_kwargs'):
+			super(BulkAdjustmentHelper, self).get_query_kwargs()
+			self._query_kwargs['storage_path__in'] = self.remaining
+		return self._query_kwargs
+
+	def info_dicts(self):
+		# First, try to fetch all previously-adjusted images.
+		if self.remaining:
+			query_kwargs = self.get_query_kwargs()
+			adjusted_images = AdjustedImage.objects.filter(**query_kwargs)
+			for adjusted_image in adjusted_images:
+				path = adjusted_image.storage_path
+				if path not in self.remaining:
+					continue
+				info_dict = self._adjusted_image_info_dict(adjusted_image)
+				for item in self.remaining[path]:
+					self.adjusted[item] = info_dict
+				del self.remaining[path]
+
+		# Then get lazy info dicts for Images that already exist.
+		if self.remaining:
+			images = Image.objects.filter(storage_path__in=self.remaining)
+			for image in images:
+				path = image.storage_path
+				if path not in self.remaining:
+					continue
+				info_dict = self._image_info_dict(image)
+				for item in self.remaining[path]:
+					self.adjusted[item] = info_dict
+				del self.remaining[path]
+
+		# And finally create any Images which didn't already exist.
+		if self.remaining:
+			for path, items in self.remaining.copy().iteritems():
+				try:
+					image = Image.objects._create_for_storage_path(path)
+				except IOError:
+					info_dict = AdjustmentInfoDict()
+				else:
+					info_dict = self._image_info_dict(image)
+				for item in items:
+					self.adjusted[item] = info_dict
+				del self.remaining[path]
+
+		return [(item, self.adjusted[item]) for item in self.iterable]

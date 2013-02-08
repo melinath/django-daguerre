@@ -8,6 +8,7 @@ from daguerre.utils.adjustments import AdjustmentHelper
 class AdjustTemplatetagTestCase(DaguerreTestCaseMixin, TestCase):
 	def setUp(self):
 		self.image_creator = ImageCreator()
+		super(AdjustTemplatetagTestCase, self).setUp()
 
 	def test_path(self):
 		"""Tag should accept a path as its argument."""

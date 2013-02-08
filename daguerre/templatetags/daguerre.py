@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
 from django import template
-from django.core.files.images import ImageFile
 from django.template.defaulttags import kwarg_re
 
-from daguerre.models import Image, AdjustedImage
-from daguerre.utils.adjustments import AdjustmentHelper, AdjustmentInfoDict
+from daguerre.models import Image
+from daguerre.utils.adjustments import AdjustmentHelper, BulkAdjustmentHelper
 
 
 register = template.Library()
@@ -18,10 +17,8 @@ class AdjustmentNode(template.Node):
 		self.asvar = asvar
 
 	def render(self, context):
+		# storage_path might be an ImageFile.
 		storage_path = self.storage_path.resolve(context)
-
-		if isinstance(storage_path, ImageFile):
-			storage_path = storage_path.name
 
 		kwargs = dict((k, v.resolve(context)) for k, v in self.kwargs.iteritems())
 		helper = AdjustmentHelper(storage_path, **kwargs)
@@ -80,64 +77,10 @@ class BulkAdjustmentNode(template.Node):
 	def render(self, context):
 		iterable = self.iterable.resolve(context)
 		attribute = self.attribute.resolve(context)
-
-		result_dict = {}
-
-		items_dict = {}
-		for item in iterable:
-			path = getattr(item, attribute, None)
-			if isinstance(path, ImageFile):
-				path = path.name
-			if isinstance(path, basestring):
-				items_dict.setdefault(path, []).append(item)
-			else:
-				result_dict[item] = AdjustmentInfoDict()
-
 		kwargs = dict((k, v.resolve(context)) for k, v in self.kwargs.iteritems())
 
-		# First try to fetch all previously-adjusted images.
-
-		# Make a fake helper...
-		helper = AdjustmentHelper('', **kwargs)
-		# We don't want to support crops for bulk. (Maybe later.)
-		helper._crop_area = None
-		query_kwargs = helper.get_query_kwargs()
-		del query_kwargs['storage_path']
-		# The keys of items_dict are storage paths.
-		query_kwargs['storage_path__in'] = items_dict
-
-		adjusted_images = AdjustedImage.objects.filter(**query_kwargs)
-		for adjusted_image in adjusted_images:
-			path = adjusted_image.storage_path
-			if path not in items_dict:
-				continue
-			info_dict = helper._adjusted_image_info_dict(adjusted_image)
-			for item in items_dict[path]:
-				result_dict[item] = info_dict
-			del items_dict[path]
-
-		# Then get lazy info dicts for Images that already exist.
-		if items_dict:
-			images = Image.objects.filter(storage_path__in=items_dict)
-			for image in images:
-				path = image.storage_path
-				if path not in items_dict:
-					continue
-				helper = AdjustmentHelper(image, **kwargs)
-				info_dict = helper.info_dict(fetch_first=False)
-				for item in items_dict[path]:
-					result_dict[item] = info_dict
-				del items_dict[path]
-
-		# And finally make Images which didn't already exist.
-		if items_dict:
-			for path, items in items_dict.iteritems():
-				helper = AdjustmentHelper(path, **kwargs)
-				info_dict = helper.info_dict(fetch_first=False)
-				for item in items:
-					result_dict[item] = info_dict
-
-		context[self.asvar] = [(item, result_dict[item]) for item in iterable]
+		helper = BulkAdjustmentHelper(iterable, attribute, **kwargs)
+		context[self.asvar] = helper.info_dicts()
 		return ''
 
 

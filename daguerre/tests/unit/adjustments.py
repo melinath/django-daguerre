@@ -6,7 +6,7 @@ except ImportError:
 
 from daguerre.models import AdjustedImage, Area, Image
 from daguerre.tests.base import DaguerreTestCaseMixin, ImageCreator, get_test_file_path
-from daguerre.utils.adjustments import Fit, Crop, Fill, AdjustmentHelper
+from daguerre.utils.adjustments import Fit, Crop, Fill, AdjustmentHelper, BulkAdjustmentHelper
 
 
 class FitTestCase(DaguerreTestCaseMixin, TestCase):
@@ -116,28 +116,36 @@ class AdjustmentHelperTestCase(DaguerreTestCaseMixin, TestCase):
 	def setUp(self):
 		self.image_creator = ImageCreator()
 		self.base_image = self.image_creator.create('100x100.png')
+		super(AdjustmentHelperTestCase, self).setUp()
 
-	def test_adjust_crop(self):
+	def test_adjust_crop__50x100(self):
 		expected = PILImage.open(get_test_file_path('50x100_crop.png'))
-		adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
+		with self.assertNumQueries(4):
+			adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
 		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), expected)
 
+	def test_adjust_crop__100x50(self):
 		expected = PILImage.open(get_test_file_path('100x50_crop.png'))
-		adjusted = AdjustmentHelper(self.base_image, width=100, height=50, adjustment='crop').adjust()
+		with self.assertNumQueries(4):
+			adjusted = AdjustmentHelper(self.base_image, width=100, height=50, adjustment='crop').adjust()
 		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), expected)
 
+	def test_adjust_crop__50x50_area(self):
 		Area.objects.create(image=self.base_image, x1=21, x2=70, y1=46, y2=95)
 		expected = PILImage.open(get_test_file_path('50x50_crop_area.png'))
-		adjusted = AdjustmentHelper(self.base_image, width=50, height=50, adjustment='crop').adjust()
+		with self.assertNumQueries(4):
+			adjusted = AdjustmentHelper(self.base_image, width=50, height=50, adjustment='crop').adjust()
 		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), expected)
 
 	def test_readjust(self):
 		"""Adjusting a previously-adjusted image should return the previous adjustment."""
 		new_im = PILImage.open(get_test_file_path('50x100_crop.png'))
-		adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
+		with self.assertNumQueries(4):
+			adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
 		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), new_im)
 
-		new_adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
+		with self.assertNumQueries(1):
+			new_adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
 		self.assertEqual(adjusted, new_adjusted)
 
 	def test_readjust_multiple(self):
@@ -146,13 +154,15 @@ class AdjustmentHelperTestCase(DaguerreTestCaseMixin, TestCase):
 		parameters, one of them should be returned rather than erroring out.
 
 		"""
-		adjusted1 = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
+		with self.assertNumQueries(4):
+			adjusted1 = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
 		adjusted2 = AdjustedImage.objects.get(pk=adjusted1.pk)
 		adjusted2.pk = None
 		adjusted2.save()
 		self.assertNotEqual(adjusted1.pk, adjusted2.pk)
 
-		new_adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
+		with self.assertNumQueries(1):
+			new_adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
 		self.assertTrue(new_adjusted == adjusted1 or new_adjusted == adjusted2)
 
 	def test_adjust__nonexistant(self):
@@ -162,4 +172,97 @@ class AdjustmentHelperTestCase(DaguerreTestCaseMixin, TestCase):
 		"""
 		img = Image.objects.create(image='nonexistant.png', height=200, width=200)
 		helper = AdjustmentHelper(img)
-		self.assertRaises(IOError, helper.adjust)
+		# We still do get one query because the first try is always for
+		# an AdjustedImage, whether or not the original Image path exists.
+		with self.assertNumQueries(1):
+			self.assertRaises(IOError, helper.adjust)
+
+
+class BulkTestObject(object):
+	def __init__(self, storage_path):
+		self.storage_path = storage_path
+
+
+class BulkAdjustmentHelperTestCase(DaguerreTestCaseMixin, TestCase):
+	def test_info_dicts__non_bulk(self):
+		image_creator = ImageCreator()
+		images = [
+			image_creator.create('100x100.png'),
+			image_creator.create('100x100.png'),
+			image_creator.create('100x50_crop.png'),
+			image_creator.create('50x100_crop.png'),
+		]
+
+		kwargs = {
+			'width': 50,
+			'height': 50,
+			'adjustment': 'crop',
+		}
+		with self.assertNumQueries(4):
+			for image in images:
+				AdjustmentHelper(image, **kwargs).info_dict()
+
+	def test_info_dicts__unprepped(self):
+		image_creator = ImageCreator()
+		images = [
+			image_creator.create('100x100.png'),
+			image_creator.create('100x100.png'),
+			image_creator.create('100x50_crop.png'),
+			image_creator.create('50x100_crop.png'),
+		]
+		iterable = [BulkTestObject(image.image.name) for image in images]
+		# Explicitly unprep.
+		Image.objects.all().delete()
+
+		kwargs = {
+			'width': 50,
+			'height': 50,
+			'adjustment': 'crop',
+		}
+
+		helper = BulkAdjustmentHelper(iterable, 'storage_path', **kwargs)
+		with self.assertNumQueries(6):
+			helper.info_dicts()
+
+	def test_info_dicts__semiprepped(self):
+		image_creator = ImageCreator()
+		images = [
+			image_creator.create('100x100.png'),
+			image_creator.create('100x100.png'),
+			image_creator.create('100x50_crop.png'),
+			image_creator.create('50x100_crop.png'),
+		]
+		iterable = [BulkTestObject(image.image.name) for image in images]
+
+		kwargs = {
+			'width': 50,
+			'height': 50,
+			'adjustment': 'crop',
+		}
+
+		helper = BulkAdjustmentHelper(iterable, 'storage_path', **kwargs)
+		with self.assertNumQueries(2):
+			helper.info_dicts()
+
+	def test_info_dicts__prepped(self):
+		image_creator = ImageCreator()
+		images = [
+			image_creator.create('100x100.png'),
+			image_creator.create('100x100.png'),
+			image_creator.create('100x50_crop.png'),
+			image_creator.create('50x100_crop.png'),
+		]
+		iterable = [BulkTestObject(image.image.name) for image in images]
+
+		kwargs = {
+			'width': 50,
+			'height': 50,
+			'adjustment': 'crop',
+		}
+
+		for image in images:
+			AdjustmentHelper(image, **kwargs).adjust()
+
+		helper = BulkAdjustmentHelper(iterable, 'storage_path', **kwargs)
+		with self.assertNumQueries(1):
+			helper.info_dicts()
