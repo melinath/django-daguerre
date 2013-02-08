@@ -23,7 +23,7 @@ DEFAULT_FORMAT = 'PNG'
 
 
 class ImageManager(models.Manager):
-	def _create_for_storage_path(self, storage_path):
+	def _create_for_storage_path(self, storage_path, commit=True):
 		# Raises IOError if file doesn't exist.
 		im_file = default_storage.open(storage_path)
 
@@ -31,19 +31,24 @@ class ImageManager(models.Manager):
 		im = PILImage.open(im_file)
 
 		image = self.model(storage_path=storage_path)
-		if im.format in KEEP_FORMATS:
-			image.image = storage_path
+		def save_image():
+			if im.format in KEEP_FORMATS:
+				image.image = storage_path
+			else:
+				temp = NamedTemporaryFile()
+				try:
+					im.save(temp, format=DEFAULT_FORMAT)
+					root_name = os.path.splitext(os.path.basename(storage_path))[0]
+					filename = ''.join((root_name, '.', DEFAULT_FORMAT.lower()))
+					new_path = default_storage.save(filename, File(temp, name=filename))
+				finally:
+					temp.close()
+				image.image = new_path
+		if commit:
+			save_image()
 			image.save()
 		else:
-			temp = NamedTemporaryFile()
-			try:
-				im.save(temp, format=DEFAULT_FORMAT)
-				root_name = os.path.splitext(os.path.basename(storage_path))[0]
-				filename = ''.join((root_name, '.', DEFAULT_FORMAT.lower()))
-				image.image = File(temp, name=filename)
-				image.save()
-			finally:
-				temp.close()
+			image._save_image = save_image
 		return image
 
 	def for_storage_path(self, storage_path):

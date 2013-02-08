@@ -1,3 +1,4 @@
+from django.core.files.storage import default_storage
 from django.test import TestCase
 try:
 	from PIL import Image as PILImage
@@ -221,8 +222,11 @@ class BulkAdjustmentHelperTestCase(DaguerreTestCaseMixin, TestCase):
 		}
 
 		helper = BulkAdjustmentHelper(iterable, 'storage_path', **kwargs)
-		with self.assertNumQueries(6):
+		with self.assertNumQueries(3):
 			helper.info_dicts()
+
+		for image in Image.objects.all():
+			self.assertTrue(default_storage.exists(image.image.name))
 
 	def test_info_dicts__semiprepped(self):
 		image_creator = ImageCreator()

@@ -496,13 +496,14 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 		filename = f.generate_filename(adjusted, filename)
 
 		temp = NamedTemporaryFile()
-		im.save(temp, format=adjustment.format)
-		adjusted.adjusted = File(temp, name=filename)
-		# Try to handle race conditions gracefully.
 		try:
-			return AdjustedImage.objects.filter(**kwargs)[:1][0]
-		except IndexError:
-			adjusted.save()
+			im.save(temp, format=adjustment.format)
+			adjusted.adjusted = File(temp, name=filename)
+			# Try to handle race conditions gracefully.
+			try:
+				return AdjustedImage.objects.filter(**kwargs)[:1][0]
+			except IndexError:
+				adjusted.save()
 		finally:
 			temp.close()
 		return adjusted
@@ -561,9 +562,12 @@ class BulkAdjustmentHelper(BaseAdjustmentHelper):
 
 		# And finally create any Images which didn't already exist.
 		if self.remaining:
+			images = []
 			for path, items in self.remaining.copy().iteritems():
 				try:
-					image = Image.objects._create_for_storage_path(path)
+					image = Image.objects._create_for_storage_path(path, commit=False)
+					image._save_image()
+					images.append(image)
 				except IOError:
 					info_dict = AdjustmentInfoDict()
 				else:
@@ -571,5 +575,6 @@ class BulkAdjustmentHelper(BaseAdjustmentHelper):
 				for item in items:
 					self.adjusted[item] = info_dict
 				del self.remaining[path]
+			Image.objects.bulk_create(images)
 
 		return [(item, self.adjusted[item]) for item in self.iterable]
