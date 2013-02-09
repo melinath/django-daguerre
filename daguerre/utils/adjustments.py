@@ -9,6 +9,7 @@ from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
+from django.template import Variable, VariableDoesNotExist, TemplateSyntaxError
 from django.utils.datastructures import SortedDict
 try:
 	from PIL import Image as PILImage
@@ -510,14 +511,27 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 
 
 class BulkAdjustmentHelper(BaseAdjustmentHelper):
-	def __init__(self, iterable, attribute, **kwargs):
+	def __init__(self, iterable, lookup, **kwargs):
 		self.iterable = list(iterable)
-		self.attribute = attribute
+		self.lookup = lookup
 		self.remaining = {}
 		self.adjusted = {}
 
+		try:
+			lookup_var = Variable("item.{0}".format(lookup))
+		except TemplateSyntaxError:
+			lookup_func = lambda *args, **kwargs: None
+		else:
+			def lookup_func(obj, default=None):
+				try:
+					return lookup_var.resolve({'item': obj})
+				except VariableDoesNotExist:
+					return default
+
+		self.lookup_func = lookup_func
+
 		for item in iterable:
-			path = getattr(item, attribute, None)
+			path = self.lookup_func(item, None)
 			if isinstance(path, ImageFile):
 				path = path.name
 			# Skip empty paths (such as from an ImageFieldFile with no image.)

@@ -270,3 +270,22 @@ class BulkAdjustmentHelperTestCase(DaguerreTestCaseMixin, TestCase):
 		helper = BulkAdjustmentHelper(iterable, 'storage_path', **kwargs)
 		with self.assertNumQueries(1):
 			helper.info_dicts()
+
+	def test_lookup(self):
+		storage_path = 'path/to/somewhe.re'
+		iterable = [
+			BulkTestObject({'bar': storage_path})
+		]
+		helper = BulkAdjustmentHelper(iterable, "storage_path.bar")
+		self.assertEqual(helper.adjusted, {})
+		self.assertEqual(helper.remaining, {storage_path: [iterable[0]]})
+
+
+	def test_lookup__invalid(self):
+		storage_path = 'path/to/somewhe.re'
+		iterable = [
+			BulkTestObject({'_bar': storage_path})
+		]
+		helper = BulkAdjustmentHelper(iterable, "storage_path._bar")
+		self.assertEqual(helper.adjusted, {iterable[0]: {}})
+		self.assertEqual(helper.remaining, {})

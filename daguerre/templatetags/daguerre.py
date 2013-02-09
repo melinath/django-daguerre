@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from django import template
 from django.template.defaulttags import kwarg_re
 
-from daguerre.models import Image
 from daguerre.utils.adjustments import AdjustmentHelper, BulkAdjustmentHelper
 
 
@@ -31,55 +30,18 @@ class AdjustmentNode(template.Node):
 
 
 class BulkAdjustmentNode(template.Node):
-	def __init__(self, iterable, attribute, kwargs, asvar):
+	def __init__(self, iterable, lookup, kwargs, asvar):
 		self.iterable = iterable
-		self.attribute = attribute
+		self.lookup = lookup
 		self.kwargs = kwargs
 		self.asvar = asvar
 
-	def _get_images(self, storage_paths, context):
-		"""
-		Fetches images from a cache in the current context.
-
-		"""
-		if self not in context.render_context:
-			context.render_context[self] = {}
-		image_cache = context.render_context[self]
-		found = {}
-		misses = set()
-		for path in storage_paths:
-			try:
-				found[path] = image_cache[path]
-			except KeyError:
-				misses.add(path)
-
-		# Try to fetch uncached images from the db.
-		if misses:
-			images = Image.objects.filter(storage_path__in=misses)
-			for image in images:
-				path = image.storage_path
-				if path in image_cache:
-					continue
-				image_cache[path] = found[path] = image
-				misses.discard(path)
-
-		# Try to create any images still missing.
-		if misses:
-			for path in misses:
-				try:
-					image = Image.objects._create_for_storage_path(path)
-				except IOError:
-					pass
-				else:
-					image_cache[path] = found[path] = image
-		return found
-
 	def render(self, context):
 		iterable = self.iterable.resolve(context)
-		attribute = self.attribute.resolve(context)
+		lookup = self.lookup.resolve(context)
 		kwargs = dict((k, v.resolve(context)) for k, v in self.kwargs.iteritems())
 
-		helper = BulkAdjustmentHelper(iterable, attribute, **kwargs)
+		helper = BulkAdjustmentHelper(iterable, lookup, **kwargs)
 		context[self.asvar] = helper.info_dicts()
 		return ''
 
@@ -151,9 +113,12 @@ def adjust_bulk(parser, token):
 
 	Syntax:: 
 	
-		{% adjust_bulk <iterable> <attribute> [key=val key=val ...] as varname %}
+		{% adjust_bulk <iterable> <lookup> [key=val key=val ...] as varname %}
 
 	The keyword arguments have the same meaning as for :ttag:`{% adjust %}`.
+
+	``lookup`` has the same format as a template variable (for example, ``"get_profile.image"``). The lookup will be performed on each item in the ``iterable`` to get the image which should be adjusted.
+
 	"""
 	bits = token.split_contents()
 	tag_name = bits[0]

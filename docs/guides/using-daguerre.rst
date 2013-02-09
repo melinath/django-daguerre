@@ -130,7 +130,7 @@ attribute each time - you can save yourself queries by using
 .. code-block:: html+django
 
     {% load daguerre %}
-    {% adjust_bulk my_queryset "image" width=200 height=400 as adjusted_list %}
+    {% adjust_bulk my_queryset "method.image" width=200 height=400 as adjusted_list %}
     {% for my_model, image in adjusted_list %}
       <img src="{{ image }}" />
     {% endfor %}
@@ -138,7 +138,7 @@ attribute each time - you can save yourself queries by using
 The syntax is similar to :ttag:`{% adjust %}`, except that:
 
 * ``as <varname>`` is required.
-* an iterable (``my_queryset``) and an attribute to be accessed on each
-  item in the iterable (``"image"``) are provided in place of an image
-  file or storage path.
+* an iterable (``my_queryset``) and an lookup to be performed on each
+  item in the iterable (``"method.image"``) are provided in place
+  of an image file or storage path.
 * :ttag:`{% adjust_bulk %}` **doesn't support named crops**.
