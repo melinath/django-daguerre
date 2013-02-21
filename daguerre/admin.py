@@ -14,7 +14,7 @@ class AdjustedImageForm(forms.ModelForm):
 	def __init__(self, *args, **kwargs):
 		super(AdjustedImageForm, self).__init__(*args, **kwargs)
 		crop = self.fields['requested_crop']
-		crop.queryset = crop.queryset.filter(image__pk=self.instance.image_id)
+		crop.queryset = crop.queryset.filter(image__storage_path=self.instance.storage_path)
 
 
 class AdjustedImageBase(object):
@@ -43,7 +43,7 @@ class AdjustedImageBase(object):
 class AdjustedImageAdmin(AdjustedImageBase, admin.ModelAdmin):
 	fieldsets = (
 		(None, {
-			'fields': ('image',)
+			'fields': ('storage_path',)
 		}),
 		('Requested parameters', {
 			'fields': AdjustedImageBase.PARAMETER_FIELDS,
@@ -69,7 +69,7 @@ class AdjustedImageInline(AdjustedImageBase, admin.StackedInline):
 
 
 class ImageAdmin(admin.ModelAdmin):
-	inlines = [AreaInline, AdjustedImageInline]
+	inlines = [AreaInline,]
 	readonly_fields = ('height', 'width', 'timestamp')
 	list_display = ('name', 'timestamp', 'width', 'height')
 	date_hierarchy = 'timestamp'

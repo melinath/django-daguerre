@@ -1,6 +1,5 @@
 from hashlib import sha1
 
-from django.conf import settings
 from django.utils.encoding import smart_str
 from django.utils.translation import ugettext_lazy as _
 import mimetypes
@@ -27,18 +26,3 @@ def make_hash(*args, **kwargs):
 	stop = kwargs.get('stop', None)
 	step = kwargs.get('step', None)
 	return sha1(smart_str(u''.join([unicode(arg) for arg in args]))).hexdigest()[start:stop:step]
-
-
-def make_security_hash(*args):
-	args = args + (settings.SECRET_KEY,)
-	return make_hash(*args, step=2)
-
-
-def check_security_hash(sec_hash, *args):
-	return sec_hash == make_security_hash(*args)
-
-class AdjustmentInfoDict(dict):
-	"A simple dict subclass for making image data more usable in templates."
-	
-	def __unicode__(self):
-		return self.get('url', u'')
