@@ -3,13 +3,10 @@ Models
 
 .. automodule:: daguerre.models
 
-.. autoclass:: daguerre.models.ImageManager
+.. autoclass:: ImageManager
 	:members:
 
 .. autoclass:: Image
-	:members:
-
-.. autoclass:: AdjustedImageManager
 	:members:
 
 .. autoclass:: AdjustedImage
