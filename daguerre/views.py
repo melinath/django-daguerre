@@ -3,7 +3,6 @@ import json
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.views.generic import View
 
-from daguerre.models import Image
 from daguerre.utils.adjustments import AdjustmentHelper
 
 
@@ -26,7 +25,7 @@ class AdjustedImageRedirectView(View):
 		helper = self.get_helper()
 		try:
 			adjusted = helper.adjust()
-		except (IOError, Image.DoesNotExist), e:
+		except IOError, e:
 			raise Http404(e.message)
 		return HttpResponseRedirect(adjusted.adjusted.url)
 

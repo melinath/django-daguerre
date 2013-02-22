@@ -4,7 +4,7 @@ try:
 except ImportError:
 	import Image as PILImage
 
-from daguerre.models import AdjustedImage, Area, Image
+from daguerre.models import AdjustedImage, Area
 from daguerre.tests.base import BaseTestCase
 from daguerre.utils.adjustments import Fit, Crop, Fill, AdjustmentHelper, BulkAdjustmentHelper
 
@@ -130,7 +130,7 @@ class AdjustmentHelperTestCase(BaseTestCase):
 		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), expected)
 
 	def test_adjust_crop__50x50_area(self):
-		Area.objects.create(image=self.base_image, x1=21, x2=70, y1=46, y2=95)
+		Area.objects.create(storage_path=self.base_image, x1=21, x2=70, y1=46, y2=95)
 		expected = PILImage.open(self._data_path('50x50_crop_area.png'))
 		with self.assertNumQueries(4):
 			adjusted = AdjustmentHelper(self.base_image, width=50, height=50, adjustment='crop').adjust()
@@ -166,13 +166,16 @@ class AdjustmentHelperTestCase(BaseTestCase):
 
 	def test_adjust__nonexistant(self):
 		"""
-		Adjusting an Image for a path that (no longer) exists should raise an IOError.
+		Adjusting a path that doesn't exist should raise an IOError.
 
 		"""
-		img = Image.objects.create(image='nonexistant.png', height=200, width=200)
-		helper = AdjustmentHelper(img)
+		storage_path = 'nonexistant.png'
+		self.assertFalse(default_storage.exists(storage_path))
+		helper = AdjustmentHelper(storage_path)
 		# We still do get one query because the first try is always for
-		# an AdjustedImage, whether or not the original Image path exists.
+		# an AdjustedImage, whether or not the original file exists.
+		# This is for historic reasons and doesn't necessarily need to
+		# continue to be the case.
 		with self.assertNumQueries(1):
 			self.assertRaises(IOError, helper.adjust)
 
@@ -207,9 +210,7 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
 			self.create_image('100x50_crop.png'),
 			self.create_image('50x100_crop.png'),
 		]
-		iterable = [BulkTestObject(image.image.name) for image in images]
-		# Explicitly unprep.
-		Image.objects.all().delete()
+		iterable = [BulkTestObject(image) for image in images]
 
 		kwargs = {
 			'width': 50,
@@ -218,11 +219,8 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
 		}
 
 		helper = BulkAdjustmentHelper(iterable, 'storage_path', **kwargs)
-		with self.assertNumQueries(3):
+		with self.assertNumQueries(1):
 			helper.info_dicts()
-
-		for image in Image.objects.all():
-			self.assertTrue(default_storage.exists(image.image.name))
 
 	def test_info_dicts__semiprepped(self):
 		images = [
@@ -231,7 +229,7 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
 			self.create_image('100x50_crop.png'),
 			self.create_image('50x100_crop.png'),
 		]
-		iterable = [BulkTestObject(image.image.name) for image in images]
+		iterable = [BulkTestObject(image) for image in images]
 
 		kwargs = {
 			'width': 50,
@@ -240,7 +238,7 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
 		}
 
 		helper = BulkAdjustmentHelper(iterable, 'storage_path', **kwargs)
-		with self.assertNumQueries(2):
+		with self.assertNumQueries(1):
 			helper.info_dicts()
 
 	def test_info_dicts__prepped(self):
@@ -250,7 +248,7 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
 			self.create_image('100x50_crop.png'),
 			self.create_image('50x100_crop.png'),
 		]
-		iterable = [BulkTestObject(image.image.name) for image in images]
+		iterable = [BulkTestObject(image) for image in images]
 
 		kwargs = {
 			'width': 50,

@@ -14,7 +14,7 @@ class RequestResponseTestCase(BaseTestCase):
 
 		with self.assertNumQueries(1):
 			info_dict = AdjustmentHelper(image, **kwargs).info_dict()
-		with self.assertNumQueries(5):
+		with self.assertNumQueries(4):
 			response = self.client.get(info_dict['url'])
 		self.assertEqual(response.status_code, 302)
 

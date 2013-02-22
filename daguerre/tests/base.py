@@ -1,15 +1,14 @@
 import os
 
-from django.core.files.images import ImageFile
 from django.test import TestCase
 try:
-	from PIL import ImageChops, Image as PILImage
+	from PIL import ImageChops, Image
 except ImportError:
-	import Image as PILImage
+	import Image
 	import ImageChops
 
 import daguerre
-from daguerre.models import Image
+from daguerre.utils import save_image
 
 
 TEST_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(daguerre.__file__), 'tests', 'data'))
@@ -31,11 +30,5 @@ class BaseTestCase(TestCase):
 		self.assertTrue(ImageChops.difference(im1, im2).getbbox() is None)
 
 	def create_image(self, test_path):
-		pil_image = PILImage.open(self._data_path(test_path))
-		image = Image()
-		with open(pil_image.filename, 'r') as f:
-			image.image = ImageFile(f)
-			image.save()
-		image.storage_path = image.image.name
-		image.save()
-		return image
+		image = Image.open(self._data_path(test_path))
+		return save_image(image, 'daguerre/test/{0}'.format(test_path))

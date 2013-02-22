@@ -1,7 +1,6 @@
 from django.http import Http404
 from django.test import RequestFactory
 
-from daguerre.models import Image
 from daguerre.tests.base import BaseTestCase
 from daguerre.utils.adjustments import AdjustmentHelper
 from daguerre.views import AdjustedImageRedirectView, AjaxAdjustmentInfoView
@@ -32,13 +31,12 @@ class AdjustedImageRedirectViewTestCase(BaseTestCase):
 
 	def test_nonexistant(self):
 		"""
-		A 404 should be raised if the original image's image doesn't exist.
+		A 404 should be raised if the original image doesn't exist.
 
 		"""
 		factory = RequestFactory()
 		storage_path = 'nonexistant.png'
 		helper = AdjustmentHelper(storage_path, width=10, height=10)
-		Image.objects.create(image=storage_path, height=200, width=200)
 		self.view.kwargs = {'storage_path': storage_path}
 		self.view.request = factory.get('/', helper.to_querydict(secure=True))
 		self.assertRaises(Http404, self.view.get, self.view.request)
@@ -51,13 +49,12 @@ class AjaxAdjustmentInfoViewTestCase(BaseTestCase):
 
 	def test_nonexistant(self):
 		"""
-		A 404 should be raised if the original image's image doesn't exist.
+		A 404 should be raised if the original image doesn't exist.
 
 		"""
 		factory = RequestFactory()
 		storage_path = 'nonexistant.png'
 		helper = AdjustmentHelper(storage_path, width=10, height=5)
-		Image.objects.create(image=storage_path, height=200, width=200)
 		self.view.kwargs = {'storage_path': storage_path}
 		get_params = helper.to_querydict()
 		self.view.request = factory.get('/', get_params,

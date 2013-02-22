@@ -3,3 +3,4 @@ django-nose==1.1
 nose==1.2.1
 blessings==1.5
 django==1.4.5
+south==0.7.6

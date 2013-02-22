@@ -16,8 +16,8 @@ try:
 except ImportError:
 	import Image as PILImage
 
-from daguerre.models import Image, Area, AdjustedImage
-from daguerre.utils import make_hash
+from daguerre.models import Area, AdjustedImage
+from daguerre.utils import make_hash, save_image
 
 
 adjustments = {}
@@ -292,9 +292,9 @@ class BaseAdjustmentHelper(object):
 			self._query_kwargs = query_kwargs
 		return self._query_kwargs
 
-	def adjustment_for_image(self, image):
+	def adjustment_for_path(self, storage_path):
 		# Will raise IOError if the file doesn't exist or isn't an image.
-		im_file = default_storage.open(image.image.name)
+		im_file = default_storage.open(storage_path)
 		pil_image = PILImage.open(im_file)
 		return self.adjustment_class(pil_image, **self.kwargs)
 
@@ -331,9 +331,9 @@ class BaseAdjustmentHelper(object):
 
 		return qd
 
-	def _image_info_dict(self, image):
+	def _path_info_dict(self, storage_path):
 		try:
-			adjustment = self.adjustment_for_image(image)
+			adjustment = self.adjustment_for_path(storage_path)
 		except IOError:
 			return AdjustmentInfoDict()
 		return AdjustmentInfoDict({
@@ -341,8 +341,8 @@ class BaseAdjustmentHelper(object):
 			'width': adjustment.calculate()[0],
 			'height': adjustment.calculate()[1],
 			'requested': self.kwargs.copy(),
-			'url': u"{0}?{1}".format(reverse('daguerre_adjusted_image_redirect', kwargs={'storage_path': image.storage_path}), self.to_querydict(secure=True).urlencode()),
-			'ajax_url': u"{0}?{1}".format(reverse('daguerre_ajax_adjustment_info', kwargs={'storage_path': image.storage_path}), self.to_querydict(secure=False).urlencode()),
+			'url': u"{0}?{1}".format(reverse('daguerre_adjusted_image_redirect', kwargs={'storage_path': storage_path}), self.to_querydict(secure=True).urlencode()),
+			'ajax_url': u"{0}?{1}".format(reverse('daguerre_ajax_adjustment_info', kwargs={'storage_path': storage_path}), self.to_querydict(secure=False).urlencode()),
 		})
 
 
@@ -350,43 +350,26 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 	int_params = set(('width', 'height', 'max_width', 'max_height'))
 
 	def __init__(self, image_or_storage_path, **kwargs):
-		if isinstance(image_or_storage_path, Image):
-			self._image = image_or_storage_path
-			self.storage_path = self._image.storage_path
-		elif isinstance(image_or_storage_path, ImageFile):
+		if isinstance(image_or_storage_path, ImageFile):
 			self.storage_path = image_or_storage_path.name
 		else:
 			self.storage_path = image_or_storage_path
 
 		super(AdjustmentHelper, self).__init__(**kwargs)
 
-	def get_image(self):
-		if not hasattr(self, '_image'):
-			try:
-				self._image = Image.objects.for_storage_path(self.storage_path)
-			except Image.DoesNotExist:
-				self._image = None
-		return self._image
-
 	def get_areas(self):
 		if not hasattr(self, '_areas'):
-			image = self.get_image()
-			if image is None:
-				self._areas = Area.objects.none()
-			else:
-				self._areas = image.areas.all()
+			self._areas = Area.objects.filter(storage_path=self.storage_path)
 		return self._areas
 
 	def get_crop_area(self):
 		if not hasattr(self, '_crop_area'):
 			area = None
 			if 'crop' in self.kwargs:
-				image = self.get_image()
-				if image is not None:
-					try:
-						area = self.get_areas().get(name=self.kwargs['crop'])
-					except Area.DoesNotExist:
-						pass
+				try:
+					area = self.get_areas().get(name=self.kwargs['crop'])
+				except Area.DoesNotExist:
+					pass
 			self._crop_area = area
 		return self._crop_area
 
@@ -421,9 +404,9 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 
 		return cls(image_or_storage_path, **kwargs)
 
-	def adjustment_for_image(self, image):
+	def adjustment_for_path(self, storage_path):
 		# Will raise IOError if the file doesn't exist or isn't an image.
-		im_file = default_storage.open(image.image.name)
+		im_file = default_storage.open(storage_path)
 		pil_image = PILImage.open(im_file)
 		crop_area = self.get_crop_area()
 		if crop_area is None:
@@ -456,14 +439,12 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 			else:
 				return self._adjusted_image_info_dict(adjusted)
 
-			# If that fails, try to do a lazy adjustment based on the image.
-			image = self.get_image()
-			if image is not None:
-				return self._image_info_dict(image)
+			# If that fails, do a lazy adjustment based on the path.
+			return self._path_info_dict(self.storage_path)
 		return AdjustmentInfoDict()
 
 	def adjust(self):
-		# May raise IOError or Image.DoesNotExist.
+		# May raise IOError.
 
 		# First try to fetch a version that already exists.
 		kwargs = self.get_query_kwargs()
@@ -472,13 +453,9 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 		except IndexError:
 			pass
 
-		# If that fails, try to create one from the image.
-		image = self.get_image()
-		if image is None:
-			raise Image.DoesNotExist
-
+		# If that fails, try to create one from the storage path.
 		# Raises IOError if something goes wrong.
-		adjustment = self.adjustment_for_image(image)
+		adjustment = self.adjustment_for_path(self.storage_path)
 
 		creation_kwargs = {}
 		for k, v in kwargs.iteritems():
@@ -494,19 +471,17 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 
 		args = (unicode(creation_kwargs), datetime.datetime.now().isoformat())
 		filename = ''.join((make_hash(*args, step=2), ext))
-		filename = f.generate_filename(adjusted, filename)
+		storage_path = f.generate_filename(adjusted, filename)
 
-		temp = NamedTemporaryFile()
+		final_path = save_image(im, storage_path, format=adjustment.format, storage=default_storage)
+		# Try to handle race conditions gracefully.
 		try:
-			im.save(temp, format=adjustment.format)
-			adjusted.adjusted = File(temp, name=filename)
-			# Try to handle race conditions gracefully.
-			try:
-				return AdjustedImage.objects.filter(**kwargs)[:1][0]
-			except IndexError:
-				adjusted.save()
-		finally:
-			temp.close()
+			adjusted = AdjustedImage.objects.filter(**kwargs)[:1][0]
+		except IndexError:
+			adjusted.adjusted = final_path
+			adjusted.save()
+		else:
+			default_storage.delete(final_path)
 		return adjusted
 
 
@@ -562,33 +537,12 @@ class BulkAdjustmentHelper(BaseAdjustmentHelper):
 					self.adjusted[item] = info_dict
 				del self.remaining[path]
 
-		# Then get lazy info dicts for Images that already exist.
+		# And then make adjustment dicts for any remaining paths.
 		if self.remaining:
-			images = Image.objects.filter(storage_path__in=self.remaining)
-			for image in images:
-				path = image.storage_path
-				if path not in self.remaining:
-					continue
-				info_dict = self._image_info_dict(image)
-				for item in self.remaining[path]:
-					self.adjusted[item] = info_dict
-				del self.remaining[path]
-
-		# And finally create any Images which didn't already exist.
-		if self.remaining:
-			images = []
 			for path, items in self.remaining.copy().iteritems():
-				try:
-					image = Image.objects._create_for_storage_path(path, commit=False)
-					image._save_image()
-					images.append(image)
-				except IOError:
-					info_dict = AdjustmentInfoDict()
-				else:
-					info_dict = self._image_info_dict(image)
+				info_dict = self._path_info_dict(path)
 				for item in items:
 					self.adjusted[item] = info_dict
 				del self.remaining[path]
-			Image.objects.bulk_create(images)
 
 		return [(item, self.adjusted[item]) for item in self.iterable]

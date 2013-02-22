@@ -62,6 +62,8 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'daguerre',
     'django_nose',
+    'south',
 )
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+SOUTH_TESTS_MIGRATE = False
