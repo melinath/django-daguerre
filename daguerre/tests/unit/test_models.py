@@ -1,22 +1,18 @@
 import os
 
 from django.core.files.storage import default_storage
-from django.test import TestCase
 try:
 	from PIL import Image as PILImage
 except ImportError:
 	import Image as PILImage
 
-from daguerre.models import AdjustedImage, Area, Image, DEFAULT_FORMAT, KEEP_FORMATS
-from daguerre.tests.base import DaguerreTestCaseMixin, ImageCreator, get_test_file_path
+from daguerre.models import Image, DEFAULT_FORMAT, KEEP_FORMATS
+from daguerre.tests.base import BaseTestCase
 
 
-class ImageTestCase(DaguerreTestCaseMixin, TestCase):
-	def setUp(self):
-		self.image_creator = ImageCreator()
-
+class ImageTestCase(BaseTestCase):
 	def test_for_storage_path(self):
-		image = self.image_creator.create('100x100.png')
+		image = self.create_image('100x100.png')
 		storage_path = image.image.name
 		self.assertEqual(Image.objects.for_storage_path(storage_path), image)
 
@@ -27,7 +23,7 @@ class ImageTestCase(DaguerreTestCaseMixin, TestCase):
 
 		"""
 		storage_path = 'exact_image_path.png'
-		with open(get_test_file_path('100x100.png')) as f:
+		with self._data_file('100x100.png') as f:
 			with default_storage.open(storage_path, 'w') as target:
 				target.write(f.read())
 
@@ -55,7 +51,7 @@ class ImageTestCase(DaguerreTestCaseMixin, TestCase):
 		be returned rather than erroring out.
 
 		"""
-		image1 = self.image_creator.create('100x100.png')
+		image1 = self.create_image('100x100.png')
 		image2 = Image.objects.get(pk=image1.pk)
 		image2.pk = None
 		image2.save()
@@ -72,7 +68,7 @@ class ImageTestCase(DaguerreTestCaseMixin, TestCase):
 
 		"""
 		storage_path = 'non_keeper.psd'
-		with open(get_test_file_path('100x50.psd')) as f:
+		with self._data_file('100x50.psd') as f:
 			with default_storage.open(storage_path, 'w') as target:
 				target.write(f.read())
 

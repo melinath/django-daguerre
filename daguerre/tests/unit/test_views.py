@@ -1,16 +1,16 @@
 from django.http import Http404
-from django.test import TestCase, RequestFactory
+from django.test import RequestFactory
 
 from daguerre.models import Image
-from daguerre.tests.base import DaguerreTestCaseMixin
+from daguerre.tests.base import BaseTestCase
 from daguerre.utils.adjustments import AdjustmentHelper
 from daguerre.views import AdjustedImageRedirectView, AjaxAdjustmentInfoView
 
 
-class AdjustedImageRedirectViewTestCase(DaguerreTestCaseMixin, TestCase):
+class AdjustedImageRedirectViewTestCase(BaseTestCase):
 	def setUp(self):
-		TestCase.setUp(self)
 		self.view = AdjustedImageRedirectView()
+		super(AdjustedImageRedirectViewTestCase, self).setUp()
 
 	def test_check_security(self):
 		"""A 404 should be raised if the security hash is missing or incorrect."""
@@ -44,10 +44,10 @@ class AdjustedImageRedirectViewTestCase(DaguerreTestCaseMixin, TestCase):
 		self.assertRaises(Http404, self.view.get, self.view.request)
 
 
-class AjaxAdjustmentInfoViewTestCase(DaguerreTestCaseMixin, TestCase):
+class AjaxAdjustmentInfoViewTestCase(BaseTestCase):
 	def setUp(self):
-		TestCase.setUp(self)
 		self.view = AjaxAdjustmentInfoView()
+		super(AjaxAdjustmentInfoViewTestCase, self).setUp()
 
 	def test_nonexistant(self):
 		"""

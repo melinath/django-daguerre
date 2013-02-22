@@ -1,13 +1,10 @@
-from django.test import TestCase
-
-from daguerre.tests.base import DaguerreTestCaseMixin, ImageCreator
+from daguerre.tests.base import BaseTestCase
 from daguerre.utils.adjustments import AdjustmentHelper
 
 
-class RequestResponseTestCase(DaguerreTestCaseMixin, TestCase):
+class RequestResponseTestCase(BaseTestCase):
 	def test_unprepped(self):
-		image_creator = ImageCreator()
-		image = image_creator.create('100x100.png')
+		image = self.create_image('100x100.png')
 
 		kwargs = {
 			'width': 50,
@@ -22,8 +19,7 @@ class RequestResponseTestCase(DaguerreTestCaseMixin, TestCase):
 		self.assertEqual(response.status_code, 302)
 
 	def test_prepped(self):
-		image_creator = ImageCreator()
-		image = image_creator.create('100x100.png')
+		image = self.create_image('100x100.png')
 
 		kwargs = {
 			'width': 50,
@@ -40,8 +36,7 @@ class RequestResponseTestCase(DaguerreTestCaseMixin, TestCase):
 		self.assertEqual(response.status_code, 302)
 
 	def test_preprepped(self):
-		image_creator = ImageCreator()
-		image = image_creator.create('100x100.png')
+		image = self.create_image('100x100.png')
 
 		kwargs = {
 			'width': 50,

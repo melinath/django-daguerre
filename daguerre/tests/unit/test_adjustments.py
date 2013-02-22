@@ -1,18 +1,17 @@
 from django.core.files.storage import default_storage
-from django.test import TestCase
 try:
 	from PIL import Image as PILImage
 except ImportError:
 	import Image as PILImage
 
 from daguerre.models import AdjustedImage, Area, Image
-from daguerre.tests.base import DaguerreTestCaseMixin, ImageCreator, get_test_file_path
+from daguerre.tests.base import BaseTestCase
 from daguerre.utils.adjustments import Fit, Crop, Fill, AdjustmentHelper, BulkAdjustmentHelper
 
 
-class FitTestCase(DaguerreTestCaseMixin, TestCase):
+class FitTestCase(BaseTestCase):
 	def test_calculate(self):
-		im = PILImage.open(get_test_file_path('100x100.png'))
+		im = PILImage.open(self._data_path('100x100.png'))
 		fit = Fit(im, width=50, height=50)
 		self.assertEqual(fit.calculate(), (50, 50))
 		fit = Fit(im, width=50)
@@ -23,8 +22,8 @@ class FitTestCase(DaguerreTestCaseMixin, TestCase):
 		self.assertEqual(fit.calculate(), (50, 50))
 
 	def test_adjust(self):
-		im = PILImage.open(get_test_file_path('100x100.png'))
-		new_im = PILImage.open(get_test_file_path('50x50_fit.png'))
+		im = PILImage.open(self._data_path('100x100.png'))
+		new_im = PILImage.open(self._data_path('50x50_fit.png'))
 		fit = Fit(im, width=50, height=50)
 		self.assertImageEqual(fit.adjust(), new_im)
 		fit = Fit(im, width=50)
@@ -35,9 +34,9 @@ class FitTestCase(DaguerreTestCaseMixin, TestCase):
 		self.assertImageEqual(fit.adjust(), new_im)
 
 
-class CropTestCase(DaguerreTestCaseMixin, TestCase):
+class CropTestCase(BaseTestCase):
 	def test_calculate(self):
-		im = PILImage.open(get_test_file_path('100x100.png'))
+		im = PILImage.open(self._data_path('100x100.png'))
 		crop = Crop(im, width=50, height=50)
 		self.assertEqual(crop.calculate(), (50, 50))
 		crop = Crop(im, width=50)
@@ -46,28 +45,28 @@ class CropTestCase(DaguerreTestCaseMixin, TestCase):
 		self.assertEqual(crop.calculate(), (100, 50))
 
 	def test_adjust(self):
-		im = PILImage.open(get_test_file_path('100x100.png'))
+		im = PILImage.open(self._data_path('100x100.png'))
 
-		new_im = PILImage.open(get_test_file_path('50x50_crop.png'))
+		new_im = PILImage.open(self._data_path('50x50_crop.png'))
 		crop = Crop(im, width=50, height=50)
 		self.assertImageEqual(crop.adjust(), new_im)
 
-		new_im = PILImage.open(get_test_file_path('50x100_crop.png'))
+		new_im = PILImage.open(self._data_path('50x100_crop.png'))
 		crop = Crop(im, width=50)
 		self.assertImageEqual(crop.adjust(), new_im)
 
-		new_im = PILImage.open(get_test_file_path('100x50_crop.png'))
+		new_im = PILImage.open(self._data_path('100x50_crop.png'))
 		crop = Crop(im, height=50)
 		self.assertImageEqual(crop.adjust(), new_im)
 
-		new_im = PILImage.open(get_test_file_path('50x50_crop_area.png'))
+		new_im = PILImage.open(self._data_path('50x50_crop_area.png'))
 		crop = Crop(im, width=50, height=50, areas=[Area(x1=21, y1=46, x2=70, y2=95)])
 		self.assertImageEqual(crop.adjust(), new_im)
 
 
-class FillTestCase(DaguerreTestCaseMixin, TestCase):
+class FillTestCase(BaseTestCase):
 	def test_calculate(self):
-		im = PILImage.open(get_test_file_path('100x100.png'))
+		im = PILImage.open(self._data_path('100x100.png'))
 		fill = Fill(im, width=50, height=50)
 		self.assertEqual(fill.calculate(), (50, 50))
 		fill = Fill(im, width=50, height=40)
@@ -86,9 +85,9 @@ class FillTestCase(DaguerreTestCaseMixin, TestCase):
 		self.assertEqual(fill.calculate(), (50, 100))
 
 	def test_adjust(self):
-		im = PILImage.open(get_test_file_path('100x100.png'))
+		im = PILImage.open(self._data_path('100x100.png'))
 
-		new_im = PILImage.open(get_test_file_path('50x50_fit.png'))
+		new_im = PILImage.open(self._data_path('50x50_fit.png'))
 		fill = Fill(im, width=50, height=50)
 		self.assertImageEqual(fill.adjust(), new_im)
 		fill = Fill(im, width=50)
@@ -100,47 +99,46 @@ class FillTestCase(DaguerreTestCaseMixin, TestCase):
 		fill = Fill(im, height=50, max_width=200)
 		self.assertImageEqual(fill.adjust(), new_im)
 
-		new_im = PILImage.open(get_test_file_path('50x40_fill.png'))
+		new_im = PILImage.open(self._data_path('50x40_fill.png'))
 		fill = Fill(im, width=50, height=40)
 		self.assertImageEqual(fill.adjust(), new_im)
 
-		new_im = PILImage.open(get_test_file_path('100x50_crop.png'))
+		new_im = PILImage.open(self._data_path('100x50_crop.png'))
 		fill = Fill(im, width=100, max_height=50)
 		self.assertImageEqual(fill.adjust(), new_im)
 
-		new_im = PILImage.open(get_test_file_path('50x100_crop.png'))
+		new_im = PILImage.open(self._data_path('50x100_crop.png'))
 		fill = Fill(im, height=100, max_width=50)
 		self.assertImageEqual(fill.adjust(), new_im)
 
 
-class AdjustmentHelperTestCase(DaguerreTestCaseMixin, TestCase):
+class AdjustmentHelperTestCase(BaseTestCase):
 	def setUp(self):
-		self.image_creator = ImageCreator()
-		self.base_image = self.image_creator.create('100x100.png')
+		self.base_image = self.create_image('100x100.png')
 		super(AdjustmentHelperTestCase, self).setUp()
 
 	def test_adjust_crop__50x100(self):
-		expected = PILImage.open(get_test_file_path('50x100_crop.png'))
+		expected = PILImage.open(self._data_path('50x100_crop.png'))
 		with self.assertNumQueries(4):
 			adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
 		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), expected)
 
 	def test_adjust_crop__100x50(self):
-		expected = PILImage.open(get_test_file_path('100x50_crop.png'))
+		expected = PILImage.open(self._data_path('100x50_crop.png'))
 		with self.assertNumQueries(4):
 			adjusted = AdjustmentHelper(self.base_image, width=100, height=50, adjustment='crop').adjust()
 		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), expected)
 
 	def test_adjust_crop__50x50_area(self):
 		Area.objects.create(image=self.base_image, x1=21, x2=70, y1=46, y2=95)
-		expected = PILImage.open(get_test_file_path('50x50_crop_area.png'))
+		expected = PILImage.open(self._data_path('50x50_crop_area.png'))
 		with self.assertNumQueries(4):
 			adjusted = AdjustmentHelper(self.base_image, width=50, height=50, adjustment='crop').adjust()
 		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), expected)
 
 	def test_readjust(self):
 		"""Adjusting a previously-adjusted image should return the previous adjustment."""
-		new_im = PILImage.open(get_test_file_path('50x100_crop.png'))
+		new_im = PILImage.open(self._data_path('50x100_crop.png'))
 		with self.assertNumQueries(4):
 			adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
 		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), new_im)
@@ -184,14 +182,13 @@ class BulkTestObject(object):
 		self.storage_path = storage_path
 
 
-class BulkAdjustmentHelperTestCase(DaguerreTestCaseMixin, TestCase):
+class BulkAdjustmentHelperTestCase(BaseTestCase):
 	def test_info_dicts__non_bulk(self):
-		image_creator = ImageCreator()
 		images = [
-			image_creator.create('100x100.png'),
-			image_creator.create('100x100.png'),
-			image_creator.create('100x50_crop.png'),
-			image_creator.create('50x100_crop.png'),
+			self.create_image('100x100.png'),
+			self.create_image('100x100.png'),
+			self.create_image('100x50_crop.png'),
+			self.create_image('50x100_crop.png'),
 		]
 
 		kwargs = {
@@ -204,12 +201,11 @@ class BulkAdjustmentHelperTestCase(DaguerreTestCaseMixin, TestCase):
 				AdjustmentHelper(image, **kwargs).info_dict()
 
 	def test_info_dicts__unprepped(self):
-		image_creator = ImageCreator()
 		images = [
-			image_creator.create('100x100.png'),
-			image_creator.create('100x100.png'),
-			image_creator.create('100x50_crop.png'),
-			image_creator.create('50x100_crop.png'),
+			self.create_image('100x100.png'),
+			self.create_image('100x100.png'),
+			self.create_image('100x50_crop.png'),
+			self.create_image('50x100_crop.png'),
 		]
 		iterable = [BulkTestObject(image.image.name) for image in images]
 		# Explicitly unprep.
@@ -229,12 +225,11 @@ class BulkAdjustmentHelperTestCase(DaguerreTestCaseMixin, TestCase):
 			self.assertTrue(default_storage.exists(image.image.name))
 
 	def test_info_dicts__semiprepped(self):
-		image_creator = ImageCreator()
 		images = [
-			image_creator.create('100x100.png'),
-			image_creator.create('100x100.png'),
-			image_creator.create('100x50_crop.png'),
-			image_creator.create('50x100_crop.png'),
+			self.create_image('100x100.png'),
+			self.create_image('100x100.png'),
+			self.create_image('100x50_crop.png'),
+			self.create_image('50x100_crop.png'),
 		]
 		iterable = [BulkTestObject(image.image.name) for image in images]
 
@@ -249,12 +244,11 @@ class BulkAdjustmentHelperTestCase(DaguerreTestCaseMixin, TestCase):
 			helper.info_dicts()
 
 	def test_info_dicts__prepped(self):
-		image_creator = ImageCreator()
 		images = [
-			image_creator.create('100x100.png'),
-			image_creator.create('100x100.png'),
-			image_creator.create('100x50_crop.png'),
-			image_creator.create('50x100_crop.png'),
+			self.create_image('100x100.png'),
+			self.create_image('100x100.png'),
+			self.create_image('100x50_crop.png'),
+			self.create_image('50x100_crop.png'),
 		]
 		iterable = [BulkTestObject(image.image.name) for image in images]
 

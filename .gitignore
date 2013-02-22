@@ -1,1 +1,4 @@
 *.pyc
+/.tox/
+/test_project/test_project/media/
+/test_project/test_project/db.sl3

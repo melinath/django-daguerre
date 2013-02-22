@@ -1,0 +1,10 @@
+language: python
+python:
+  - "2.6"
+  - "2.7"
+install:
+  - pip install . --no-deps
+  - pip install --use-mirrors --no-deps -r test_project/requirements.txt
+script:
+  - cd test_mc_project
+  - ./manage.py test --verbosity=2 daguerre

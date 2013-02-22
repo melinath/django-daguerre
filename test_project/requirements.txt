@@ -1,0 +1,5 @@
+Pillow==1.7.8
+django-nose==1.1
+nose==1.2.1
+blessings==1.5
+django==1.4.5
