@@ -81,7 +81,7 @@ def _adjustment_choice_iter():
 class AdjustedImage(models.Model):
 	"""Represents a "cached" managed image adjustment."""
 	storage_path = models.CharField(max_length=300, db_index=True)
-	adjusted = models.ImageField(height_field='height', width_field='width', upload_to='daguerre/images/%Y/%m/%d/adjusted/', max_length=255)
+	adjusted = models.ImageField(height_field='height', width_field='width', upload_to='daguerre/adjusted/%Y/%m/%d/', max_length=255)
 	timestamp = models.DateTimeField(auto_now_add=True)
 
 	width = models.PositiveIntegerField(db_index=True)
