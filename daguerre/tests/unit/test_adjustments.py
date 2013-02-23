@@ -1,8 +1,8 @@
 from django.core.files.storage import default_storage
 try:
-	from PIL import Image as PILImage
+	from PIL import Image
 except ImportError:
-	import Image as PILImage
+	import Image
 
 from daguerre.models import AdjustedImage, Area
 from daguerre.tests.base import BaseTestCase
@@ -11,7 +11,7 @@ from daguerre.utils.adjustments import Fit, Crop, Fill, AdjustmentHelper, BulkAd
 
 class FitTestCase(BaseTestCase):
 	def test_calculate(self):
-		im = PILImage.open(self._data_path('100x100.png'))
+		im = Image.open(self._data_path('100x100.png'))
 		fit = Fit(im, width=50, height=50)
 		self.assertEqual(fit.calculate(), (50, 50))
 		fit = Fit(im, width=50)
@@ -22,8 +22,8 @@ class FitTestCase(BaseTestCase):
 		self.assertEqual(fit.calculate(), (50, 50))
 
 	def test_adjust(self):
-		im = PILImage.open(self._data_path('100x100.png'))
-		new_im = PILImage.open(self._data_path('50x50_fit.png'))
+		im = Image.open(self._data_path('100x100.png'))
+		new_im = Image.open(self._data_path('50x50_fit.png'))
 		fit = Fit(im, width=50, height=50)
 		self.assertImageEqual(fit.adjust(), new_im)
 		fit = Fit(im, width=50)
@@ -36,7 +36,7 @@ class FitTestCase(BaseTestCase):
 
 class CropTestCase(BaseTestCase):
 	def test_calculate(self):
-		im = PILImage.open(self._data_path('100x100.png'))
+		im = Image.open(self._data_path('100x100.png'))
 		crop = Crop(im, width=50, height=50)
 		self.assertEqual(crop.calculate(), (50, 50))
 		crop = Crop(im, width=50)
@@ -45,28 +45,28 @@ class CropTestCase(BaseTestCase):
 		self.assertEqual(crop.calculate(), (100, 50))
 
 	def test_adjust(self):
-		im = PILImage.open(self._data_path('100x100.png'))
+		im = Image.open(self._data_path('100x100.png'))
 
-		new_im = PILImage.open(self._data_path('50x50_crop.png'))
+		new_im = Image.open(self._data_path('50x50_crop.png'))
 		crop = Crop(im, width=50, height=50)
 		self.assertImageEqual(crop.adjust(), new_im)
 
-		new_im = PILImage.open(self._data_path('50x100_crop.png'))
+		new_im = Image.open(self._data_path('50x100_crop.png'))
 		crop = Crop(im, width=50)
 		self.assertImageEqual(crop.adjust(), new_im)
 
-		new_im = PILImage.open(self._data_path('100x50_crop.png'))
+		new_im = Image.open(self._data_path('100x50_crop.png'))
 		crop = Crop(im, height=50)
 		self.assertImageEqual(crop.adjust(), new_im)
 
-		new_im = PILImage.open(self._data_path('50x50_crop_area.png'))
+		new_im = Image.open(self._data_path('50x50_crop_area.png'))
 		crop = Crop(im, width=50, height=50, areas=[Area(x1=21, y1=46, x2=70, y2=95)])
 		self.assertImageEqual(crop.adjust(), new_im)
 
 
 class FillTestCase(BaseTestCase):
 	def test_calculate(self):
-		im = PILImage.open(self._data_path('100x100.png'))
+		im = Image.open(self._data_path('100x100.png'))
 		fill = Fill(im, width=50, height=50)
 		self.assertEqual(fill.calculate(), (50, 50))
 		fill = Fill(im, width=50, height=40)
@@ -85,9 +85,9 @@ class FillTestCase(BaseTestCase):
 		self.assertEqual(fill.calculate(), (50, 100))
 
 	def test_adjust(self):
-		im = PILImage.open(self._data_path('100x100.png'))
+		im = Image.open(self._data_path('100x100.png'))
 
-		new_im = PILImage.open(self._data_path('50x50_fit.png'))
+		new_im = Image.open(self._data_path('50x50_fit.png'))
 		fill = Fill(im, width=50, height=50)
 		self.assertImageEqual(fill.adjust(), new_im)
 		fill = Fill(im, width=50)
@@ -99,15 +99,15 @@ class FillTestCase(BaseTestCase):
 		fill = Fill(im, height=50, max_width=200)
 		self.assertImageEqual(fill.adjust(), new_im)
 
-		new_im = PILImage.open(self._data_path('50x40_fill.png'))
+		new_im = Image.open(self._data_path('50x40_fill.png'))
 		fill = Fill(im, width=50, height=40)
 		self.assertImageEqual(fill.adjust(), new_im)
 
-		new_im = PILImage.open(self._data_path('100x50_crop.png'))
+		new_im = Image.open(self._data_path('100x50_crop.png'))
 		fill = Fill(im, width=100, max_height=50)
 		self.assertImageEqual(fill.adjust(), new_im)
 
-		new_im = PILImage.open(self._data_path('50x100_crop.png'))
+		new_im = Image.open(self._data_path('50x100_crop.png'))
 		fill = Fill(im, height=100, max_width=50)
 		self.assertImageEqual(fill.adjust(), new_im)
 
@@ -118,30 +118,30 @@ class AdjustmentHelperTestCase(BaseTestCase):
 		super(AdjustmentHelperTestCase, self).setUp()
 
 	def test_adjust_crop__50x100(self):
-		expected = PILImage.open(self._data_path('50x100_crop.png'))
+		expected = Image.open(self._data_path('50x100_crop.png'))
 		with self.assertNumQueries(4):
 			adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
-		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), expected)
+		self.assertImageEqual(Image.open(adjusted.adjusted.path), expected)
 
 	def test_adjust_crop__100x50(self):
-		expected = PILImage.open(self._data_path('100x50_crop.png'))
+		expected = Image.open(self._data_path('100x50_crop.png'))
 		with self.assertNumQueries(4):
 			adjusted = AdjustmentHelper(self.base_image, width=100, height=50, adjustment='crop').adjust()
-		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), expected)
+		self.assertImageEqual(Image.open(adjusted.adjusted.path), expected)
 
 	def test_adjust_crop__50x50_area(self):
 		Area.objects.create(storage_path=self.base_image, x1=21, x2=70, y1=46, y2=95)
-		expected = PILImage.open(self._data_path('50x50_crop_area.png'))
+		expected = Image.open(self._data_path('50x50_crop_area.png'))
 		with self.assertNumQueries(4):
 			adjusted = AdjustmentHelper(self.base_image, width=50, height=50, adjustment='crop').adjust()
-		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), expected)
+		self.assertImageEqual(Image.open(adjusted.adjusted.path), expected)
 
 	def test_readjust(self):
 		"""Adjusting a previously-adjusted image should return the previous adjustment."""
-		new_im = PILImage.open(self._data_path('50x100_crop.png'))
+		new_im = Image.open(self._data_path('50x100_crop.png'))
 		with self.assertNumQueries(4):
 			adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
-		self.assertImageEqual(PILImage.open(adjusted.adjusted.path), new_im)
+		self.assertImageEqual(Image.open(adjusted.adjusted.path), new_im)
 
 		with self.assertNumQueries(1):
 			new_adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()

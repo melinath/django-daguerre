@@ -9,9 +9,9 @@ from django.http import QueryDict
 from django.template import Variable, VariableDoesNotExist, TemplateSyntaxError
 from django.utils.datastructures import SortedDict
 try:
-	from PIL import Image as PILImage
+	from PIL import Image
 except ImportError:
-	import Image as PILImage
+	import Image
 
 from daguerre.models import Area, AdjustedImage
 from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT
@@ -120,9 +120,9 @@ class Fit(Adjustment):
 
 		# Choose a resize filter based on whether we're upscaling or downscaling.
 		if new_width < image_width:
-			f = PILImage.ANTIALIAS
+			f = Image.ANTIALIAS
 		else:
-			f = PILImage.BICUBIC
+			f = Image.BICUBIC
 		return self.image.resize((new_width, new_height), f)
 
 
@@ -291,7 +291,7 @@ class BaseAdjustmentHelper(object):
 	def adjustment_for_path(self, storage_path):
 		# Will raise IOError if the file doesn't exist or isn't an image.
 		im_file = default_storage.open(storage_path)
-		pil_image = PILImage.open(im_file)
+		pil_image = Image.open(im_file)
 		return self.adjustment_class(pil_image, **self.kwargs)
 
 	def _adjusted_image_info_dict(self, adjusted_image):
@@ -402,7 +402,7 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 	def adjustment_for_path(self, storage_path):
 		# Will raise IOError if the file doesn't exist or isn't an image.
 		im_file = default_storage.open(storage_path)
-		pil_image = PILImage.open(im_file)
+		pil_image = Image.open(im_file)
 		crop_area = self.get_crop_area()
 		if crop_area is None:
 			areas = self.get_areas()
