@@ -4,30 +4,12 @@ from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.utils.encoding import smart_str
-from django.utils.translation import ugettext_lazy as _
-import mimetypes
 
 
 #: Formats that we trust to be able to handle gracefully.
 KEEP_FORMATS = ('PNG', 'JPEG', 'GIF')
 #: Default format to convert other file types to.
 DEFAULT_FORMAT = 'PNG'
-
-
-def convert_filetype(ftype):
-	"""Takes a file ending or mimetype and returns a valid mimetype or raises a ValueError."""
-	if '.' in ftype:
-		try:
-			return mimetypes.types_map[ftype]
-		except KeyError:
-			return mimetypes.common_types[ftype]
-	elif '/' in ftype:
-		if ftype in mimetypes.types_map.values() or ftype in mimetypes.common_types.values():
-			return ftype
-		else:
-			raise ValueError(_(u'Unknown MIME-type: %s' % ftype))
-	else:
-		raise ValueError(_('Invalid MIME-type: %s' % ftype))
 
 
 def make_hash(*args, **kwargs):

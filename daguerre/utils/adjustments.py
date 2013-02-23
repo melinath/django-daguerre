@@ -1,12 +1,9 @@
 import datetime
-import mimetypes
 from itertools import ifilter
 
 from django.conf import settings
-from django.core.files.base import File
 from django.core.files.images import ImageFile
 from django.core.files.storage import default_storage
-from django.core.files.temp import NamedTemporaryFile
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
 from django.template import Variable, VariableDoesNotExist, TemplateSyntaxError
@@ -17,7 +14,7 @@ except ImportError:
 	import Image as PILImage
 
 from daguerre.models import Area, AdjustedImage
-from daguerre.utils import make_hash, save_image
+from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT
 
 
 adjustments = {}
@@ -44,7 +41,6 @@ class Adjustment(object):
 	def __init__(self, image, width=None, height=None, max_width=None, max_height=None, areas=None):
 		self.image = image
 		self.format = self.image.format
-		self.mimetype = None if self.format is None else "image/%s" % self.format.lower()
 
 		self.areas = areas
 
@@ -337,7 +333,6 @@ class BaseAdjustmentHelper(object):
 		except IOError:
 			return AdjustmentInfoDict()
 		return AdjustmentInfoDict({
-			'format': adjustment.format,
 			'width': adjustment.calculate()[0],
 			'height': adjustment.calculate()[1],
 			'requested': self.kwargs.copy(),
@@ -467,13 +462,13 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 		adjusted = AdjustedImage(**creation_kwargs)
 		im = adjustment.adjust()
 		f = adjusted._meta.get_field('adjusted')
-		ext = mimetypes.guess_extension(adjustment.mimetype)
 
+		format = adjustment.format if adjustment.format in KEEP_FORMATS else DEFAULT_FORMAT
 		args = (unicode(creation_kwargs), datetime.datetime.now().isoformat())
-		filename = ''.join((make_hash(*args, step=2), ext))
+		filename = ''.join((make_hash(*args, step=2), format.lower()))
 		storage_path = f.generate_filename(adjusted, filename)
 
-		final_path = save_image(im, storage_path, format=adjustment.format, storage=default_storage)
+		final_path = save_image(im, storage_path, format=format, storage=default_storage)
 		# Try to handle race conditions gracefully.
 		try:
 			adjusted = AdjustedImage.objects.filter(**kwargs)[:1][0]
