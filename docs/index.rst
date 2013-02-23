@@ -32,6 +32,7 @@ Contents
 
    guides/installation-and-setup
    guides/using-daguerre
+   guides/commands
    project
 
 
