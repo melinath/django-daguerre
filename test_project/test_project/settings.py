@@ -11,12 +11,24 @@ ADMINS = ()
 
 MANAGERS = ADMINS
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(PROJECT_DIR, 'db.sl3'),
+DB = os.environ.get('DB')
+if DB == 'mysql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'daguerre_test',
+            'USER': 'root',
+            'TEST_CHARSET': 'utf8',
+            'TEST_COLLATION': 'utf8_general_ci',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(PROJECT_DIR, 'db.sl3'),
+        }
+    }
 
 TIME_ZONE = 'UTC'
 LANGUAGE_CODE = 'en-us'
