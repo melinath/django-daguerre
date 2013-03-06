@@ -7,7 +7,7 @@ from django.utils.encoding import smart_unicode
 
 class Area(models.Model):
 	"""Represents an area of an image. Can be used to specify a crop. Also used for priority-aware automated image cropping."""
-	storage_path = models.CharField(max_length=300, db_index=True)
+	storage_path = models.CharField(max_length=300)
 	
 	x1 = models.PositiveIntegerField(validators=[MinValueValidator(0)])
 	y1 = models.PositiveIntegerField(validators=[MinValueValidator(0)])
@@ -68,7 +68,6 @@ class Area(models.Model):
 	
 	class Meta:
 		ordering = ('priority',)
-		unique_together = ('storage_path', 'x1', 'y1', 'x2', 'y2')
 
 
 def _adjustment_choice_iter():
@@ -80,18 +79,18 @@ def _adjustment_choice_iter():
 
 class AdjustedImage(models.Model):
 	"""Represents a "cached" managed image adjustment."""
-	storage_path = models.CharField(max_length=300, db_index=True)
+	storage_path = models.CharField(max_length=300)
 	adjusted = models.ImageField(height_field='height', width_field='width', upload_to='daguerre/adjusted/%Y/%m/%d/', max_length=255)
 	timestamp = models.DateTimeField(auto_now_add=True)
 
-	width = models.PositiveIntegerField(db_index=True)
-	height = models.PositiveIntegerField(db_index=True)
+	width = models.PositiveIntegerField()
+	height = models.PositiveIntegerField()
 
-	requested_width = models.PositiveIntegerField(db_index=True, blank=True, null=True)
-	requested_height = models.PositiveIntegerField(db_index=True, blank=True, null=True)
-	requested_max_width = models.PositiveIntegerField(db_index=True, blank=True, null=True)
-	requested_max_height = models.PositiveIntegerField(db_index=True, blank=True, null=True)
-	requested_adjustment = models.CharField(db_index=True, max_length=255, choices=_adjustment_choice_iter())
+	requested_width = models.PositiveIntegerField(blank=True, null=True)
+	requested_height = models.PositiveIntegerField(blank=True, null=True)
+	requested_max_width = models.PositiveIntegerField(blank=True, null=True)
+	requested_max_height = models.PositiveIntegerField(blank=True, null=True)
+	requested_adjustment = models.CharField(max_length=255, choices=_adjustment_choice_iter())
 	requested_crop = models.ForeignKey(Area, blank=True, null=True)
 
 	def __unicode__(self):
