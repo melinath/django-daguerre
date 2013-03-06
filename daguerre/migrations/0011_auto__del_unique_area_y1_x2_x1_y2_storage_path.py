@@ -1,42 +1,81 @@
 # -*- coding: utf-8 -*-
+import warnings
+
 import datetime
 from south.db import db
 from south.v2 import SchemaMigration
+from django.conf import settings
 from django.db import models
+from django.db.utils import DatabaseError
 
 
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Removing unique constraint on 'Area', fields ['y1', 'x2', 'x1', 'y2', 'storage_path']
-        db.delete_unique('daguerre_area', ['y1', 'x2', 'x1', 'y2', 'storage_path'])
+        if settings.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
+            warnings.warn("This migration step will probably output a bunch "
+                          "of 'FATAL ERROR' messages. This is expected when "
+                          "using sqlite3.")
+        try:
+            # Removing unique constraint on 'Area', fields ['y1', 'x2', 'x1', 'y2', 'storage_path']
+            db.delete_unique('daguerre_area', ['y1', 'x2', 'x1', 'y2', 'storage_path'])
+        except DatabaseError:
+            # Can happen if index is already gone.
+            pass
 
-        # Removing index on 'Area', fields ['storage_path']
-        db.delete_index('daguerre_area', ['storage_path'])
+        try:
+            # Removing index on 'Area', fields ['storage_path']
+            db.delete_index('daguerre_area', ['storage_path'])
+        except DatabaseError:
+            pass
 
-        # Removing index on 'AdjustedImage', fields ['requested_width']
-        db.delete_index('daguerre_adjustedimage', ['requested_width'])
+        try:
+            # Removing index on 'AdjustedImage', fields ['requested_width']
+            db.delete_index('daguerre_adjustedimage', ['requested_width'])
+        except DatabaseError:
+            pass
 
-        # Removing index on 'AdjustedImage', fields ['requested_adjustment']
-        db.delete_index('daguerre_adjustedimage', ['requested_adjustment'])
+        try:
+            # Removing index on 'AdjustedImage', fields ['requested_adjustment']
+            db.delete_index('daguerre_adjustedimage', ['requested_adjustment'])
+        except DatabaseError:
+            pass
 
-        # Removing index on 'AdjustedImage', fields ['height']
-        db.delete_index('daguerre_adjustedimage', ['height'])
+        try:
+            # Removing index on 'AdjustedImage', fields ['height']
+            db.delete_index('daguerre_adjustedimage', ['height'])
+        except DatabaseError:
+            pass
 
-        # Removing index on 'AdjustedImage', fields ['width']
-        db.delete_index('daguerre_adjustedimage', ['width'])
+        try:
+            # Removing index on 'AdjustedImage', fields ['width']
+            db.delete_index('daguerre_adjustedimage', ['width'])
+        except DatabaseError:
+            pass
 
-        # Removing index on 'AdjustedImage', fields ['requested_height']
-        db.delete_index('daguerre_adjustedimage', ['requested_height'])
+        try:
+            # Removing index on 'AdjustedImage', fields ['requested_height']
+            db.delete_index('daguerre_adjustedimage', ['requested_height'])
+        except DatabaseError:
+            pass
 
-        # Removing index on 'AdjustedImage', fields ['requested_max_width']
-        db.delete_index('daguerre_adjustedimage', ['requested_max_width'])
+        try:
+            # Removing index on 'AdjustedImage', fields ['requested_max_width']
+            db.delete_index('daguerre_adjustedimage', ['requested_max_width'])
+        except DatabaseError:
+            pass
 
-        # Removing index on 'AdjustedImage', fields ['requested_max_height']
-        db.delete_index('daguerre_adjustedimage', ['requested_max_height'])
+        try:
+            # Removing index on 'AdjustedImage', fields ['requested_max_height']
+            db.delete_index('daguerre_adjustedimage', ['requested_max_height'])
+        except DatabaseError:
+            pass
 
-        # Removing index on 'AdjustedImage', fields ['storage_path']
-        db.delete_index('daguerre_adjustedimage', ['storage_path'])
+        try:
+            # Removing index on 'AdjustedImage', fields ['storage_path']
+            db.delete_index('daguerre_adjustedimage', ['storage_path'])
+        except DatabaseError:
+            pass
 
 
     def backwards(self, orm):
