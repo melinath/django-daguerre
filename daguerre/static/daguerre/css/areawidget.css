@@ -15,7 +15,7 @@
 
 #grp-container .add-area{
     background: url('../../grappelli/images/icons-s96d5c23000.png') no-repeat 33px -2563px;
-    width: 100%;
+    min-width: 100px;
     height: 25px;
     padding: 0;
     margin: 0;
