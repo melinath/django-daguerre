@@ -192,6 +192,11 @@ daguerre.jQuery(function($){
                 area.save();
             };
         });
+        area.row.find('input').keydown(function(e){
+            if (e.which == 13) {
+                e.preventDefault();
+            };
+        })
     };
 
     function AreaContainer(ele){
