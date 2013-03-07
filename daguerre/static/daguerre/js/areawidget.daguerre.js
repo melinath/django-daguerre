@@ -8,7 +8,8 @@ var daguerre = {
 
 daguerre.jQuery(function($){
     function Area(conf, container){
-        var area = this;
+        var area = this,
+            cell_names = ['name', 'priority', 'x1', 'y1', 'x2', 'y2', 'edit', 'delete'];
         if (conf.x1 === undefined || conf.x2 === undefined || conf.y1 === undefined || conf.y2 === undefined) {
             throw "Missing coordinates for area.";
         };
@@ -18,79 +19,60 @@ daguerre.jQuery(function($){
         area.save_url = container.ele.data('area-url');
         area.img = container.img;
         area.row = $('<tr></tr>');
+
+        area.cells = {};
+        $.each(cell_names, function(){
+            area.cells[this] = $('<td></td>');
+            area.row.append(area.cells[this]);
+        });
+        area.inputs = {
+            name: $('<input />'),
+            priority: $('<input type="number" min=1 />'),
+        };
+        area.cells.name.html(area.inputs.name);
+        area.cells.priority.html(area.inputs.priority);
+
         area.editing = false;
+        area.saving = false;
 
         area.delete_link = $('<a href="javascript://">Delete</a>');
         area.delete_link_click = function(e){
             e.preventDefault();
             area.remove();
-            container.imgInit();
         };
 
-        area.save_link = $('<a href="javascript://">Save</a>');
-        area.save_link_click = function(e){
-            e.preventDefault();
-            area.editing = false;
-            // Fetch the name/priority values.
-            area.name = area.row.find('input').first().val();
-            area.priority = area.row.find('input').last().val();
-            area.save();
-            container.imgInit();
-        };
-
-        area.edit_link = $('<a href="#">Edit</a>');
+        area.edit_link = $('<a href="javascript://">Edit</a>');
         area.edit_link_click = function(e){
             e.preventDefault();
-            $.each(container.areas, function(index, a){
-                if (a.editing && !(a === area)) {
-                    a.save_link.click()
-                };
-            });
-            var parent = area.img.parent();
-            area.img.imgAreaSelect({remove: true});
-            area.img.imgAreaSelect({
-                handles: true,
-                parent: parent,
-                x1: area.x1,
-                y1: area.y1,
-                x2: area.x2,
-                y2: area.y2,
-                persistent: true,
-                onSelectChange: function(img, selection){
-                    area.setSelection(selection);
-                    area.display();
-                },
-                onSelectEnd: function(){},
-                imageWidth: parent.data('width'),
-                imageHeight: parent.data('height'),
-            });
-            area.editing = true;
-            area.display()
+            area.startEdit();
         };
 
+        area.done_link = $('<a href="javascript://">Done</a>');
+        area.done_link_click = function(e){
+            e.preventDefault();
+            area.stopEdit();
+        }
+
         area.display = function() {
-            area.row.html('<td><input value="' + area.name + '" /></td>' +
-                          '<td><input type="number" min=1 value="' + area.priority + '" /></td>' +
-                          '<td>' + area.x1 + '</td>' +
-                          '<td>' + area.y1 + '</td>' +
-                          '<td>' + area.x2 + '</td>' +
-                          '<td>' + area.y2 + '</td>' +
-                          '<td class="edit-link"></td>' +
-                          '<td></td>');
-            area.row.children().last().html(area.delete_link);
-            area.delete_link.click(area.delete_link_click)
-            if (area.editing) {
-                area.row.children('.edit-link').html(area.save_link);
-                area.save_link.click(area.save_link_click);
+            area.inputs.name.val(area.name);
+            area.inputs.priority.val(area.priority);
+            area.cells.x1.html(area.x1);
+            area.cells.y1.html(area.y1);
+            area.cells.x2.html(area.x2);
+            area.cells.y2.html(area.y2);
+
+            // Set up delete link.
+            area.cells['delete'].html(area.delete_link);
+            area.delete_link.click(area.delete_link_click);
+
+            if (area.saving) {
+                area.cells.edit.html('Saving...');
+            } else if (area.editing) {
+                area.cells.edit.html(area.done_link);
+                area.done_link.click(area.done_link_click);
             } else {
-                area.row.children('.edit-link').html(area.edit_link);
+                area.cells.edit.html(area.edit_link);
                 area.edit_link.click(area.edit_link_click);
-                area.row.find('input').each(function(index, ele){
-                    $(ele).focus(function(){
-                        area.edit_link.click();
-                        area.row.find('input').eq(index).focus();
-                    });
-                });
             };
         };
 
@@ -124,12 +106,61 @@ daguerre.jQuery(function($){
             }
         };
 
+        area.startEdit = function() {
+            if (area.editing) return;
+            area.editing = true;
+            $.each(container.areas, function(index, a){
+                if (a.editing && !(a === area)){
+                    a.stopEdit();
+                }
+            });
+            area.img.imgAreaSelect({remove: true});
+            area.img.imgAreaSelect({
+                handles: true,
+                parent: container.ele,
+                x1: area.x1,
+                y1: area.y1,
+                x2: area.x2,
+                y2: area.y2,
+                persistent: true,
+                onSelectChange: function(img, selection){
+                    area.setSelection(selection);
+                    area.display();
+                },
+                onSelectEnd: function(img, selection){
+                    area.setSelection(selection);
+                    area.save();
+                },
+                imageWidth: container.ele.data('width'),
+                imageHeight: container.ele.data('height'),
+            });
+            area.display();
+        };
+
+        area.stopEdit = function() {
+            if (area.id === null) {
+                area.save();
+            };
+            area.editing = false;
+            area.img.imgAreaSelect({remove: true});
+            area.display();
+            container.imgInit();
+        }
+
         area.save = function() {
             var url = area.save_url;
             if (area.id != null) {
                 url += '/' + area.id;
             };
+
+            // Fetch the name/priority values.
+            area.name = area.row.find('input').first().val();
+            area.priority = area.row.find('input').last().val();
+
+            area.saving = true;
+            area.display();
             $.post(url, area.serialize(), function(data){
+                area.saving = false;
                 area.init(data);
             });
         };
@@ -141,11 +172,26 @@ daguerre.jQuery(function($){
                 $.ajax(url, {type: 'DELETE'});
             };
             area.row.remove();
+            container.imgInit();
+
             var index = container.areas.indexOf(area);
             if (index != -1) {
                 container.areas.splice(index, 1);
             };
-        }
+        };
+
+
+        area.row.find('input').focus(function(){
+            var $this = $(this);
+            area.startEdit();
+            $this.data('value', $this.val());
+        });
+        area.row.find('input').blur(function(){
+            var $this = $(this);
+            if ($this.val() != $this.data('value')) {
+                area.save();
+            };
+        });
     };
 
     function AreaContainer(ele){
@@ -170,10 +216,12 @@ daguerre.jQuery(function($){
         table.find('tr').children().last().append(add_link);
 
         container.addArea = function(conf, activate) {
-            var area = new Area(conf, container);
+            var area = new Area(conf, container),
+                activate = activate === undefined ? true : false;
             areas.push(area);
             table.append(area.row);
-            if (activate) {area.edit_link.click();};
+            if (activate) {area.startEdit();};
+            return area;
         };
 
         container.imgInit = function() {
@@ -181,13 +229,15 @@ daguerre.jQuery(function($){
             container.img.imgAreaSelect({
                 parent: ele,
                 onSelectEnd: function(img, selection){
-                    container.addArea({
+                    var area = container.addArea({
                         x1: selection.x1,
                         y1: selection.y1,
                         x2: selection.x2,
                         y2: selection.y2,
                         storage_path: ele.data('storage-path'),
-                    }, true);
+                    });
+                    area.save();
+                    area.startEdit();
                 },
                 imageWidth: ele.data('width'),
                 imageHeight: ele.data('height'),
@@ -198,13 +248,13 @@ daguerre.jQuery(function($){
         container.init = function() {
             add_link.click(function(e){
                 e.preventDefault();
-                container.addArea({
+                var area = container.addArea({
                     storage_path: ele.data('storage-path'),
                     x1: 0,
                     y1: 0,
                     x2: ele.data('width'),
                     y2: ele.data('height'),
-                }, true);
+                });
             });
 
             $.getJSON(ele.data('url'), {w: 540, h: 300, a: 'fit'}, function(data){
@@ -215,7 +265,7 @@ daguerre.jQuery(function($){
             });
             $.getJSON(ele.data('area-url'), function(data){
                 $.each(data, function(index, conf){
-                    container.addArea(conf);
+                    container.addArea(conf, false);
                 });
             });
         };
