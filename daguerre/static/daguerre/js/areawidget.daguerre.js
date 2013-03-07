@@ -2,7 +2,7 @@
 
 // daguerre jQuery namespace
 var daguerre = {
-    "jQuery": grp.jQuery.noConflict(true),
+    "jQuery": jQuery || django.jQuery.noConflict(true) || grp.jQuery.noConflict(true),
     "area_containers": [],
 };
 
@@ -20,14 +20,14 @@ daguerre.jQuery(function($){
         area.row = $('<tr></tr>');
         area.editing = false;
 
-        area.delete_link = $('<a href="#">Delete</a>');
+        area.delete_link = $('<a href="javascript://">Delete</a>');
         area.delete_link_click = function(e){
             e.preventDefault();
             area.remove();
             container.imgInit();
         };
 
-        area.save_link = $('<a href="#">Save</a>');
+        area.save_link = $('<a href="javascript://">Save</a>');
         area.save_link_click = function(e){
             e.preventDefault();
             area.editing = false;
@@ -152,23 +152,22 @@ daguerre.jQuery(function($){
         var container = this,
             areas = container.areas = [],
             img = container.img = $('<img />'),
-            add_link = container.add_link = $('<a class="add-another" href="#" title="Add Another"><img src="/static/admin/img/icon_addlink.gif" width="10" height="10" alt="Add Another"></a>'),
+            add_link = container.add_link = $('<a class="add-area" href="javascript://" title="Add Another"><img src="/static/admin/img/icon_addlink.gif" width="10" height="10" alt="Add Area"></a>'),
             table = container.table = $(
                 '<table><thead><tr>' +
                 '<th>Name</th>' +
-                '<th>Priority</th>' +
+                '<th><span class="area-priority" title="1 is the highest priority">Priority</span></th>' +
                 '<th>x1</th>' +
                 '<th>y1</th>' +
                 '<th>x2</th>' +
                 '<th>y2</th>' +
-                '<th></th>' +
-                '<th>Delete</th>' +
+                '<th colspan=2 class="add-area-cell"></th>' +
                 '</tr></thead><tbody></tbody></table>');
 
         container.ele = ele;
         container.ele.append(img);
         container.ele.append(table);
-        table.find('tr').children().eq(-2).append(add_link);
+        table.find('tr').children().last().append(add_link);
 
         container.addArea = function(conf, activate) {
             var area = new Area(conf, container);
@@ -208,7 +207,7 @@ daguerre.jQuery(function($){
                 }, true);
             });
 
-            $.getJSON(ele.data('url'), {w: 400, max_h: 800, a: 'fit'}, function(data){
+            $.getJSON(ele.data('url'), {w: 540, h: 300, a: 'fit'}, function(data){
                 img.attr('src', data['url']);
                 img.attr('width', data['width']);
                 img.attr('height', data['height']);

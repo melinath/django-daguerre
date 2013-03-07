@@ -2,23 +2,34 @@
     position: relative;
 }
 
-.daguerre-areas a.add-another{
-    margin: auto;
-    padding: 0;
-    width: 10px;
-    height: 10px;
-    background-position: -7px -1341px;
-    vertical-align: bottom;
-    top: 0;
-    display: block;
-}
-
 .daguerre-areas > img{
     float: left;
+    margin: 10px 10px 0 0;
 }
 
 .daguerre-areas > table{
     float: left;
-    margin-left: 10px;
     min-width: 540px;
+    margin-top: 10px;
+}
+
+#grp-container .add-area{
+    background: url('../../grappelli/images/icons-s96d5c23000.png') no-repeat 33px -2563px;
+    width: 100%;
+    height: 25px;
+    padding: 0;
+    margin: 0;
+}
+
+#grp-container .add-area-cell{
+    padding: 0;
+}
+
+#grp-container .add-area > img{
+    display: none;
+}
+
+.area-priority{
+    cursor: help;
+    border-bottom: dotted 1px;
 }
