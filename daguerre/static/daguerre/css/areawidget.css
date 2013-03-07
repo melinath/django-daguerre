@@ -1,0 +1,24 @@
+.daguerre-areas{
+    position: relative;
+}
+
+.daguerre-areas a.add-another{
+    margin: auto;
+    padding: 0;
+    width: 10px;
+    height: 10px;
+    background-position: -7px -1341px;
+    vertical-align: bottom;
+    top: 0;
+    display: block;
+}
+
+.daguerre-areas > img{
+    float: left;
+}
+
+.daguerre-areas > table{
+    float: left;
+    margin-left: 10px;
+    min-width: 540px;
+}

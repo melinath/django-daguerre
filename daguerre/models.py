@@ -41,12 +41,7 @@ class Area(models.Model):
 			super(Area, self).clean_fields(exclude)
 		except ValidationError, e:
 			errors.update(e.message_dict)
-		
-		if 'x2' not in exclude and self.x2 > self.image.width:
-			errors.setdefault('x2', []).append(u"Ensure that this value is less than or equal to %d." % self.image.width)
-		if 'y2' not in exclude and self.y2 > self.image.height:
-			errors.setdefault('y2', []).append(u"Ensure that this value is less than or equal to %d." % self.image.height)
-		
+
 		if errors:
 			raise ValidationError(errors)
 	
@@ -59,12 +54,16 @@ class Area(models.Model):
 		if errors:
 			raise ValidationError(errors)
 	
+	def serialize(self):
+		return dict((f.name, getattr(self, f.name))
+					for f in self._meta.fields)
+
 	def __unicode__(self):
 		if self.name:
 			name = self.name
 		else:
 			name = u"(%d, %d, %d, %d / %d)" % (self.x1, self.y1, self.x2, self.y2, self.priority)
-		return u"%s for %s" % (name, self.image)
+		return u"%s for %s" % (name, self.storage_path)
 	
 	class Meta:
 		ordering = ('priority',)
