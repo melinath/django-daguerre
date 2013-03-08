@@ -47,7 +47,7 @@ class AjaxAdjustmentInfoView(AdjustedImageRedirectView):
 			# Something went wrong. The image probably doesn't exist.
 			raise Http404
 
-		return HttpResponse(json.dumps(info_dict), mimetype="application/json")
+		return HttpResponse(json.dumps(info_dict), content_type="application/json")
 
 
 class AjaxUpdateAreaView(View):
@@ -80,7 +80,7 @@ class AjaxUpdateAreaView(View):
 		else:
 			areas = Area.objects.filter(storage_path=storage_path)
 			data = [area.serialize() for area in areas]
-		return HttpResponse(json.dumps(data), mimetype="application/json")
+		return HttpResponse(json.dumps(data), content_type="application/json")
 		
 	def post(self, request, *args, **kwargs):
 		if not request.is_ajax():
@@ -121,7 +121,7 @@ class AjaxUpdateAreaView(View):
 			data = area.serialize()
 
 		return HttpResponse(json.dumps(data),
-							mimetype="application/json",
+							content_type="application/json",
 							status=status)
 
 	def delete(self, request, *args, **kwargs):
