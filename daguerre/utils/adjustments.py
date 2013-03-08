@@ -18,7 +18,7 @@ from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT
 
 
 adjustments = {}
-DEFAULT_ADJUSTMENT = 'fit'
+DEFAULT_ADJUSTMENT = 'fill'
 
 
 def get_adjustment_class(slug):
