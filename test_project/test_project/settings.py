@@ -73,8 +73,8 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'daguerre',
-    'django_nose',
     'south',
+    'django_nose',
 )
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
