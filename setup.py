@@ -10,7 +10,7 @@ setup(
 	version='.'.join([str(v) for v in version]),
 	url="http://django-daguerre.readthedocs.org/",
 	description='Image management and processing for Django.',
-	long_description=open(os.path.join(os.path.dirname(__file__), 'README.md')).read(),
+	long_description=open(os.path.join(os.path.dirname(__file__), 'README.rst')).read(),
 	license='BSD',
 	packages=find_packages(),
 	include_package_data=True,

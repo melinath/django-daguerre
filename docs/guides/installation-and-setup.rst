@@ -4,7 +4,7 @@ Installation and Setup
 Requirements
 ------------
 
-* Python 2.5+
+* Python 2.6+
 * PIL 1.1.7 (Or `Pillow <http://pypi.python.org/pypi/Pillow>`_)
 
 Installation

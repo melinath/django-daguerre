@@ -24,6 +24,14 @@ your models; it **Just Works**.
       <img src="{{ image }}" />
     {% endfor %}
 
+
+:Code:         http://github.com/oberlin/django-daguerre
+:Docs:         http://readthedocs.org/docs/django-daguerre/
+:Build status: |build-image|
+
+.. |build-image| image:: https://secure.travis-ci.org/oberlin/django-daguerre.png?branch=master
+                 :target: http://travis-ci.org/oberlin/django-daguerre/branches
+
 Contents
 --------
 
