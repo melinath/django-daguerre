@@ -142,3 +142,23 @@ The syntax is similar to :ttag:`{% adjust %}`, except that:
   item in the iterable (``"method.image"``) are provided in place
   of an image file or storage path.
 * :ttag:`{% adjust_bulk %}` **doesn't support named crops**.
+
+Editing Areas
++++++++++++++
+
+Daguerre provides a widget which can be used with any
+:class:`ImageField` to edit :class:`Areas <.Area>` for that image file.
+Using this widget with a :class:`ModelAdmin` is as simple as defining
+appropriate `formfield_overrides`_.
+
+.. code-block:: python
+
+    from daguerre.widgets import AreaWidget
+
+    class YourModelAdmin(admin.ModelAdmin):
+        formfield_overrides = {
+            models.ImageField: {'widget': AreaWidget},
+        }
+        ...
+
+.. _formfield_overrides: https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.formfield_overrides
