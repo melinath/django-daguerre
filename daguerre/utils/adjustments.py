@@ -38,6 +38,10 @@ class Adjustment(object):
 	:param areas: :class:`~Area` instances representing protected areas for the adjustment.
 
 	"""
+	
+	#: Keeps track of whether or not this adjustment uses areas, so that we know whether to delete the cached adjusted images when a new area is defined or deleted.
+	uses_areas = False
+	
 	def __init__(self, image, width=None, height=None, max_width=None, max_height=None, areas=None):
 		self.image = image
 		self.format = self.image.format
@@ -131,6 +135,8 @@ class Crop(Adjustment):
 	Crops an image to the given width and height, without scaling it. :class:`~daguerre.models.Area` instances which are passed in will be protected as much as possible during the crop. If ``width`` or ``height`` is not specified, the image may grow up to ``max_width`` or ``max_height`` respectively in the unspecified direction before being cropped.
 
 	"""
+	uses_areas = True
+	
 	def _calculate(self):
 		image_width, image_height = self.image.size
 		not_none = lambda x: x is not None
@@ -194,6 +200,8 @@ class Fill(Adjustment):
 	Crops the image to the requested ratio (using the same logic as :class:`.Crop` to protect :class:`~daguerre.models.Area` instances which are passed in), then resizes it to the actual requested dimensions. If ``width`` or ``height`` is ``None``, then the unspecified dimension will be allowed to expand up to ``max_width`` or ``max_height``, respectively.
 
 	"""
+	uses_areas = True
+	
 	def _calculate(self):
 		image_width, image_height = self.image.size
 		# If there are no restrictions, just return the original dimensions.
