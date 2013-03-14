@@ -465,7 +465,7 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 
 		format = adjustment.format if adjustment.format in KEEP_FORMATS else DEFAULT_FORMAT
 		args = (unicode(creation_kwargs), datetime.datetime.now().isoformat())
-		filename = ''.join((make_hash(*args, step=2), format.lower()))
+		filename = '.'.join((make_hash(*args, step=2), format.lower()))
 		storage_path = f.generate_filename(adjusted, filename)
 
 		final_path = save_image(im, storage_path, format=format, storage=default_storage)

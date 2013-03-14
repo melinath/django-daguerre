@@ -122,6 +122,8 @@ class AdjustmentHelperTestCase(BaseTestCase):
 		with self.assertNumQueries(4):
 			adjusted = AdjustmentHelper(self.base_image, width=50, height=100, adjustment='crop').adjust()
 		self.assertImageEqual(Image.open(adjusted.adjusted.path), expected)
+		# Make sure that the path is properly formatted.
+		self.assertTrue(adjusted.adjusted.path.endswith('.png'))
 
 	def test_adjust_crop__100x50(self):
 		expected = Image.open(self._data_path('100x50_crop.png'))
