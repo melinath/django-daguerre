@@ -60,7 +60,7 @@ class Area(models.Model):
 		return dict((f.name, getattr(self, f.name))
 					for f in self._meta.fields)
 
-	def save(self):
+	def save(self, *args, **kwargs):
 		"""
 		If the adjusted image uses areas (e.g., fill and crop), clear cached adjusted images.
 		
