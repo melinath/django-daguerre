@@ -288,11 +288,21 @@ class BaseAdjustmentHelper(object):
 			self._query_kwargs = query_kwargs
 		return self._query_kwargs
 
-	def adjustment_for_path(self, storage_path):
-		# Will raise IOError if the file doesn't exist or isn't an image.
+	def _open_image(self, storage_path):
+		# Will raise IOError if the file doesn't exist or isn't a valid image.
 		im_file = default_storage.open(storage_path)
-		pil_image = Image.open(im_file)
-		return self.adjustment_class(pil_image, **self.kwargs)
+		im = Image.open(im_file)
+		try:
+			im.verify()
+		except Exception:
+			# Raise an IOError if the image isn't valid.
+			raise IOError
+		im_file.seek(0)
+		return Image.open(im_file)
+
+	def adjustment_for_path(self, storage_path):
+		# Will raise IOError if the file doesn't exist or isn't a valid image.
+		return self.adjustment_class(self._open_image(storage_path), **self.kwargs)
 
 	def _adjusted_image_info_dict(self, adjusted_image):
 		return AdjustmentInfoDict({
@@ -400,9 +410,8 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 		return cls(image_or_storage_path, **kwargs)
 
 	def adjustment_for_path(self, storage_path):
-		# Will raise IOError if the file doesn't exist or isn't an image.
-		im_file = default_storage.open(storage_path)
-		pil_image = Image.open(im_file)
+		# Will raise IOError if the file doesn't exist or isn't a valid image.
+		im = self._open_image(storage_path)
 		crop_area = self.get_crop_area()
 		if crop_area is None:
 			areas = self.get_areas()
@@ -410,9 +419,9 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 			# Ignore areas if there is a valid crop, for now.
 			# Maybe someday "crop" the areas and pass them in.
 			areas = None
-			pil_image = pil_image.crop((crop_area.x1, crop_area.y1, crop_area.x2, crop_area.y2))
+			im = im.crop((crop_area.x1, crop_area.y1, crop_area.x2, crop_area.y2))
 
-		return self.adjustment_class(pil_image, areas=areas, **self.kwargs)
+		return self.adjustment_class(im, areas=areas, **self.kwargs)
 
 	def info_dict(self):
 		"""
@@ -451,6 +460,7 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 		# If that fails, try to create one from the storage path.
 		# Raises IOError if something goes wrong.
 		adjustment = self.adjustment_for_path(self.storage_path)
+		im = adjustment.adjust()
 
 		creation_kwargs = {}
 		for k, v in kwargs.iteritems():
@@ -460,7 +470,6 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 				creation_kwargs[k] = v
 
 		adjusted = AdjustedImage(**creation_kwargs)
-		im = adjustment.adjust()
 		f = adjusted._meta.get_field('adjusted')
 
 		format = adjustment.format if adjustment.format in KEEP_FORMATS else DEFAULT_FORMAT
