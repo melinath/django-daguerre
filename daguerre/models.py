@@ -80,6 +80,7 @@ class Area(models.Model):
 	class Meta:
 		ordering = ('priority',)
 
+
 @receiver(post_delete, sender=Area)
 def delete_adjusted_images(sender, **kwargs):
 	from daguerre.utils.adjustments import adjustments
