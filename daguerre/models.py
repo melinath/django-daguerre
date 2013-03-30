@@ -67,8 +67,8 @@ class Area(models.Model):
 		"""
 		from daguerre.utils.adjustments import adjustments
 		slugs = [slug for slug, adjustment in adjustments.iteritems() if adjustment.uses_areas]
-		AdjustedImage.objects.filter(storage_path__exact=self.storage_path, requested_adjustment__in=slugs).delete()
 		super(Area, self).save(*args, **kwargs)
+		delete_adjusted_images(self, instance=self)
 		
 	def __unicode__(self):
 		if self.name:
