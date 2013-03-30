@@ -3,6 +3,8 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.template.defaultfilters import capfirst
 from django.utils.encoding import smart_unicode
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 
 class Area(models.Model):
@@ -58,6 +60,16 @@ class Area(models.Model):
 		return dict((f.name, getattr(self, f.name))
 					for f in self._meta.fields)
 
+	def save(self, *args, **kwargs):
+		"""
+		If the adjusted image uses areas (e.g., fill and crop), clear cached adjusted images.
+		
+		"""
+		from daguerre.utils.adjustments import adjustments
+		slugs = [slug for slug, adjustment in adjustments.iteritems() if adjustment.uses_areas]
+		super(Area, self).save(*args, **kwargs)
+		delete_adjusted_images(self, instance=self)
+		
 	def __unicode__(self):
 		if self.name:
 			name = self.name
@@ -67,6 +79,13 @@ class Area(models.Model):
 	
 	class Meta:
 		ordering = ('priority',)
+
+
+@receiver(post_delete, sender=Area)
+def delete_adjusted_images(sender, **kwargs):
+	from daguerre.utils.adjustments import adjustments
+	slugs = [slug for slug, adjustment in adjustments.iteritems() if adjustment.uses_areas]
+	AdjustedImage.objects.filter(storage_path__exact=kwargs['instance'].storage_path, requested_adjustment__in=slugs).delete()
 
 
 def _adjustment_choice_iter():

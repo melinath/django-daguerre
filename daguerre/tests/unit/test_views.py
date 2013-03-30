@@ -179,7 +179,7 @@ class AjaxUpdateAreaViewTestCase(BaseTestCase):
 		request = self.factory.post('/', params, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
 		request.user = self.create_user(permissions=['daguerre.change_area'])
 		self.assertTrue(request.user.has_perm('daguerre.change_area'))
-		with self.assertNumQueries(3):
+		with self.assertNumQueries(4):
 			response = view.post(request)
 
 		self.assertEqual(response.status_code, 200)
@@ -242,7 +242,7 @@ class AjaxUpdateAreaViewTestCase(BaseTestCase):
 		request.user = self.create_user(permissions=['daguerre.change_area', 'daguerre.add_area'])
 		self.assertTrue(request.user.has_perm('daguerre.change_area'))
 		self.assertTrue(request.user.has_perm('daguerre.add_area'))
-		with self.assertNumQueries(2):
+		with self.assertNumQueries(3):
 			response = view.post(request)
 
 		self.assertEqual(response.status_code, 200)
@@ -330,7 +330,7 @@ class AjaxUpdateAreaViewTestCase(BaseTestCase):
 		request = self.factory.delete('/', HTTP_X_REQUESTED_WITH='XMLHttpRequest')
 		request.user = self.create_user(permissions=['daguerre.delete_area'])
 		self.assertTrue(request.user.has_perm('daguerre.delete_area'))
-		with self.assertNumQueries(3):
+		with self.assertNumQueries(4):
 			response = view.delete(request)
 
 		self.assertEqual(response.status_code, 200)
