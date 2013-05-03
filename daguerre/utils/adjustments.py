@@ -34,24 +34,25 @@ def get_adjustment_class(slug):
 
 class Adjustment(object):
     """
-    Base class for all adjustments which can be carried out on an image.
-    Each adjustment has two stages: calculating the new image dimensions,
-    and carrying out the adjustment.
+    Base class for all adjustments which can be carried out on an image. Each
+    adjustment has two stages: calculating the new image dimensions, and
+    carrying out the adjustment.
 
     :param image: A PIL Image instance which is to be adjusted.
-    :param width, height, max_width, max_height: The requested
-        dimensions for the adjusted image.
-    :param areas: :class:`~Area` instances representing protected
-        areas for the adjustment.
+    :param width, height, max_width, max_height: The requested dimensions for
+    the adjusted image.
+    :param areas: :class:`~Area` instances representing protected areas for the
+    adjustment.
+
     """
-    def __init__(
-            self,
-            image,
-            width=None,
-            height=None,
-            max_width=None,
-            max_height=None,
-            areas=None):
+
+    #: Keeps track of whether or not this adjustment uses areas, so that we
+    #: know whether to delete the cached adjusted images when a new area is
+    #: defined or deleted.
+    uses_areas = False
+
+    def __init__(self, image, width=None, height=None, max_width=None,
+                 max_height=None, areas=None):
         self.image = image
         self.format = self.image.format
 
@@ -63,8 +64,11 @@ class Adjustment(object):
         self.max_height = max_height
 
     def calculate(self):
-        """Calculates the dimensions of the adjusted image without
-        actually manipulating the image."""
+        """
+        Calculates the dimensions of the adjusted image without actually
+        manipulating the image.
+
+        """
         if not hasattr(self, '_calculated'):
             calculated = self._calculate()
             if calculated[0] <= 0 or calculated[1] <= 0:
@@ -150,24 +154,28 @@ class Crop(Adjustment):
     """
     Crops an image to the given width and height, without scaling it.
     :class:`~daguerre.models.Area` instances which are passed in will be
-    protected as much as possible during the crop.
+    protected as much as possible during the crop. If ``width`` or
+    ``height`` is not specified, the image may grow up to ``max_width``
+    or ``max_height`` respectively in the unspecified direction before being
+    cropped.
 
-    If ``width`` or ``height`` is not specified, the image may grow up to
-    ``max_width`` or ``max_height`` respectively in the unspecified
-    direction before being cropped.
     """
+    uses_areas = True
+
     def _calculate(self):
         image_width, image_height = self.image.size
         not_none = lambda x: x is not None
         # image_width and image_height are known to be defined.
-        new_width = ifilter(
-            not_none,
-            (self.width, self.max_width, image_width)
-        ).next()
-        new_height = ifilter(
-            not_none,
-            (self.height, self.max_height, image_height)
-        ).next()
+        new_width = ifilter(not_none,
+                            (self.width,
+                             self.max_width,
+                             image_width)
+                            ).next()
+        new_height = ifilter(not_none,
+                             (self.height,
+                              self.max_height,
+                              image_height)
+                             ).next()
 
         new_width = min(new_width, image_width)
         new_height = min(new_height, image_height)
@@ -189,12 +197,8 @@ class Crop(Adjustment):
                 for y in xrange(image_height - new_height + 1):
                     penalty = 0
                     for area in self.areas:
-                        penalty += self._get_penalty(
-                            area,
-                            x,
-                            y,
-                            new_width,
-                            new_height)
+                        penalty += self._get_penalty(area, x, y,
+                                                     new_width, new_height)
                         if min_penalty is not None and penalty > min_penalty:
                             break
 
@@ -221,21 +225,23 @@ class Crop(Adjustment):
             penalty_area = area.area
         else:
             # Partial penalty.
-            penalty_area = area.area - (
-                min(area.x2 - x1, x2 - area.x1, area.width) *
-                min(area.y2 - y1, y2 - area.y1, area.height))
+            non_penalty_area = (min(area.x2 - x1, x2 - area.x1, area.width) *
+                                min(area.y2 - y1, y2 - area.y1, area.height))
+            penalty_area = area.area - non_penalty_area
         return penalty_area / area.priority
 
 
 class Fill(Adjustment):
     """
     Crops the image to the requested ratio (using the same logic as
-    :class:`.Crop` to protect :class:`~daguerre.models.Area`
-    instances which are passed in), then resizes it to the actual
-    requested dimensions. If ``width`` or ``height`` is ``None``,
-    then the unspecified dimension will be allowed to expand up to
-    ``max_width`` or ``max_height``, respectively.
+    :class:`.Crop` to protect :class:`~daguerre.models.Area` instances which
+    are passed in), then resizes it to the actual requested dimensions. If
+    ``width`` or ``height`` is ``None``, then the unspecified dimension will be
+    allowed to expand up to ``max_width`` or ``max_height``, respectively.
+
     """
+    uses_areas = True
+
     def _calculate(self):
         image_width, image_height = self.image.size
         # If there are no restrictions, just return the original dimensions.
@@ -275,11 +281,8 @@ class Fill(Adjustment):
             crop_width = int(image_height * new_ratio)
             crop_height = image_height
 
-        new_image = Crop(
-            self.image,
-            width=crop_width,
-            height=crop_height,
-            areas=self.areas).adjust()
+        new_image = Crop(self.image, width=crop_width, height=crop_height,
+                         areas=self.areas).adjust()
 
         return Fit(new_image, width=new_width, height=new_height).adjust()
 
@@ -334,11 +337,22 @@ class BaseAdjustmentHelper(object):
             self._query_kwargs = query_kwargs
         return self._query_kwargs
 
-    def adjustment_for_path(self, storage_path):
-        # Will raise IOError if the file doesn't exist or isn't an image.
+    def _open_image(self, storage_path):
+        # Will raise IOError if the file doesn't exist or isn't a valid image.
         im_file = default_storage.open(storage_path)
-        pil_image = Image.open(im_file)
-        return self.adjustment_class(pil_image, **self.kwargs)
+        im = Image.open(im_file)
+        try:
+            im.verify()
+        except Exception:
+            # Raise an IOError if the image isn't valid.
+            raise IOError
+        im_file.seek(0)
+        return Image.open(im_file)
+
+    def adjustment_for_path(self, storage_path):
+        # Will raise IOError if the file doesn't exist or isn't a valid image.
+        return self.adjustment_class(self._open_image(storage_path),
+                                     **self.kwargs)
 
     def _adjusted_image_info_dict(self, adjusted_image):
         return AdjustmentInfoDict({
@@ -378,20 +392,22 @@ class BaseAdjustmentHelper(object):
             adjustment = self.adjustment_for_path(storage_path)
         except IOError:
             return AdjustmentInfoDict()
+        url = u"{0}?{1}".format(
+            reverse('daguerre_adjusted_image_redirect',
+                    kwargs={'storage_path': storage_path}),
+            self.to_querydict(secure=True).urlencode()
+        )
+        ajax_url = u"{0}?{1}".format(
+            reverse('daguerre_ajax_adjustment_info',
+                    kwargs={'storage_path': storage_path}),
+            self.to_querydict(secure=False).urlencode()
+        )
         return AdjustmentInfoDict({
             'width': adjustment.calculate()[0],
             'height': adjustment.calculate()[1],
             'requested': self.kwargs.copy(),
-            'url': u"{0}?{1}".format(
-                reverse(
-                    'daguerre_adjusted_image_redirect',
-                    kwargs={'storage_path': storage_path}),
-                self.to_querydict(secure=True).urlencode()),
-            'ajax_url': u"{0}?{1}".format(
-                reverse(
-                    'daguerre_ajax_adjustment_info',
-                    kwargs={'storage_path': storage_path}),
-                self.to_querydict(secure=False).urlencode()),
+            'url': url,
+            'ajax_url': ajax_url,
         })
 
 
@@ -454,9 +470,8 @@ class AdjustmentHelper(BaseAdjustmentHelper):
         return cls(image_or_storage_path, **kwargs)
 
     def adjustment_for_path(self, storage_path):
-        # Will raise IOError if the file doesn't exist or isn't an image.
-        im_file = default_storage.open(storage_path)
-        pil_image = Image.open(im_file)
+        # Will raise IOError if the file doesn't exist or isn't a valid image.
+        im = self._open_image(storage_path)
         crop_area = self.get_crop_area()
         if crop_area is None:
             areas = self.get_areas()
@@ -464,10 +479,10 @@ class AdjustmentHelper(BaseAdjustmentHelper):
             # Ignore areas if there is a valid crop, for now.
             # Maybe someday "crop" the areas and pass them in.
             areas = None
-            pil_image = pil_image.crop(
-                (crop_area.x1, crop_area.y1, crop_area.x2, crop_area.y2))
+            im = im.crop((crop_area.x1, crop_area.y1,
+                          crop_area.x2, crop_area.y2))
 
-        return self.adjustment_class(pil_image, areas=areas, **self.kwargs)
+        return self.adjustment_class(im, areas=areas, **self.kwargs)
 
     def info_dict(self):
         """
@@ -506,6 +521,7 @@ class AdjustmentHelper(BaseAdjustmentHelper):
         # If that fails, try to create one from the storage path.
         # Raises IOError if something goes wrong.
         adjustment = self.adjustment_for_path(self.storage_path)
+        im = adjustment.adjust()
 
         creation_kwargs = {}
         for k, v in kwargs.iteritems():
@@ -515,22 +531,16 @@ class AdjustmentHelper(BaseAdjustmentHelper):
                 creation_kwargs[k] = v
 
         adjusted = AdjustedImage(**creation_kwargs)
-        im = adjustment.adjust()
         f = adjusted._meta.get_field('adjusted')
 
-        format = (
-            adjustment.format
-            if adjustment.format in KEEP_FORMATS else
-            DEFAULT_FORMAT)
+        format = (adjustment.format
+                  if adjustment.format in KEEP_FORMATS else DEFAULT_FORMAT)
         args = (unicode(creation_kwargs), datetime.datetime.now().isoformat())
         filename = '.'.join((make_hash(*args, step=2), format.lower()))
         storage_path = f.generate_filename(adjusted, filename)
 
-        final_path = save_image(
-            im,
-            storage_path,
-            format=format,
-            storage=default_storage)
+        final_path = save_image(im, storage_path, format=format,
+                                storage=default_storage)
         # Try to handle race conditions gracefully.
         try:
             adjusted = AdjustedImage.objects.filter(**kwargs)[:1][0]

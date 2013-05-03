@@ -3,11 +3,16 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.template.defaultfilters import capfirst
 from django.utils.encoding import smart_unicode
+from django.db.models.signals import post_delete, post_save
+from django.dispatch import receiver
 
 
 class Area(models.Model):
-    """Represents an area of an image. Can be used to specify a crop.
-    Also used for priority-aware automated image cropping."""
+    """
+    Represents an area of an image. Can be used to specify a crop. Also used
+    for priority-aware automated image cropping.
+
+    """
     storage_path = models.CharField(max_length=300)
 
     x1 = models.PositiveIntegerField(validators=[MinValueValidator(0)])
@@ -16,8 +21,8 @@ class Area(models.Model):
     y2 = models.PositiveIntegerField(validators=[MinValueValidator(1)])
 
     name = models.CharField(max_length=20, blank=True)
-    priority = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)], default=3)
+    priority = models.PositiveIntegerField(validators=[MinValueValidator(1)],
+                                           default=3)
 
     @property
     def area(self):
@@ -64,16 +69,28 @@ class Area(models.Model):
         if self.name:
             name = self.name
         else:
-            name = u"(%d, %d, %d, %d / %d)" % (
-                self.x1,
-                self.y1,
-                self.x2,
-                self.y2,
-                self.priority)
+            name = u"(%d, %d, %d, %d / %d)" % (self.x1, self.y1, self.x2,
+                                               self.y2, self.priority)
         return u"%s for %s" % (name, self.storage_path)
 
     class Meta:
         ordering = ('priority',)
+
+
+@receiver(post_save, sender=Area)
+@receiver(post_delete, sender=Area)
+def delete_adjusted_images(sender, **kwargs):
+    """
+    If an Area is deleted or changed, delete all AdjustedImages for the
+    Area's storage_path which have area-using adjustments.
+
+    """
+    from daguerre.utils.adjustments import adjustments
+    slugs = [slug for slug, adjustment in adjustments.iteritems()
+             if adjustment.uses_areas]
+    storage_path = kwargs['instance'].storage_path
+    AdjustedImage.objects.filter(storage_path__exact=storage_path,
+                                 requested_adjustment__in=slugs).delete()
 
 
 def _adjustment_choice_iter():

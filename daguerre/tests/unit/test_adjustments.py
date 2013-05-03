@@ -1,3 +1,4 @@
+from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 try:
     from PIL import Image
@@ -194,6 +195,19 @@ class AdjustmentHelperTestCase(BaseTestCase):
         # an AdjustedImage, whether or not the original file exists.
         # This is for historic reasons and doesn't necessarily need to
         # continue to be the case.
+        with self.assertNumQueries(1):
+            self.assertRaises(IOError, helper.adjust)
+
+    def test_adjust__broken(self):
+        broken_file = self._data_file('broken.png')
+        storage_path = default_storage.save('daguerre/test/broken.png',
+                                            ContentFile(broken_file.read()))
+        broken_file = default_storage.open(storage_path)
+        image = Image.open(broken_file)
+        self.assertRaises(IndexError, image.verify)
+
+        helper = AdjustmentHelper(storage_path, width=50, height=50,
+                                  adjustment='fill')
         with self.assertNumQueries(1):
             self.assertRaises(IOError, helper.adjust)
 
