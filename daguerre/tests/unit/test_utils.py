@@ -28,7 +28,8 @@ class SaveImageTestCase(BaseTestCase):
         image = Image.open(self._data_path('100x100.png'))
         self.assertIn(image.format, KEEP_FORMATS)
 
-        storage_path = save_image(image, 'daguerre/test/keeper.png', format=image.format)
+        storage_path = save_image(image, 'daguerre/test/keeper.png',
+                                  format=image.format)
         with default_storage.open(storage_path, 'r') as f:
             new_image = Image.open(f)
 
@@ -43,7 +44,8 @@ class SaveImageTestCase(BaseTestCase):
         image = Image.open(self._data_path('100x50.psd'))
         self.assertNotIn(image.format, KEEP_FORMATS)
 
-        storage_path = save_image(image, 'daguerre/test/nonkeeper.png', format=image.format)
+        storage_path = save_image(image, 'daguerre/test/nonkeeper.png',
+                                  format=image.format)
         with default_storage.open(storage_path, 'r') as f:
             new_image = Image.open(f)
 
