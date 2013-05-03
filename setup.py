@@ -3,7 +3,7 @@
 import os
 from setuptools import setup, find_packages
 
-version = __import__('daguerre').VERSION
+version = __import__('daguerre').__version__
 
 setup(
     name='django-daguerre',
