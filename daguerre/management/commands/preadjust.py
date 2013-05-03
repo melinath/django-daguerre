@@ -34,9 +34,7 @@ class Command(NoArgsCommand):
             raise CommandError(NO_ADJUSTMENTS)
         adjustments = settings.DAGUERRE_PREADJUSTMENTS
         args = []
-        for (
-                (model_or_queryset, lookup), kwargs_list in
-                adjustments.iteritems()):
+        for (model_or_queryset, lookup), kwargs_list in adjustments.iteritems():
             if isinstance(model_or_queryset, basestring):
                 app_label, model_name = model_or_queryset.split('.')
                 model_or_queryset = get_model(app_label, model_name)

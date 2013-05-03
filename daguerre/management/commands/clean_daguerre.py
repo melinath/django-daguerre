@@ -5,8 +5,7 @@ from django.core.management.base import NoArgsCommand
 from django.db import models
 from django.template.defaultfilters import pluralize
 
-from daguerre.models import AdjustedImage
-from daguerre.models import Area
+from daguerre.models import AdjustedImage, Area
 
 
 class Command(NoArgsCommand):
@@ -68,7 +67,7 @@ class Command(NoArgsCommand):
         storage_paths = Area.objects.values_list(
             'storage_path', flat=True).distinct()
         nonexistant = [
-            path for path in storage_pathsif not default_storage.exists(path)]
+            path for path in storage_paths if not default_storage.exists(path)]
         self._delete_queryset(Area.objects.filter(
             storage_path__in=nonexistant))
 

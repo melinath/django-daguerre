@@ -1,10 +1,8 @@
 import json
 
 from django.core.exceptions import ValidationError
-from django.http import HttpResponse
-from django.http import Http404
-from django.http import HttpResponseRedirect
-from django.http import HttpResponseForbidden
+from django.http import (HttpResponse, Http404, HttpResponseRedirect,
+                         HttpResponseForbidden)
 from django.views.generic import View
 
 from daguerre.models import Area

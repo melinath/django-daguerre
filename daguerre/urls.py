@@ -1,8 +1,8 @@
-from django.conf.urls.defaults import patterns
-from django.conf.urls.defaults import url
-from daguerre.views import AdjustedImageRedirectView
-from daguerre.views import AjaxAdjustmentInfoView
-from daguerre.views import AjaxUpdateAreaView
+from django.conf.urls.defaults import patterns, url
+
+from daguerre.views import (AdjustedImageRedirectView, AjaxAdjustmentInfoView,
+                            AjaxUpdateAreaView)
+
 
 urlpatterns = patterns(
     '',
