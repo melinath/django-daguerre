@@ -482,7 +482,10 @@ class AdjustmentHelper(BaseAdjustmentHelper):
             im = im.crop((crop_area.x1, crop_area.y1,
                           crop_area.x2, crop_area.y2))
 
-        return self.adjustment_class(im, areas=areas, **self.kwargs)
+        kwargs = self.kwargs.copy()
+        kwargs.pop('crop', None)
+
+        return self.adjustment_class(im, areas=areas, **kwargs)
 
     def info_dict(self):
         """

@@ -137,12 +137,21 @@ class AdjustmentHelperTestCase(BaseTestCase):
         self.assertImageEqual(Image.open(adjusted.adjusted.path), expected)
 
     def test_adjust_crop__50x50_area(self):
-        Area.objects.create(storage_path=self.base_image, x1=21, x2=70, y1=46,
-                            y2=95)
+        self.create_area(storage_path=self.base_image, x1=21, x2=70, y1=46,
+                         y2=95)
         expected = Image.open(self._data_path('50x50_crop_area.png'))
         with self.assertNumQueries(4):
             adjusted = AdjustmentHelper(self.base_image, width=50, height=50,
                                         adjustment='crop').adjust()
+        self.assertImageEqual(Image.open(adjusted.adjusted.path), expected)
+
+    def test_named_crop(self):
+        self.create_area(storage_path=self.base_image, x1=21, x2=70, y1=46,
+                         y2=95, name='area')
+        expected = Image.open(self._data_path('25x25_fit_named_crop.png'))
+        with self.assertNumQueries(4):
+            adjusted = AdjustmentHelper(self.base_image, width=25, height=25,
+                                        crop='area', adjustment='fit').adjust()
         self.assertImageEqual(Image.open(adjusted.adjusted.path), expected)
 
     def test_readjust(self):

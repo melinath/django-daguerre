@@ -32,6 +32,9 @@ class BaseTestCase(TestCase):
         return open(cls._data_path(test_path), mode)
 
     def assertImageEqual(self, im1, im2):
+        # First check that they're the same size. A difference
+        # comparison could pass for images of different sizes.
+        self.assertEqual(im1.size, im2.size)
         # Image comparisons according to
         # http://effbot.org/zone/pil-comparing-images.htm
         self.assertTrue(ImageChops.difference(im1, im2).getbbox() is None)
