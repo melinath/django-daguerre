@@ -1,5 +1,5 @@
+from daguerre.helpers import AdjustmentHelper
 from daguerre.tests.base import BaseTestCase
-from daguerre.utils.adjustments import AdjustmentHelper
 
 
 class RequestResponseTestCase(BaseTestCase):

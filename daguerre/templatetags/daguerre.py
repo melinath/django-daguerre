@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django import template
 from django.template.defaulttags import kwarg_re
 
-from daguerre.utils.adjustments import AdjustmentHelper, BulkAdjustmentHelper
+from daguerre.helpers import AdjustmentHelper, BulkAdjustmentHelper
 
 
 register = template.Library()

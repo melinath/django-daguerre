@@ -4,9 +4,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.http import Http404
 from django.test import RequestFactory
 
+from daguerre.helpers import AdjustmentHelper
 from daguerre.models import Area
 from daguerre.tests.base import BaseTestCase
-from daguerre.utils.adjustments import AdjustmentHelper
 from daguerre.views import (AdjustedImageRedirectView, AjaxAdjustmentInfoView,
                             AjaxUpdateAreaView)
 

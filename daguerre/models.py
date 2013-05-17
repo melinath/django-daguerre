@@ -6,6 +6,8 @@ from django.utils.encoding import smart_unicode
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
+from daguerre.adjustments import adjustments
+
 
 class Area(models.Model):
     """
@@ -85,19 +87,11 @@ def delete_adjusted_images(sender, **kwargs):
     Area's storage_path which have area-using adjustments.
 
     """
-    from daguerre.utils.adjustments import adjustments
     slugs = [slug for slug, adjustment in adjustments.iteritems()
              if adjustment.uses_areas]
     storage_path = kwargs['instance'].storage_path
     AdjustedImage.objects.filter(storage_path__exact=storage_path,
                                  requested_adjustment__in=slugs).delete()
-
-
-def _adjustment_choice_iter():
-    # By lazily importing the adjustments dict, we can prevent an import loop.
-    from daguerre.utils.adjustments import adjustments
-    for slug in adjustments:
-        yield (slug, capfirst(slug))
 
 
 class AdjustedImage(models.Model):
@@ -118,7 +112,7 @@ class AdjustedImage(models.Model):
     requested_max_height = models.PositiveIntegerField(blank=True, null=True)
     requested_adjustment = models.CharField(
         max_length=255,
-        choices=_adjustment_choice_iter())
+        choices=[(slug, capfirst(slug)) for slug in adjustments])
     requested_crop = models.ForeignKey(Area, blank=True, null=True)
 
     def __unicode__(self):

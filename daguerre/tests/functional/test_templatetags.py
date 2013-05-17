@@ -1,8 +1,8 @@
 from django.template import Template, Context
 
+from daguerre.helpers import AdjustmentHelper
 from daguerre.models import AdjustedImage
 from daguerre.tests.base import BaseTestCase
-from daguerre.utils.adjustments import AdjustmentHelper
 
 
 class AdjustTemplatetagTestCase(BaseTestCase):

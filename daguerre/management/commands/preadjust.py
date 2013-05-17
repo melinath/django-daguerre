@@ -7,7 +7,7 @@ from django.db.models.query import QuerySet
 from django.template.defaultfilters import pluralize
 
 from daguerre.models import AdjustedImage
-from daguerre.utils.adjustments import AdjustmentHelper, BulkAdjustmentHelper
+from daguerre.helpers import AdjustmentHelper, BulkAdjustmentHelper
 
 
 NO_ADJUSTMENTS = """No adjustments were defined.

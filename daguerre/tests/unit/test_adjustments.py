@@ -5,10 +5,10 @@ try:
 except ImportError:
     import Image
 
+from daguerre.adjustments import Fit, Crop, Fill
+from daguerre.helpers import AdjustmentHelper, BulkAdjustmentHelper
 from daguerre.models import AdjustedImage, Area
 from daguerre.tests.base import BaseTestCase
-from daguerre.utils.adjustments import (Fit, Crop, Fill, AdjustmentHelper,
-                                        BulkAdjustmentHelper)
 
 
 class FitTestCase(BaseTestCase):
