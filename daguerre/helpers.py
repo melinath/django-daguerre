@@ -74,10 +74,8 @@ class BaseAdjustmentHelper(object):
         im_file.seek(0)
         return Image.open(im_file)
 
-    def adjustment_for_path(self, storage_path):
-        # Will raise IOError if the file doesn't exist or isn't a valid image.
-        return self.adjustment_class(self._open_image(storage_path),
-                                     **self.kwargs)
+    def adjustment_for_image(self, image):
+        return self.adjustment_class(image, **self.kwargs)
 
     def _adjusted_image_info_dict(self, adjusted_image):
         return AdjustmentInfoDict({
@@ -114,7 +112,8 @@ class BaseAdjustmentHelper(object):
 
     def _path_info_dict(self, storage_path):
         try:
-            adjustment = self.adjustment_for_path(storage_path)
+            im = self._open_image(storage_path)
+            adjustment = self.adjustment_for_image(im)
         except IOError:
             return AdjustmentInfoDict()
         url = u"{0}?{1}".format(
@@ -194,9 +193,7 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 
         return cls(image_or_storage_path, **kwargs)
 
-    def adjustment_for_path(self, storage_path):
-        # Will raise IOError if the file doesn't exist or isn't a valid image.
-        im = self._open_image(storage_path)
+    def adjustment_for_image(self, image):
         crop_area = self.get_crop_area()
         if crop_area is None:
             areas = self.get_areas()
@@ -204,13 +201,13 @@ class AdjustmentHelper(BaseAdjustmentHelper):
             # Ignore areas if there is a valid crop, for now.
             # Maybe someday "crop" the areas and pass them in.
             areas = None
-            im = im.crop((crop_area.x1, crop_area.y1,
-                          crop_area.x2, crop_area.y2))
+            image = image.crop((crop_area.x1, crop_area.y1,
+                                crop_area.x2, crop_area.y2))
 
         kwargs = self.kwargs.copy()
         kwargs.pop('crop', None)
 
-        return self.adjustment_class(im, areas=areas, **kwargs)
+        return self.adjustment_class(image, areas=areas, **kwargs)
 
     def info_dict(self):
         """
@@ -248,7 +245,10 @@ class AdjustmentHelper(BaseAdjustmentHelper):
 
         # If that fails, try to create one from the storage path.
         # Raises IOError if something goes wrong.
-        adjustment = self.adjustment_for_path(self.storage_path)
+
+        im = self._open_image(self.storage_path)
+        format = im.format if im.format in KEEP_FORMATS else DEFAULT_FORMAT
+        adjustment = self.adjustment_for_image(im)
         im = adjustment.adjust()
 
         creation_kwargs = {}
@@ -261,8 +261,6 @@ class AdjustmentHelper(BaseAdjustmentHelper):
         adjusted = AdjustedImage(**creation_kwargs)
         f = adjusted._meta.get_field('adjusted')
 
-        format = (adjustment.format
-                  if adjustment.format in KEEP_FORMATS else DEFAULT_FORMAT)
         args = (unicode(creation_kwargs), datetime.datetime.now().isoformat())
         filename = '.'.join((make_hash(*args, step=2), format.lower()))
         storage_path = f.generate_filename(adjusted, filename)

@@ -28,8 +28,8 @@ class Adjustment(object):
     carrying out the adjustment.
 
     :param image: A PIL Image instance which is to be adjusted.
-    :param width, height, max_width, max_height: The requested dimensions for
-    the adjusted image.
+
+    :param kwargs: The requested kwargs for the adjustment.
     :param areas: :class:`~Area` instances representing protected areas for the
     adjustment.
 
@@ -40,17 +40,17 @@ class Adjustment(object):
     #: defined or deleted.
     uses_areas = False
 
-    def __init__(self, image, width=None, height=None, max_width=None,
-                 max_height=None, areas=None):
+    #: Accepted parameters for this adjustment.
+    parameters = ()
+
+    def __init__(self, image, areas=None, **kwargs):
         self.image = image
-        self.format = self.image.format
-
         self.areas = areas
-
-        self.width = width
-        self.height = height
-        self.max_width = max_width
-        self.max_height = max_height
+        self.kwargs = kwargs
+        for key in kwargs:
+            if key not in self.parameters:
+                raise ValueError('Parameter "{0}" not accepted by {1}.'
+                                 ''.format(key, self.__class__.__name__))
 
     def calculate(self):
         """
@@ -71,12 +71,7 @@ class Adjustment(object):
     def adjust(self):
         """Manipulates and returns the image."""
         if not hasattr(self, '_adjusted'):
-            calculated = self.calculate()
-            if calculated == self.image.size:
-                adjusted = self.image.copy()
-            else:
-                adjusted = self._adjust()
-            self._adjusted = adjusted
+            self._adjusted = self._adjust()
         return self._adjust()
 
     def _adjust(self):
@@ -88,47 +83,41 @@ class Fit(Adjustment):
     Resizes an image to fit entirely within the given dimensions
     without cropping and maintaining the width/height ratio.
 
-    Rather than constraining an image to a specific width and height,
-    ``width`` or ``height`` may be given as ``None``, in which case
-    the image can expand in the unspecified direction up to
-    ``max_width`` or ``max_height``, respectively, or indefinitely
-    if the relevant dimension is not specified.
-
     If neither width nor height is specified, this adjustment will simply
     return a copy of the image.
     """
+    parameters = ('width', 'height')
+
     def _calculate(self):
         image_width, image_height = self.image.size
+        width, height = self.kwargs.get('width'), self.kwargs.get('height')
 
-        if self.width is None and self.height is None:
+        if width is None and height is None:
             return image_width, image_height
 
         image_ratio = float(image_width) / image_height
 
-        if self.height is None:
+        if height is None:
             # Constrain first by width, then by max_height.
-            new_height = int(self.width / image_ratio)
-            new_width = int(self.width)
-            if self.max_height is not None and new_height > self.max_height:
-                new_height = int(self.max_height)
-                new_width = int(new_height * image_ratio)
-        elif self.width is None:
+            new_height = int(width / image_ratio)
+            new_width = int(width)
+        elif width is None:
             # Constrain first by height, then by max_width.
-            new_width = int(self.height * image_ratio)
-            new_height = int(self.height)
-            if self.max_width is not None and new_width > self.max_width:
-                new_width = int(self.max_width)
-                new_height = int(new_width / image_ratio)
+            new_width = int(height * image_ratio)
+            new_height = int(height)
         else:
             # Constrain strictly by both dimensions.
-            new_width = int(min(self.width, self.height * image_ratio))
-            new_height = int(min(self.height, self.width / image_ratio))
+            new_width = int(min(width, height * image_ratio))
+            new_height = int(min(height, width / image_ratio))
 
         return new_width, new_height
 
     def _adjust(self):
         image_width, image_height = self.image.size
         new_width, new_height = self.calculate()
+
+        if (new_width, new_height) == (image_width, image_height):
+            return self.image.copy()
 
         # Choose a resize filter based on whether
         # we're upscaling or downscaling.
@@ -143,26 +132,23 @@ class Crop(Adjustment):
     """
     Crops an image to the given width and height, without scaling it.
     :class:`~daguerre.models.Area` instances which are passed in will be
-    protected as much as possible during the crop. If ``width`` or
-    ``height`` is not specified, the image may grow up to ``max_width``
-    or ``max_height`` respectively in the unspecified direction before being
-    cropped.
+    protected as much as possible during the crop.
 
     """
     uses_areas = True
+    parameters = ('width', 'height')
 
     def _calculate(self):
         image_width, image_height = self.image.size
+        width, height = self.kwargs.get('width'), self.kwargs.get('height')
         not_none = lambda x: x is not None
         # image_width and image_height are known to be defined.
         new_width = ifilter(not_none,
-                            (self.width,
-                             self.max_width,
+                            (width,
                              image_width)
                             ).next()
         new_height = ifilter(not_none,
-                             (self.height,
-                              self.max_height,
+                             (height,
                               image_height)
                              ).next()
 
@@ -174,6 +160,9 @@ class Crop(Adjustment):
     def _adjust(self):
         image_width, image_height = self.image.size
         new_width, new_height = self.calculate()
+
+        if (new_width, new_height) == (image_width, image_height):
+            return self.image.copy()
 
         if not self.areas:
             x1 = (image_width - new_width) / 2
@@ -220,6 +209,28 @@ class Crop(Adjustment):
         return penalty_area / area.priority
 
 
+class RatioCrop(Crop):
+    parameters = ('ratio',)
+
+    def _calculate(self):
+        image_width, image_height = self.image.size
+        image_ratio = float(image_width) / image_height
+        ratio = self.kwargs.get('ratio')
+
+        if ratio is None:
+            return image_width, image_height
+
+        if ratio > image_ratio:
+            # New ratio is wider. Cut the height.
+            new_width = image_width
+            new_height = int(image_width / ratio)
+        else:
+            new_width = int(image_height * ratio)
+            new_height = image_height
+
+        return new_width, new_height
+
+
 class Fill(Adjustment):
     """
     Crops the image to the requested ratio (using the same logic as
@@ -230,28 +241,33 @@ class Fill(Adjustment):
 
     """
     uses_areas = True
+    parameters = ('width', 'height', 'max_width', 'max_height')
 
     def _calculate(self):
         image_width, image_height = self.image.size
-        # If there are no restrictions, just return the original dimensions.
-        if self.height is None and self.width is None:
+        width, height = self.kwargs.get('width'), self.kwargs.get('height')
+
+        if width is None and height is None:
+            # No restrictions: return original dimensions.
             return image_width, image_height
 
+        max_width = self.kwargs.get('max_width')
+        max_height = self.kwargs.get('max_height')
         image_ratio = float(image_width) / image_height
 
-        if self.height is None:
-            new_height = int(self.width / image_ratio)
-            if self.max_height is not None:
-                new_height = min(new_height, int(self.max_height))
-            new_width = int(self.width)
-        elif self.width is None:
-            new_width = int(self.height * image_ratio)
-            if self.max_width is not None:
-                new_width = min(new_width, int(self.max_width))
-            new_height = int(self.height)
+        if width is None:
+            new_width = int(height * image_ratio)
+            if max_width is not None:
+                new_width = min(new_width, int(max_width))
+            new_height = int(height)
+        elif height is None:
+            new_height = int(width / image_ratio)
+            if max_height is not None:
+                new_height = min(new_height, int(max_height))
+            new_width = int(width)
         else:
-            new_width = self.width
-            new_height = self.height
+            new_width = int(width)
+            new_height = int(height)
 
         return new_width, new_height
 
@@ -259,23 +275,16 @@ class Fill(Adjustment):
         image_width, image_height = self.image.size
         new_width, new_height = self.calculate()
 
-        image_ratio = float(image_width) / image_height
-        new_ratio = float(new_width) / new_height
+        if (new_width, new_height) == (image_width, image_height):
+            return self.image.copy()
 
-        if new_ratio > image_ratio:
-            # New ratio is wider. Cut the height.
-            crop_width = image_width
-            crop_height = int(image_width / new_ratio)
-        else:
-            crop_width = int(image_height * new_ratio)
-            crop_height = image_height
-
-        new_image = Crop(self.image, width=crop_width, height=crop_height,
-                         areas=self.areas).adjust()
-
+        new_image = RatioCrop(image=self.image, areas=self.areas,
+                              ratio=float(new_width) / new_height
+                              ).adjust()
         return Fit(new_image, width=new_width, height=new_height).adjust()
 
 
 adjustments['fit'] = Fit
 adjustments['crop'] = Crop
+adjustments['ratio-crop'] = RatioCrop
 adjustments['fill'] = Fill
