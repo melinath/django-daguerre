@@ -7,7 +7,7 @@ from django.db.models.query import QuerySet
 from django.template.defaultfilters import pluralize
 
 from daguerre.models import AdjustedImage
-from daguerre.helpers import AdjustmentHelper, BulkAdjustmentHelper
+from daguerre.helpers import AdjustmentHelper
 
 
 NO_ADJUSTMENTS = """No adjustments were defined.
@@ -50,27 +50,29 @@ class Command(NoArgsCommand):
             for kwargs in kwargs_list:
                 args.append((queryset, lookup, kwargs))
 
+        empty_count = 0
         skipped_count = 0
-        remaining = []
+        helpers = []
         remaining_count = 0
         for queryset, lookup, kwargs in args:
-            bulk_helper = BulkAdjustmentHelper(queryset, lookup, **kwargs)
-            query_kwargs = bulk_helper.get_query_kwargs()
-            adjusted_images = AdjustedImage.objects.filter(**query_kwargs)
-            for adjusted_image in adjusted_images:
-                try:
-                    del bulk_helper.remaining[adjusted_image.storage_path]
-                except KeyError:
-                    pass
-                else:
-                    skipped_count += 1
-            remaining_count += len(bulk_helper.remaining)
-            remaining.append((bulk_helper.remaining.keys(), kwargs))
+            helper = AdjustmentHelper(queryset, lookup, **kwargs)
+            helper.empty_count = len(helper.adjusted)
+            empty_count += helper.empty_count
+            helper._fetch_adjusted()
+            skipped_count += len(helper.adjusted) - helper.empty_count
+            remaining_count += len(helper.remaining)
+            helpers.append(helper)
+
+        self.stdout.write(
+            "Skipped {0} empty path{1}.\n".format(
+                empty_count,
+                pluralize(skipped_count)))
 
         self.stdout.write(
             "Skipped {0} path{1} which have already been adjusted.\n".format(
                 skipped_count,
                 pluralize(skipped_count)))
+
         if remaining_count == 0:
             self.stdout.write("No paths remaining to adjust.\n")
         else:
@@ -80,13 +82,12 @@ class Command(NoArgsCommand):
             self.stdout.flush()
 
             failed_count = 0
-            for storage_paths, kwargs in remaining:
-                for storage_path in storage_paths:
-                    helper = AdjustmentHelper(storage_path, **kwargs)
-                    try:
-                        helper.adjust()
-                    except IOError:
-                        failed_count += 1
+            for helper in helpers:
+                helper.adjust()
+                empty_count = len([info_dict
+                                   for info_dict in helper.adjusted.values()
+                                   if not info_dict])
+                failed_count += empty_count - helper.empty_count
             self.stdout.write("Done.\n")
             if failed_count:
                 self.stdout.write(
@@ -97,8 +98,8 @@ class Command(NoArgsCommand):
         if options['remove']:
             queryset = AdjustedImage.objects.all()
             for qs, lookup, kwargs in args:
-                bulk_helper = BulkAdjustmentHelper(qs, lookup, **kwargs)
-                query_kwargs = bulk_helper.get_query_kwargs()
+                helper = AdjustmentHelper(qs, lookup, **kwargs)
+                query_kwargs = helper.get_query_kwargs()
                 queryset = queryset.exclude(**query_kwargs)
 
             count = queryset.count()

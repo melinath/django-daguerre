@@ -6,7 +6,7 @@ except ImportError:
     import Image
 
 from daguerre.adjustments import Fit, Crop, Fill, NamedCrop
-from daguerre.helpers import AdjustmentHelper, BulkAdjustmentHelper
+from daguerre.helpers import AdjustmentHelper
 from daguerre.models import AdjustedImage, Area
 from daguerre.tests.base import BaseTestCase
 
@@ -120,9 +120,10 @@ class AdjustmentHelperTestCase(BaseTestCase):
     def test_adjust_crop__50x100(self):
         expected = Image.open(self._data_path('50x100_crop.png'))
         with self.assertNumQueries(4):
-            adjusted = AdjustmentHelper(self.base_image,
-                                        Crop(width=50, height=100)
-                                        ).adjust()
+            AdjustmentHelper([self.base_image], None,
+                             Crop(width=50, height=100)
+                             ).adjust()
+        adjusted = AdjustedImage.objects.get()
         self.assertImageEqual(Image.open(adjusted.adjusted.path), expected)
         # Make sure that the path is properly formatted.
         self.assertTrue(adjusted.adjusted.path.endswith('.png'))
@@ -130,9 +131,10 @@ class AdjustmentHelperTestCase(BaseTestCase):
     def test_adjust_crop__100x50(self):
         expected = Image.open(self._data_path('100x50_crop.png'))
         with self.assertNumQueries(4):
-            adjusted = AdjustmentHelper(self.base_image,
-                                        Crop(width=100, height=50)
-                                        ).adjust()
+            AdjustmentHelper([self.base_image], None,
+                             Crop(width=100, height=50)
+                             ).adjust()
+        adjusted = AdjustedImage.objects.get()
         self.assertImageEqual(Image.open(adjusted.adjusted.path), expected)
 
     def test_adjust_crop__50x50_area(self):
@@ -140,9 +142,10 @@ class AdjustmentHelperTestCase(BaseTestCase):
                          y2=95)
         expected = Image.open(self._data_path('50x50_crop_area.png'))
         with self.assertNumQueries(4):
-            adjusted = AdjustmentHelper(self.base_image,
-                                        Crop(width=50, height=50)
-                                        ).adjust()
+            AdjustmentHelper([self.base_image], None,
+                             Crop(width=50, height=50)
+                             ).adjust()
+        adjusted = AdjustedImage.objects.get()
         self.assertImageEqual(Image.open(adjusted.adjusted.path), expected)
 
     def test_named_crop(self):
@@ -150,10 +153,11 @@ class AdjustmentHelperTestCase(BaseTestCase):
                          y2=95, name='area')
         expected = Image.open(self._data_path('25x25_fit_named_crop.png'))
         with self.assertNumQueries(4):
-            adjusted = AdjustmentHelper(self.base_image,
-                                        NamedCrop(name='area'),
-                                        Fit(width=25, height=25)
-                                        ).adjust()
+            AdjustmentHelper([self.base_image], None,
+                             NamedCrop(name='area'),
+                             Fit(width=25, height=25)
+                             ).adjust()
+        adjusted = AdjustedImage.objects.get()
         self.assertImageEqual(Image.open(adjusted.adjusted.path), expected)
 
     def test_readjust(self):
@@ -164,16 +168,17 @@ class AdjustmentHelperTestCase(BaseTestCase):
         """
         new_im = Image.open(self._data_path('50x100_crop.png'))
         with self.assertNumQueries(4):
-            adjusted = AdjustmentHelper(self.base_image,
-                                        Crop(width=50, height=100)
-                                        ).adjust()
+            AdjustmentHelper([self.base_image], None,
+                             Crop(width=50, height=100)
+                             ).adjust()
+        adjusted = AdjustedImage.objects.get()
         self.assertImageEqual(Image.open(adjusted.adjusted.path), new_im)
 
         with self.assertNumQueries(1):
-            new_adjusted = AdjustmentHelper(self.base_image,
-                                            Crop(width=50, height=100)
-                                            ).adjust()
-        self.assertEqual(adjusted, new_adjusted)
+            AdjustmentHelper([self.base_image], None,
+                             Crop(width=50, height=100)
+                             ).adjust()
+        self.assertEqual(AdjustedImage.objects.count(), 1)
 
     def test_readjust_multiple(self):
         """
@@ -182,19 +187,22 @@ class AdjustmentHelperTestCase(BaseTestCase):
 
         """
         with self.assertNumQueries(4):
-            adjusted1 = AdjustmentHelper(self.base_image,
-                                         Crop(width=50, height=100)
-                                         ).adjust()
-        adjusted2 = AdjustedImage.objects.get(pk=adjusted1.pk)
+            AdjustmentHelper([self.base_image], None,
+                             Crop(width=50, height=100)
+                             ).adjust()
+        adjusted1 = AdjustedImage.objects.get()
+        adjusted2 = AdjustedImage.objects.get()
         adjusted2.pk = None
         adjusted2.save()
         self.assertNotEqual(adjusted1.pk, adjusted2.pk)
 
+        helper = AdjustmentHelper([self.base_image], None,
+                                  Crop(width=50, height=100))
         with self.assertNumQueries(1):
-            new_adjusted = AdjustmentHelper(self.base_image,
-                                            Crop(width=50, height=100)
-                                            ).adjust()
-        self.assertTrue(new_adjusted == adjusted1 or new_adjusted == adjusted2)
+            helper.adjust()
+        url = helper.adjusted.values()[0]['url']
+        self.assertEqual(url, adjusted1.adjusted.url)
+        self.assertEqual(url, adjusted2.adjusted.url)
 
     def test_adjust__nonexistant(self):
         """
@@ -203,13 +211,15 @@ class AdjustmentHelperTestCase(BaseTestCase):
         """
         storage_path = 'nonexistant.png'
         self.assertFalse(default_storage.exists(storage_path))
-        helper = AdjustmentHelper(storage_path)
+        helper = AdjustmentHelper([storage_path])
         # We still do get one query because the first try is always for
         # an AdjustedImage, whether or not the original file exists.
         # This is for historic reasons and doesn't necessarily need to
         # continue to be the case.
         with self.assertNumQueries(1):
-            self.assertRaises(IOError, helper.adjust)
+            helper.adjust()
+        self.assertEqual(helper.adjusted, {helper.iterable[0]: {}})
+        self.assertEqual(helper.remaining, {})
 
     def test_adjust__broken(self):
         broken_file = self._data_file('broken.png')
@@ -219,9 +229,12 @@ class AdjustmentHelperTestCase(BaseTestCase):
         image = Image.open(broken_file)
         self.assertRaises(IndexError, image.verify)
 
-        helper = AdjustmentHelper(storage_path, Fill(width=50, height=50))
+        helper = AdjustmentHelper([storage_path], None,
+                                  Fill(width=50, height=50))
         with self.assertNumQueries(1):
-            self.assertRaises(IOError, helper.adjust)
+            helper.adjust()
+        self.assertEqual(helper.adjusted, {helper.iterable[0]: {}})
+        self.assertEqual(helper.remaining, {})
 
 
 class BulkTestObject(object):
@@ -241,7 +254,7 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
         adj = Crop(width=50, height=50)
         with self.assertNumQueries(4):
             for image in images:
-                AdjustmentHelper(image, adj).info_dict()
+                AdjustmentHelper([image], None, adj).info_dicts()
 
     def test_info_dicts__unprepped(self):
         images = [
@@ -254,7 +267,7 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
 
         adj = Crop(width=50, height=50)
 
-        helper = BulkAdjustmentHelper(iterable, 'storage_path', adj)
+        helper = AdjustmentHelper(iterable, 'storage_path', adj)
         with self.assertNumQueries(1):
             helper.info_dicts()
 
@@ -269,7 +282,7 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
 
         adj = Crop(width=50, height=50)
 
-        helper = BulkAdjustmentHelper(iterable, 'storage_path', adj)
+        helper = AdjustmentHelper(iterable, 'storage_path', adj)
         with self.assertNumQueries(1):
             helper.info_dicts()
 
@@ -284,10 +297,10 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
 
         adj = Crop(width=50, height=50)
 
-        for image in images:
-            AdjustmentHelper(image, adj).adjust()
+        helper = AdjustmentHelper(iterable, 'storage_path', adj)
+        helper.adjust()
 
-        helper = BulkAdjustmentHelper(iterable, 'storage_path', adj)
+        helper = AdjustmentHelper(iterable, 'storage_path', adj)
         with self.assertNumQueries(1):
             helper.info_dicts()
 
@@ -296,7 +309,7 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
         iterable = [
             BulkTestObject({'bar': storage_path})
         ]
-        helper = BulkAdjustmentHelper(iterable, "storage_path.bar")
+        helper = AdjustmentHelper(iterable, "storage_path.bar")
         self.assertEqual(helper.adjusted, {})
         self.assertEqual(helper.remaining, {storage_path: [iterable[0]]})
 
@@ -305,6 +318,6 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
         iterable = [
             BulkTestObject({'_bar': storage_path})
         ]
-        helper = BulkAdjustmentHelper(iterable, "storage_path._bar")
+        helper = AdjustmentHelper(iterable, "storage_path._bar")
         self.assertEqual(helper.adjusted, {iterable[0]: {}})
         self.assertEqual(helper.remaining, {})

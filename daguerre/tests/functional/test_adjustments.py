@@ -10,8 +10,9 @@ class RequestResponseTestCase(BaseTestCase):
         crop = Crop(width=50, height=50)
 
         with self.assertNumQueries(1):
-            info_dict = AdjustmentHelper(image, crop).info_dict()
-        with self.assertNumQueries(3):
+            info_dict = AdjustmentHelper([image], None, crop
+                                         ).info_dicts()[0][1]
+        with self.assertNumQueries(4):
             response = self.client.get(info_dict['url'])
         self.assertEqual(response.status_code, 302)
 
@@ -21,9 +22,10 @@ class RequestResponseTestCase(BaseTestCase):
         crop = Crop(width=50, height=50)
 
         with self.assertNumQueries(1):
-            info_dict = AdjustmentHelper(image, crop).info_dict()
+            info_dict = AdjustmentHelper([image], None, crop
+                                         ).info_dicts()[0][1]
         with self.assertNumQueries(4):
-            AdjustmentHelper(image, crop).adjust()
+            AdjustmentHelper([image], None, crop).adjust()
         with self.assertNumQueries(1):
             response = self.client.get(info_dict['url'])
         self.assertEqual(response.status_code, 302)
@@ -33,8 +35,12 @@ class RequestResponseTestCase(BaseTestCase):
 
         crop = Crop(width=50, height=50)
 
+        helper = AdjustmentHelper([image], None, crop)
         with self.assertNumQueries(4):
-            adjusted = AdjustmentHelper(image, crop).adjust()
+            helper.adjust()
+        adjusted = helper.adjusted.values()[0]
+
         with self.assertNumQueries(1):
-            info_dict = AdjustmentHelper(image, crop).info_dict()
-        self.assertEqual(info_dict['url'], adjusted.adjusted.url)
+            info_dict = AdjustmentHelper([image], None, crop
+                                         ).info_dicts()[0][1]
+        self.assertEqual(info_dict['url'], adjusted['url'])

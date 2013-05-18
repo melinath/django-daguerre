@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
 from django import template
+from django.template.defaultfilters import escape
 from django.template.defaulttags import kwarg_re
 
 from daguerre.adjustments import get_adjustment_class, NamedCrop
-from daguerre.helpers import AdjustmentHelper, BulkAdjustmentHelper
+from daguerre.helpers import AdjustmentHelper
 
 
 register = template.Library()
@@ -30,13 +31,13 @@ class AdjustmentNode(template.Node):
             adjustments.append(adj_cls(**kwargs))
         except ValueError:
             return ''
-        helper = AdjustmentHelper(storage_path, *adjustments)
-        info_dict = helper.info_dict()
+        helper = AdjustmentHelper([storage_path], None, *adjustments)
+        info_dict = helper.info_dicts()[0][1]
 
         if self.asvar is not None:
             context[self.asvar] = info_dict
             return ''
-        return info_dict
+        return escape(info_dict.get('url', ''))
 
 
 class BulkAdjustmentNode(template.Node):
@@ -57,7 +58,7 @@ class BulkAdjustmentNode(template.Node):
             adjustment = adj_cls(**kwargs)
         except ValueError:
             return ''
-        helper = BulkAdjustmentHelper(iterable, lookup, adjustment)
+        helper = AdjustmentHelper(iterable, lookup, adjustment)
         context[self.asvar] = helper.info_dicts()
         return ''
 
