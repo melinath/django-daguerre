@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django import template
 from django.template.defaulttags import kwarg_re
 
+from daguerre.adjustments import get_adjustment_class, NamedCrop
 from daguerre.helpers import AdjustmentHelper, BulkAdjustmentHelper
 
 
@@ -21,7 +22,15 @@ class AdjustmentNode(template.Node):
 
         kwargs = dict((
             k, v.resolve(context)) for k, v in self.kwargs.iteritems())
-        helper = AdjustmentHelper(storage_path, **kwargs)
+        adjustments = []
+        if 'crop' in kwargs:
+            adjustments.append(NamedCrop(name=kwargs.pop('crop')))
+        adj_cls = get_adjustment_class(kwargs.pop('adjustment', None))
+        try:
+            adjustments.append(adj_cls(**kwargs))
+        except ValueError:
+            return ''
+        helper = AdjustmentHelper(storage_path, *adjustments)
         info_dict = helper.info_dict()
 
         if self.asvar is not None:
@@ -43,7 +52,12 @@ class BulkAdjustmentNode(template.Node):
         kwargs = dict((
             k, v.resolve(context)) for k, v in self.kwargs.iteritems())
 
-        helper = BulkAdjustmentHelper(iterable, lookup, **kwargs)
+        adj_cls = get_adjustment_class(kwargs.pop('adjustment', None))
+        try:
+            adjustment = adj_cls(**kwargs)
+        except ValueError:
+            return ''
+        helper = BulkAdjustmentHelper(iterable, lookup, adjustment)
         context[self.asvar] = helper.info_dicts()
         return ''
 

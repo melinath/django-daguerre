@@ -1,8 +1,8 @@
+import operator
+
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.template.defaultfilters import capfirst
-from django.utils.encoding import smart_unicode
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
@@ -87,36 +87,24 @@ def delete_adjusted_images(sender, **kwargs):
     Area's storage_path which have area-using adjustments.
 
     """
-    slugs = [slug for slug, adjustment in adjustments.iteritems()
-             if adjustment.uses_areas]
     storage_path = kwargs['instance'].storage_path
-    AdjustedImage.objects.filter(storage_path__exact=storage_path,
-                                 requested_adjustment__in=slugs).delete()
+    qs = AdjustedImage.objects.filter(storage_path=storage_path)
+    slug_qs = [models.Q(requested__contains=slug)
+               for slug, adjustment in adjustments.iteritems()
+               if getattr(adjustment.adjust, 'uses_areas', True)]
+    if slug_qs:
+        qs = qs.filter(reduce(operator.or_, slug_qs))
+
+    qs.delete()
 
 
 class AdjustedImage(models.Model):
-    """Represents a "cached" managed image adjustment."""
+    """Represents a managed image adjustment."""
     storage_path = models.CharField(max_length=300)
-    adjusted = models.ImageField(
-        height_field='height',
-        width_field='width',
-        upload_to='daguerre/adjusted/%Y/%m/%d/', max_length=255)
-    timestamp = models.DateTimeField(auto_now_add=True)
+    adjusted = models.ImageField(upload_to='daguerre/adjusted/%Y/%m/%d/',
+                                 max_length=255)
 
-    width = models.PositiveIntegerField()
-    height = models.PositiveIntegerField()
-
-    requested_width = models.PositiveIntegerField(blank=True, null=True)
-    requested_height = models.PositiveIntegerField(blank=True, null=True)
-    requested_max_width = models.PositiveIntegerField(blank=True, null=True)
-    requested_max_height = models.PositiveIntegerField(blank=True, null=True)
-    requested_adjustment = models.CharField(
-        max_length=255,
-        choices=[(slug, capfirst(slug)) for slug in adjustments])
-    requested_crop = models.ForeignKey(Area, blank=True, null=True)
+    requested = models.CharField(max_length=255)
 
     def __unicode__(self):
-        return u"(%s, %s) adjustment for %s" % (
-            smart_unicode(self.requested_width),
-            smart_unicode(self.requested_height),
-            self.storage_path)
+        return u"{0}: {1}".format(self.storage_path, self.requested)

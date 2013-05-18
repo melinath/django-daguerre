@@ -1,3 +1,4 @@
+from daguerre.adjustments import Crop
 from daguerre.helpers import AdjustmentHelper
 from daguerre.tests.base import BaseTestCase
 
@@ -6,31 +7,23 @@ class RequestResponseTestCase(BaseTestCase):
     def test_unprepped(self):
         image = self.create_image('100x100.png')
 
-        kwargs = {
-            'width': 50,
-            'height': 50,
-            'adjustment': 'crop',
-        }
+        crop = Crop(width=50, height=50)
 
         with self.assertNumQueries(1):
-            info_dict = AdjustmentHelper(image, **kwargs).info_dict()
-        with self.assertNumQueries(4):
+            info_dict = AdjustmentHelper(image, crop).info_dict()
+        with self.assertNumQueries(3):
             response = self.client.get(info_dict['url'])
         self.assertEqual(response.status_code, 302)
 
     def test_prepped(self):
         image = self.create_image('100x100.png')
 
-        kwargs = {
-            'width': 50,
-            'height': 50,
-            'adjustment': 'crop',
-        }
+        crop = Crop(width=50, height=50)
 
         with self.assertNumQueries(1):
-            info_dict = AdjustmentHelper(image, **kwargs).info_dict()
+            info_dict = AdjustmentHelper(image, crop).info_dict()
         with self.assertNumQueries(4):
-            AdjustmentHelper(image, **kwargs).adjust()
+            AdjustmentHelper(image, crop).adjust()
         with self.assertNumQueries(1):
             response = self.client.get(info_dict['url'])
         self.assertEqual(response.status_code, 302)
@@ -38,14 +31,10 @@ class RequestResponseTestCase(BaseTestCase):
     def test_preprepped(self):
         image = self.create_image('100x100.png')
 
-        kwargs = {
-            'width': 50,
-            'height': 50,
-            'adjustment': 'crop',
-        }
+        crop = Crop(width=50, height=50)
 
         with self.assertNumQueries(4):
-            adjusted = AdjustmentHelper(image, **kwargs).adjust()
+            adjusted = AdjustmentHelper(image, crop).adjust()
         with self.assertNumQueries(1):
-            info_dict = AdjustmentHelper(image, **kwargs).info_dict()
+            info_dict = AdjustmentHelper(image, crop).info_dict()
         self.assertEqual(info_dict['url'], adjusted.adjusted.url)

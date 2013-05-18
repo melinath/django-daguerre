@@ -4,6 +4,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.http import Http404
 from django.test import RequestFactory
 
+from daguerre.adjustments import NamedCrop, Fill
 from daguerre.helpers import AdjustmentHelper
 from daguerre.models import Area
 from daguerre.tests.base import BaseTestCase
@@ -22,8 +23,9 @@ class AdjustedImageRedirectViewTestCase(BaseTestCase):
 
         """
         storage_path = 'path/to/thing.jpg'
-        helper = AdjustmentHelper(storage_path, width=10, height=5,
-                                  crop='face')
+        adj1 = NamedCrop(name='face')
+        adj2 = Fill(width=10, height=5)
+        helper = AdjustmentHelper(storage_path, adj1, adj2)
         factory = RequestFactory()
         self.view.kwargs = {'storage_path': storage_path}
 
@@ -45,7 +47,7 @@ class AdjustedImageRedirectViewTestCase(BaseTestCase):
         """
         factory = RequestFactory()
         storage_path = 'nonexistant.png'
-        helper = AdjustmentHelper(storage_path, width=10, height=10)
+        helper = AdjustmentHelper(storage_path, Fill(width=10, height=10))
         self.view.kwargs = {'storage_path': storage_path}
         self.view.request = factory.get('/', helper.to_querydict(secure=True))
         self.assertRaises(Http404, self.view.get, self.view.request)
@@ -63,7 +65,7 @@ class AjaxAdjustmentInfoViewTestCase(BaseTestCase):
         """
         factory = RequestFactory()
         storage_path = 'nonexistant.png'
-        helper = AdjustmentHelper(storage_path, width=10, height=5)
+        helper = AdjustmentHelper(storage_path, Fill(width=10, height=5))
         self.view.kwargs = {'storage_path': storage_path}
         get_params = helper.to_querydict()
         self.view.request = factory.get('/', get_params,
@@ -345,7 +347,7 @@ class AjaxUpdateAreaViewTestCase(BaseTestCase):
                                       HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         request.user = self.create_user(permissions=['daguerre.delete_area'])
         self.assertTrue(request.user.has_perm('daguerre.delete_area'))
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(3):
             response = view.delete(request)
 
         self.assertEqual(response.status_code, 200)
