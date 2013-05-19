@@ -1,7 +1,9 @@
 import datetime
+import httplib
+import ssl
 
 from django.conf import settings
-from django.core.files.images import ImageFile
+from django.core.files.images import ImageFile, get_image_dimensions
 from django.core.files.storage import default_storage
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
@@ -18,6 +20,18 @@ from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT
 
 
 ADJUSTMENT_SEP = '>'
+# If any of the following errors appear during file manipulations, we will
+# treat them as IOErrors.
+# See http://code.larlet.fr/django-storages/issue/162/reraise-boto-httplib-errors-as-ioerrors
+IOERRORS = (IOError, httplib.IncompleteRead, ssl.SSLError)
+
+try:
+    import boto.exception
+except ImportError:
+    pass
+else:
+    IOERRORS = IOERRORS + (boto.exception.BotoServerError,
+                           boto.exception.S3ResponseError)
 
 
 class AdjustmentInfoDict(dict):
@@ -91,18 +105,6 @@ class AdjustmentHelper(object):
                 self._areas.setdefault(area.storage_path, []).append(area)
         return self._areas.get(storage_path, [])
 
-    def _open_image(self, storage_path):
-        # Will raise IOError if the file doesn't exist or isn't a valid image.
-        im_file = default_storage.open(storage_path)
-        im = Image.open(im_file)
-        try:
-            im.verify()
-        except Exception:
-            # Raise an IOError if the image isn't valid.
-            raise IOError
-        im_file.seek(0)
-        return Image.open(im_file)
-
     @classmethod
     def make_security_hash(cls, kwargs):
         kwargs = SortedDict(kwargs)
@@ -147,17 +149,22 @@ class AdjustmentHelper(object):
         return cls([image_or_storage_path], adjustments)
 
     def _adjusted_image_info_dict(self, adjusted_image):
-        im = Image.open(adjusted_image.adjusted)
+        try:
+            width, height = adjusted_image.adjusted._get_image_dimensions()
+        except IOERRORS:
+            return AdjustmentInfoDict()
+
         return AdjustmentInfoDict({
-            'width': im.size[0],
-            'height': im.size[1],
+            'width': width,
+            'height': height,
             'url': adjusted_image.adjusted.url,
         })
 
     def _path_info_dict(self, storage_path):
         try:
-            im = self._open_image(storage_path)
-        except IOError:
+            with default_storage.open(storage_path) as im_file:
+                width, height = get_image_dimensions(im_file)
+        except IOERRORS:
             return AdjustmentInfoDict()
 
         if self.calc_uses_areas:
@@ -165,7 +172,6 @@ class AdjustmentHelper(object):
         else:
             areas = None
 
-        width, height = im.size
         for adjustment in self.adjustments:
             width, height = adjustment.calculate((width, height), areas=areas)
 
@@ -219,7 +225,7 @@ class AdjustmentHelper(object):
             for path, items in self.remaining.copy().iteritems():
                 try:
                     adjusted_image = self._adjust(path)
-                except IOError:
+                except IOERRORS:
                     info_dict = AdjustmentInfoDict()
                 else:
                     info_dict = self._adjusted_image_info_dict(adjusted_image)
@@ -228,17 +234,26 @@ class AdjustmentHelper(object):
                 del self.remaining[path]
 
     def _adjust(self, storage_path):
-        # May raise IOError.
+        # May raise IOError if the file doesn't exist or isn't a valid image.
 
-        # If we're here, we can assume that it doesn't already exist. Try to
-        # create one from the storage path. Raises IOError if something goes
-        # wrong.
+        # If we're here, we can assume that the adjustment doesn't already
+        # exist. Try to create one from the storage path. Raises IOError if
+        # something goes wrong.
         kwargs = {
             'requested': self.requested,
             'storage_path': storage_path
         }
 
-        im = self._open_image(storage_path)
+        with default_storage.open(storage_path) as im_file:
+            im = Image.open(im_file)
+            try:
+                im.verify()
+            except Exception:
+                # Raise an IOError if the image isn't valid.
+                raise IOError
+            im_file.seek(0)
+            im = Image.open(im_file)
+            im.load()
         format = im.format if im.format in KEEP_FORMATS else DEFAULT_FORMAT
 
         if self.adjust_uses_areas:
