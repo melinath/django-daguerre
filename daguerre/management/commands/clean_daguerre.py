@@ -37,8 +37,9 @@ class Command(NoArgsCommand):
         """
         try:
             dirnames, filenames = default_storage.listdir(dirpath)
-        except NotImplementedError:
-            # default_storage can't listdir.
+        except (NotImplementedError, OSError):
+            # default_storage can't listdir, or dir doesn't exist
+            # (local filesystem.)
             dirnames, filenames = [], []
 
         if topdown:
@@ -63,23 +64,31 @@ class Command(NoArgsCommand):
         self._delete_queryset(
             AdjustedImage.objects.filter(storage_path__in=nonexistant))
 
-        # Second, clear all areas that reference nonexistant storage paths.
+        # Clear all adjusted images that reference nonexistant adjustments.
+        adjusted = AdjustedImage.objects.values_list(
+            'adjusted', flat=True).distinct()
+        nonexistant = [
+            path for path in adjusted
+            if not default_storage.exists(path)
+        ]
+        self._delete_queryset(
+            AdjustedImage.objects.filter(adjusted__in=nonexistant),
+            'reference missing adjustments')
+
+        # Clear all areas that reference nonexistant storage paths.
         storage_paths = Area.objects.values_list(
             'storage_path', flat=True).distinct()
         nonexistant = [
-            path for path in storage_paths if not default_storage.exists(path)]
+            path for path in storage_paths
+            if not default_storage.exists(path)
+        ]
         self._delete_queryset(Area.objects.filter(
             storage_path__in=nonexistant))
 
-        # Now clear all duplicate adjusted images.
+        # Clear all duplicate adjusted images.
         fields = (
             'storage_path',
-            'requested_width',
-            'requested_height',
-            'requested_crop',
-            'requested_adjustment',
-            'requested_max_width',
-            'requested_max_height'
+            'requested'
         )
         kwargs_list = AdjustedImage.objects.values(
             *fields).annotate(
@@ -96,7 +105,7 @@ class Command(NoArgsCommand):
             reason='is a duplicate',
             reason_plural='are duplicates')
 
-        # Now clean up files that aren't referenced by any adjusted images.
+        # Clean up files that aren't referenced by any adjusted images.
         known_paths = set(
             AdjustedImage.objects.values_list('adjusted', flat=True).distinct()
         )

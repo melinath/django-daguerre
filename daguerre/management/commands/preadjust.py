@@ -6,6 +6,7 @@ from django.db.models import Model, get_model
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import pluralize
 
+from daguerre.adjustments import get_adjustment_class
 from daguerre.models import AdjustedImage
 from daguerre.helpers import AdjustmentHelper
 
@@ -33,7 +34,7 @@ class Command(NoArgsCommand):
         if not hasattr(settings, 'DAGUERRE_PREADJUSTMENTS'):
             raise CommandError(NO_ADJUSTMENTS)
         adjustments = settings.DAGUERRE_PREADJUSTMENTS
-        args = []
+        args_list = []
         for (model_or_queryset, lookup), kwargs_list in adjustments.iteritems():
             if isinstance(model_or_queryset, basestring):
                 app_label, model_name = model_or_queryset.split('.')
@@ -48,14 +49,15 @@ class Command(NoArgsCommand):
                         model_or_queryset))
 
             for kwargs in kwargs_list:
-                args.append((queryset, lookup, kwargs))
+                adj_cls = get_adjustment_class(kwargs.pop('adjustment'))
+                args_list.append((queryset, [adj_cls(**kwargs)], lookup))
 
         empty_count = 0
         skipped_count = 0
         helpers = []
         remaining_count = 0
-        for queryset, lookup, kwargs in args:
-            helper = AdjustmentHelper(queryset, lookup, **kwargs)
+        for args in args_list:
+            helper = AdjustmentHelper(*args)
             helper.empty_count = len(helper.adjusted)
             empty_count += helper.empty_count
             helper._fetch_adjusted()
@@ -97,8 +99,8 @@ class Command(NoArgsCommand):
 
         if options['remove']:
             queryset = AdjustedImage.objects.all()
-            for qs, lookup, kwargs in args:
-                helper = AdjustmentHelper(qs, lookup, **kwargs)
+            for args in args_list:
+                helper = AdjustmentHelper(*args)
                 query_kwargs = helper.get_query_kwargs()
                 queryset = queryset.exclude(**query_kwargs)
 
