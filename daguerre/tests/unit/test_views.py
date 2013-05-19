@@ -25,7 +25,7 @@ class AdjustedImageRedirectViewTestCase(BaseTestCase):
         storage_path = 'path/to/thing.jpg'
         adj1 = NamedCrop(name='face')
         adj2 = Fill(width=10, height=5)
-        helper = AdjustmentHelper([storage_path], None, adj1, adj2)
+        helper = AdjustmentHelper([storage_path], [adj1, adj2])
         factory = RequestFactory()
         self.view.kwargs = {'storage_path': storage_path}
 
@@ -47,8 +47,7 @@ class AdjustedImageRedirectViewTestCase(BaseTestCase):
         """
         factory = RequestFactory()
         storage_path = 'nonexistant.png'
-        helper = AdjustmentHelper([storage_path], None,
-                                  Fill(width=10, height=10))
+        helper = AdjustmentHelper([storage_path], [Fill(width=10, height=10)])
         self.view.kwargs = {'storage_path': storage_path}
         self.view.request = factory.get('/', helper.to_querydict(secure=True))
         self.assertRaises(Http404, self.view.get, self.view.request)
@@ -66,8 +65,7 @@ class AjaxAdjustmentInfoViewTestCase(BaseTestCase):
         """
         factory = RequestFactory()
         storage_path = 'nonexistant.png'
-        helper = AdjustmentHelper([storage_path], None,
-                                  Fill(width=10, height=5))
+        helper = AdjustmentHelper([storage_path], [Fill(width=10, height=5)])
         self.view.kwargs = {'storage_path': storage_path}
         get_params = helper.to_querydict()
         self.view.request = factory.get('/', get_params,

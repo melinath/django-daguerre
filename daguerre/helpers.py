@@ -33,7 +33,7 @@ class AdjustmentHelper(object):
         'security': 's',
     }
 
-    def __init__(self, iterable, lookup=None, *adjustments):
+    def __init__(self, iterable, adjustments, lookup=None):
         self.adjustments = adjustments
         self.adjust_uses_areas = any([getattr(adj.adjust, 'uses_areas', True)
                                       for adj in adjustments])
@@ -144,7 +144,7 @@ class AdjustmentHelper(object):
         adj_strings = kwargs['requested'].split(ADJUSTMENT_SEP)
         adjustments = [deserialize(string) for string in adj_strings]
 
-        return cls([image_or_storage_path], None, *adjustments)
+        return cls([image_or_storage_path], adjustments)
 
     def _adjusted_image_info_dict(self, adjusted_image):
         im = Image.open(adjusted_image.adjusted)

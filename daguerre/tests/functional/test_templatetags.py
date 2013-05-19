@@ -11,8 +11,7 @@ class AdjustTemplatetagTestCase(BaseTestCase):
     def test_path(self):
         """Tag should accept a path as its argument."""
         storage_path = self.create_image('100x100.png')
-        helper = AdjustmentHelper([storage_path], None,
-                                  Fit(width=50, height=50))
+        helper = AdjustmentHelper([storage_path], [Fit(width=50, height=50)])
         t = Template("{% load daguerre %}{% adjust image width=50 height=50 "
                      "adjustment='fit' %}")
         c = Context({'image': storage_path})
@@ -23,8 +22,7 @@ class AdjustTemplatetagTestCase(BaseTestCase):
         storage_path = self.create_image('100x100.png')
         adjusted = AdjustedImage()
         adjusted.adjusted = storage_path
-        helper = AdjustmentHelper([storage_path], None,
-                                  Fit(width=50, height=50))
+        helper = AdjustmentHelper([storage_path], [Fit(width=50, height=50)])
         t = Template("{% load daguerre %}{% adjust image width=50 height=50 "
                      "adjustment='fit' as adj %}{{ adj }}")
         c = Context({'image': adjusted.adjusted})
@@ -48,8 +46,8 @@ class AdjustBulkTemplatetagTestCase(BaseTestCase):
         objs = [
             BulkTestObject(self.create_image('100x100.png'))
         ]
-        helper = AdjustmentHelper(objs, 'storage_path',
-                                  Fit(width=50, height=50))
+        helper = AdjustmentHelper(objs, [Fit(width=50, height=50)],
+                                  'storage_path')
         t = Template("{% load daguerre %}{% adjust_bulk objs 'storage_path' "
                      "width=50 height=50 adjustment='fit' as bulk %}"
                      "{{ bulk.0.1 }}")

@@ -31,7 +31,7 @@ class AdjustmentNode(template.Node):
             adjustments.append(adj_cls(**kwargs))
         except ValueError:
             return ''
-        helper = AdjustmentHelper([storage_path], None, *adjustments)
+        helper = AdjustmentHelper([storage_path], adjustments)
         info_dict = helper.info_dicts()[0][1]
 
         if self.asvar is not None:
@@ -58,7 +58,7 @@ class BulkAdjustmentNode(template.Node):
             adjustment = adj_cls(**kwargs)
         except ValueError:
             return ''
-        helper = AdjustmentHelper(iterable, lookup, adjustment)
+        helper = AdjustmentHelper(iterable, [adjustment], lookup)
         context[self.asvar] = helper.info_dicts()
         return ''
 
