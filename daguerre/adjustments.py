@@ -32,7 +32,7 @@ class AdjustmentRegistry(object):
         return self._registry.iteritems
 
 
-adjustments = AdjustmentRegistry()
+registry = AdjustmentRegistry()
 
 
 class Adjustment(object):
@@ -87,7 +87,7 @@ class Adjustment(object):
         raise NotImplementedError
 
 
-@adjustments.register
+@registry.register
 class Fit(Adjustment):
     """
     Resizes an image to fit entirely within the given dimensions
@@ -142,7 +142,7 @@ class Fit(Adjustment):
     adjust.uses_areas = False
 
 
-@adjustments.register
+@registry.register
 class Crop(Adjustment):
     """
     Crops an image to the given width and height, without scaling it.
@@ -224,7 +224,7 @@ class Crop(Adjustment):
         return penalty_area / area.priority
 
 
-@adjustments.register
+@registry.register
 class RatioCrop(Crop):
     """
     Crops an image to the given aspect ratio, without scaling it.
@@ -258,7 +258,7 @@ class RatioCrop(Crop):
     calculate.uses_areas = False
 
 
-@adjustments.register
+@registry.register
 class NamedCrop(Adjustment):
     """
     Crops an image to the given named area, without scaling it.
@@ -300,7 +300,7 @@ class NamedCrop(Adjustment):
                            area.x2, area.y2))
 
 
-@adjustments.register
+@registry.register
 class Fill(Adjustment):
     """
     Crops the image to the requested ratio (using the same logic as

@@ -37,7 +37,7 @@ their lowercase name:
 
 .. code-block:: html+django
 
-	{% adjust "fit" width=300 %}
+	{% adjust image "fit" width=300 %}
 
 See :doc:`/guides/using-daguerre` for examples.
 
@@ -51,11 +51,17 @@ something like this:
 .. code-block:: python
 
     # Somewhere that will be imported.
-    from daguerre.adjustments import Adjustment, adjustments
+    from daguerre.adjustments import Adjustment, registry
     from PIL import ImageOps
 
-    @adjustments.register
+    @registry.register
     class GrayScale(Adjustment):
         def adjust(self, image, areas=None):
             return ImageOps.grayscale(image)
         adjust.uses_areas = False
+
+Now you can use your adjustment in templates:
+
+.. code-block:: html+django
+
+    {% adjust image "grayscale" %}

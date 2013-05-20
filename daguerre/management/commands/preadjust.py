@@ -6,7 +6,7 @@ from django.db.models import Model, get_model
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import pluralize
 
-from daguerre.adjustments import adjustments
+from daguerre.adjustments import registry
 from daguerre.models import AdjustedImage
 from daguerre.helpers import AdjustmentHelper
 
@@ -49,7 +49,7 @@ class Command(NoArgsCommand):
                         model_or_queryset))
 
             for kwargs in kwargs_list:
-                adj_cls = adjustments[kwargs.pop('adjustment')]
+                adj_cls = registry[kwargs.pop('adjustment')]
                 args_list.append((queryset, [adj_cls(**kwargs)], lookup))
 
         empty_count = 0

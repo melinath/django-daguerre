@@ -14,7 +14,7 @@ try:
 except ImportError:
     import Image
 
-from daguerre.adjustments import adjustments
+from daguerre.adjustments import registry
 from daguerre.models import Area, AdjustedImage
 from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT
 
@@ -102,7 +102,7 @@ class AdjustmentHelper(object):
         adj_list = []
         for adj_string in requested.split(cls.adjustment_sep):
             bits = adj_string.split(cls.param_sep)
-            cls = adjustments[bits[0]]
+            cls = registry[bits[0]]
             kwargs = {}
             for i, bit in enumerate(bits[1:]):
                 kwargs[cls.parameters[i]] = bit or None

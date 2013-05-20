@@ -6,7 +6,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from daguerre.adjustments import adjustments
+from daguerre.adjustments import registry
 
 
 class Area(models.Model):
@@ -90,7 +90,7 @@ def delete_adjusted_images(sender, **kwargs):
     storage_path = kwargs['instance'].storage_path
     qs = AdjustedImage.objects.filter(storage_path=storage_path)
     slug_qs = [models.Q(requested__contains=slug)
-               for slug, adjustment in adjustments.iteritems()
+               for slug, adjustment in registry.iteritems()
                if getattr(adjustment.adjust, 'uses_areas', True)]
     if slug_qs:
         qs = qs.filter(reduce(operator.or_, slug_qs))
