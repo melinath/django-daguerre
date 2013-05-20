@@ -100,11 +100,13 @@ def delete_adjusted_images(sender, **kwargs):
 
 class AdjustedImage(models.Model):
     """Represents a managed image adjustment."""
-    storage_path = models.CharField(max_length=300)
-    adjusted = models.ImageField(upload_to='daguerre/adjusted/%Y/%m/%d/',
-                                 max_length=255)
+    storage_path = models.CharField(max_length=200)
+    # The image name is a 20-character hash, so the max length with a 4-char
+    # extension (jpeg) is 45.
+    adjusted = models.ImageField(upload_to='daguerre/%Y/%m/%d/',
+                                 max_length=45)
 
-    requested = models.CharField(max_length=255)
+    requested = models.CharField(max_length=100)
 
     def __unicode__(self):
         return u"{0}: {1}".format(self.storage_path, self.requested)
