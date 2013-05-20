@@ -35,15 +35,6 @@ class AdjustmentRegistry(object):
 adjustments = AdjustmentRegistry()
 
 
-def deserialize(string):
-    bits = string.split(PARAM_SEP)
-    cls = adjustments[bits[0]]
-    kwargs = {}
-    for i, bit in enumerate(bits[1:]):
-        kwargs[cls.parameters[i]] = bit or None
-    return cls(**kwargs)
-
-
 class Adjustment(object):
     """
     Base class for all adjustments which can be carried out on an image. The
@@ -94,12 +85,6 @@ class Adjustment(object):
 
         """
         raise NotImplementedError
-
-    def serialize(self):
-        bits = [self.__class__.__name__.lower()]
-        bits += [str(self.kwargs.get(key) or '')
-                 for key in self.parameters]
-        return PARAM_SEP.join(bits)
 
 
 @adjustments.register

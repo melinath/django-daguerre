@@ -14,12 +14,11 @@ try:
 except ImportError:
     import Image
 
-from daguerre.adjustments import deserialize
+from daguerre.adjustments import adjustments
 from daguerre.models import Area, AdjustedImage
 from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT
 
 
-ADJUSTMENT_SEP = '>'
 # If any of the following errors appear during file manipulations, we will
 # treat them as IOErrors.
 # See http://code.larlet.fr/django-storages/issue/162/reraise-boto-httplib-errors-as-ioerrors
@@ -42,10 +41,12 @@ class AdjustmentInfoDict(dict):
 
 
 class AdjustmentHelper(object):
-    param_map = {
+    query_map = {
         'requested': 'r',
         'security': 's',
     }
+    param_sep = '|'
+    adjustment_sep = '>'
 
     def __init__(self, iterable, adjustments, lookup=None):
         self.adjustments = adjustments
@@ -53,8 +54,7 @@ class AdjustmentHelper(object):
                                       for adj in adjustments])
         self.calc_uses_areas = any([getattr(adj.calculate, 'uses_areas', True)
                                     for adj in adjustments])
-        adj_strings = [adj.serialize() for adj in adjustments]
-        self.requested = ADJUSTMENT_SEP.join(adj_strings)
+        self.requested = self._serialize_requested(adjustments)
 
         self.iterable = list(iterable)
         self.lookup = lookup
@@ -86,6 +86,28 @@ class AdjustmentHelper(object):
                 self.remaining.setdefault(path, []).append(item)
             else:
                 self.adjusted[item] = AdjustmentInfoDict()
+
+    @classmethod
+    def _serialize_requested(cls, adjustments):
+        adj_strings = []
+        for adj in adjustments:
+            bits = [adj.__class__.__name__.lower()]
+            bits += [str(adj.kwargs.get(key) or '')
+                     for key in adj.parameters]
+            adj_strings.append(cls.param_sep.join(bits))
+        return cls.adjustment_sep.join(adj_strings)
+
+    @classmethod
+    def _deserialize_requested(cls, requested):
+        adj_list = []
+        for adj_string in requested.split(cls.adjustment_sep):
+            bits = adj_string.split(cls.param_sep)
+            cls = adjustments[bits[0]]
+            kwargs = {}
+            for i, bit in enumerate(bits[1:]):
+                kwargs[cls.parameters[i]] = bit or None
+            adj_list.append(cls(**kwargs))
+        return adj_list
 
     def get_query_kwargs(self):
         kwargs = {
@@ -126,14 +148,14 @@ class AdjustmentHelper(object):
             kwargs['security'] = self.make_security_hash(kwargs)
 
         for k, v in kwargs.iteritems():
-            qd[self.param_map[k]] = v
+            qd[self.query_map[k]] = v
 
         return qd
 
     @classmethod
     def from_querydict(cls, image_or_storage_path, querydict, secure=False):
         kwargs = SortedDict()
-        for verbose, short in cls.param_map.iteritems():
+        for verbose, short in cls.query_map.iteritems():
             if short in querydict:
                 kwargs[verbose] = querydict[short]
 
@@ -143,9 +165,7 @@ class AdjustmentHelper(object):
         elif secure:
             raise ValueError("Security hash missing.")
 
-        adj_strings = kwargs['requested'].split(ADJUSTMENT_SEP)
-        adjustments = [deserialize(string) for string in adj_strings]
-
+        adjustments = cls._deserialize_requested(kwargs['requested'])
         return cls([image_or_storage_path], adjustments)
 
     def _adjusted_image_info_dict(self, adjusted_image):

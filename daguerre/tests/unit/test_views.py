@@ -33,7 +33,7 @@ class AdjustedImageRedirectViewTestCase(BaseTestCase):
         self.view.request = factory.get('/', get_params)
         self.assertRaises(Http404, self.view.get_helper)
 
-        get_params = {AdjustmentHelper.param_map['security']: 'fake!'}
+        get_params = {AdjustmentHelper.query_map['security']: 'fake!'}
         self.view.request = factory.get('/', get_params)
         self.assertRaises(Http404, self.view.get_helper)
 
