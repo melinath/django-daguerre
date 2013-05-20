@@ -1,39 +1,40 @@
 from __future__ import absolute_import
+import re
 
 from django import template
 from django.template.defaultfilters import escape
-from django.template.defaulttags import kwarg_re
 
-from daguerre.adjustments import adjustments, NamedCrop, Fill
-from daguerre.helpers import AdjustmentHelper
+from daguerre.adjustments import adjustments
+from daguerre.helpers import AdjustmentHelper, AdjustmentInfoDict
 
 
 register = template.Library()
-DEFAULT_ADJUSTMENT = Fill
+kwarg_re = re.compile("(\w+)=(.+)")
 
 
 class AdjustmentNode(template.Node):
-    def __init__(self, storage_path, kwargs, asvar=None):
-        self.storage_path = storage_path
-        self.kwargs = kwargs
+    def __init__(self, image, adjustments, asvar=None):
+        self.image = image
+        self.adjustments = adjustments
         self.asvar = asvar
 
     def render(self, context):
-        # storage_path might be an ImageFile.
-        storage_path = self.storage_path.resolve(context)
+        image = self.image.resolve(context)
 
-        kwargs = dict((
-            k, v.resolve(context)) for k, v in self.kwargs.iteritems())
-        adj_list = []
-        if 'crop' in kwargs:
-            adj_list.append(NamedCrop(name=kwargs.pop('crop')))
-        adj_cls = adjustments.get(kwargs.pop('adjustment', None),
-                                  DEFAULT_ADJUSTMENT)
-        try:
-            adj_list.append(adj_cls(**kwargs))
-        except ValueError:
-            return ''
-        helper = AdjustmentHelper([storage_path], adj_list)
+        adj_instances = []
+        for adj_to_resolve, kwargs_to_resolve in self.adjustments:
+            adj = adj_to_resolve.resolve(context)
+            kwargs = dict((k, v.resolve(context))
+                          for k, v in kwargs_to_resolve.iteritems())
+            try:
+                adj_cls = adjustments[adj]
+                adj_instances.append(adj_cls(**kwargs))
+            except (KeyError, ValueError):
+                if self.asvar is not None:
+                    context[self.asvar] = AdjustmentInfoDict()
+                return ''
+
+        helper = AdjustmentHelper([image], adj_instances)
         info_dict = helper.info_dicts()[0][1]
 
         if self.asvar is not None:
@@ -43,47 +44,60 @@ class AdjustmentNode(template.Node):
 
 
 class BulkAdjustmentNode(template.Node):
-    def __init__(self, iterable, lookup, kwargs, asvar):
+    def __init__(self, iterable, adjustments, asvar):
         self.iterable = iterable
-        self.lookup = lookup
-        self.kwargs = kwargs
+        self.adjustments = adjustments
         self.asvar = asvar
 
     def render(self, context):
         iterable = self.iterable.resolve(context)
-        lookup = self.lookup.resolve(context)
-        kwargs = dict((
-            k, v.resolve(context)) for k, v in self.kwargs.iteritems())
 
-        adj_cls = adjustments.get(kwargs.pop('adjustment', None),
-                                  DEFAULT_ADJUSTMENT)
-        try:
-            adjustment = adj_cls(**kwargs)
-        except ValueError:
-            return ''
-        helper = AdjustmentHelper(iterable, [adjustment], lookup)
+        adj_list = []
+        for adj, kwargs in self.adjustments:
+            adj_list.append((adj.resolve(context),
+                             dict((k, v.resolve(context))
+                             for k, v in kwargs.iteritems())))
+
+        # First adjustment *might* be a lookup.
+        # We consider it a lookup if it is not an adjustment name.
+        if adj_list and adj_list[0][0] in adjustments:
+            lookup = None
+        else:
+            lookup = adj_list[0][0]
+            adj_list = adj_list[1:]
+
+        adj_instances = []
+        for adj, kwargs in adj_list:
+            try:
+                adj_cls = adjustments[adj]
+                adj_instances.append(adj_cls(**kwargs))
+            except (KeyError, ValueError):
+                context[self.asvar] = []
+                return ''
+
+        helper = AdjustmentHelper(iterable, adj_instances, lookup)
         context[self.asvar] = helper.info_dicts()
         return ''
 
 
-def _get_kwargs(parser, tag_name, bits):
-    """Helper function to get kwargs from a list of bits."""
-    valid_kwargs = (
-        'width', 'height', 'max_width', 'max_height', 'adjustment', 'crop')
-    kwargs = {}
+def _get_adjustments(parser, tag_name, bits):
+    """Helper function to get adjustment defs from a list of bits."""
+    adjustments = []
+    current_kwargs = None
 
     for bit in bits:
         match = kwarg_re.match(bit)
         if not match:
-            raise template.TemplateSyntaxError(
-                "Malformed arguments to `%s` tag" % tag_name)
-        name, value = match.groups()
-        if name not in valid_kwargs:
-            raise template.TemplateSyntaxError(
-                "Invalid argument to `%s` tag: %s" % (tag_name, name))
-        kwargs[str(name)] = parser.compile_filter(value)
+            current_kwargs = {}
+            adjustments.append((parser.compile_filter(bit), current_kwargs))
+        else:
+            if current_kwargs is None:
+                raise template.TemplateSyntaxError(
+                    "Malformed arguments to `%s` tag" % tag_name)
+            key, value = match.groups()
+            current_kwargs[str(key)] = parser.compile_filter(value)
 
-    return kwargs
+    return adjustments
 
 
 @register.tag
@@ -95,7 +109,7 @@ def adjust(parser, token):
 
     Syntax::
 
-        {% adjust <image> [key=val key=val ...] [as <varname>] %}
+        {% adjust <image> <adj> <key>=<val> ... <adj> <key>=<val> [as <varname>] %}
 
     Where <image> is either an image file (like you would get as an
     ImageField's value) or a direct storage path for an image.
@@ -134,7 +148,7 @@ def adjust(parser, token):
 
     return AdjustmentNode(
         image,
-        _get_kwargs(parser, tag_name, bits),
+        _get_adjustments(parser, tag_name, bits),
         asvar=asvar)
 
 
@@ -146,7 +160,7 @@ def adjust_bulk(parser, token):
 
     Syntax::
 
-        {% adjust_bulk <iterable> <lookup> [key=val key=val ...] as varname %}
+        {% adjust_bulk <iterable> [<lookup>] <adj> <key>=<val> ... as varname %}
 
     The keyword arguments have the same meaning as for :ttag:`{% adjust %}`.
 
@@ -158,10 +172,10 @@ def adjust_bulk(parser, token):
     bits = token.split_contents()
     tag_name = bits[0]
 
-    if len(bits) < 5:
+    if len(bits) < 4:
         raise template.TemplateSyntaxError(
             '"{0}" template tag requires at'
-            ' least five arguments'.format(tag_name))
+            ' least four arguments'.format(tag_name))
 
     if bits[-2] != 'as':
         raise template.TemplateSyntaxError(
@@ -169,14 +183,7 @@ def adjust_bulk(parser, token):
             ' {0} must be "as".'.format(tag_name))
 
     iterable = parser.compile_filter(bits[1])
-    attribute = parser.compile_filter(bits[2])
     asvar = bits[-1]
-    bits = bits[3:-2]
+    adjustments = _get_adjustments(parser, tag_name, bits[2:-2])
 
-    kwargs = _get_kwargs(parser, tag_name, bits)
-    if 'crop' in kwargs:
-        raise template.TemplateSyntaxError(
-            '{% {0} %} does not currently support'
-            ' cropping.'.format(tag_name))
-
-    return BulkAdjustmentNode(iterable, attribute, kwargs, asvar)
+    return BulkAdjustmentNode(iterable, adjustments, asvar)

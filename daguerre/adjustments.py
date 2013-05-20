@@ -24,6 +24,9 @@ class AdjustmentRegistry(object):
     def get(self, key, default=None):
         return self._registry.get(key, default)
 
+    def __contains__(self, item):
+        return item in self._registry
+
     @property
     def iteritems(self):
         return self._registry.iteritems
