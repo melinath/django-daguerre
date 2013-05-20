@@ -6,6 +6,9 @@ except ImportError:
     import Image
 
 
+PARAM_SEP = '|'
+
+
 class AdjustmentRegistry(object):
     def __init__(self):
         self._registry = {}
@@ -18,27 +21,15 @@ class AdjustmentRegistry(object):
     def __getitem__(self, key):
         return self._registry[key]
 
+    def get(self, key, default=None):
+        return self._registry.get(key, default)
+
     @property
     def iteritems(self):
         return self._registry.iteritems
 
 
 adjustments = AdjustmentRegistry()
-DEFAULT_ADJUSTMENT = 'fill'
-
-
-def get_adjustment_class(slug):
-    """Instantiates and returns the adjustment registered as ``slug``,
-    or the default adjustment if no matching adjustment is found.
-    The remaining arguments are passed directly to the adjustment class
-    to create the instance."""
-    try:
-        return adjustments[slug]
-    except KeyError:
-        return adjustments[DEFAULT_ADJUSTMENT]
-
-
-PARAM_SEP = '|'
 
 
 def deserialize(string):

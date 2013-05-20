@@ -4,11 +4,12 @@ from django import template
 from django.template.defaultfilters import escape
 from django.template.defaulttags import kwarg_re
 
-from daguerre.adjustments import get_adjustment_class, NamedCrop
+from daguerre.adjustments import adjustments, NamedCrop, Fill
 from daguerre.helpers import AdjustmentHelper
 
 
 register = template.Library()
+DEFAULT_ADJUSTMENT = Fill
 
 
 class AdjustmentNode(template.Node):
@@ -23,15 +24,16 @@ class AdjustmentNode(template.Node):
 
         kwargs = dict((
             k, v.resolve(context)) for k, v in self.kwargs.iteritems())
-        adjustments = []
+        adj_list = []
         if 'crop' in kwargs:
-            adjustments.append(NamedCrop(name=kwargs.pop('crop')))
-        adj_cls = get_adjustment_class(kwargs.pop('adjustment', None))
+            adj_list.append(NamedCrop(name=kwargs.pop('crop')))
+        adj_cls = adjustments.get(kwargs.pop('adjustment', None),
+                                  DEFAULT_ADJUSTMENT)
         try:
-            adjustments.append(adj_cls(**kwargs))
+            adj_list.append(adj_cls(**kwargs))
         except ValueError:
             return ''
-        helper = AdjustmentHelper([storage_path], adjustments)
+        helper = AdjustmentHelper([storage_path], adj_list)
         info_dict = helper.info_dicts()[0][1]
 
         if self.asvar is not None:
@@ -53,7 +55,8 @@ class BulkAdjustmentNode(template.Node):
         kwargs = dict((
             k, v.resolve(context)) for k, v in self.kwargs.iteritems())
 
-        adj_cls = get_adjustment_class(kwargs.pop('adjustment', None))
+        adj_cls = adjustments.get(kwargs.pop('adjustment', None),
+                                  DEFAULT_ADJUSTMENT)
         try:
             adjustment = adj_cls(**kwargs)
         except ValueError:

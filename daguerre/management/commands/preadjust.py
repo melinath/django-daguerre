@@ -6,7 +6,7 @@ from django.db.models import Model, get_model
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import pluralize
 
-from daguerre.adjustments import get_adjustment_class
+from daguerre.adjustments import adjustments
 from daguerre.models import AdjustedImage
 from daguerre.helpers import AdjustmentHelper
 
@@ -33,9 +33,9 @@ class Command(NoArgsCommand):
     def handle_noargs(self, **options):
         if not hasattr(settings, 'DAGUERRE_PREADJUSTMENTS'):
             raise CommandError(NO_ADJUSTMENTS)
-        adjustments = settings.DAGUERRE_PREADJUSTMENTS
+        dp = settings.DAGUERRE_PREADJUSTMENTS
         args_list = []
-        for (model_or_queryset, lookup), kwargs_list in adjustments.iteritems():
+        for (model_or_queryset, lookup), kwargs_list in dp.iteritems():
             if isinstance(model_or_queryset, basestring):
                 app_label, model_name = model_or_queryset.split('.')
                 model_or_queryset = get_model(app_label, model_name)
@@ -49,7 +49,7 @@ class Command(NoArgsCommand):
                         model_or_queryset))
 
             for kwargs in kwargs_list:
-                adj_cls = get_adjustment_class(kwargs.pop('adjustment'))
+                adj_cls = adjustments[kwargs.pop('adjustment')]
                 args_list.append((queryset, [adj_cls(**kwargs)], lookup))
 
         empty_count = 0
