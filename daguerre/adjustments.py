@@ -59,13 +59,8 @@ class Adjustment(object):
                    be in :attr:`parameters` or the adjustment is invalid.
 
     """
-
-    #: Keeps track of whether or not this adjustment uses areas, so that we
-    #: know whether to delete the cached adjusted images when a new area is
-    #: defined or deleted.
-    uses_areas = False
-
-    #: Accepted parameters for this adjustment.
+    #: Accepted parameters for this adjustment - for example, ``"width"``,
+    #: ``"height"``, ``"color"``, ``"unicorns"``, etc.
     parameters = ()
 
     def __init__(self, **kwargs):
@@ -78,7 +73,12 @@ class Adjustment(object):
     def calculate(self, dims, areas=None):
         """
         Calculates the dimensions of the adjusted image without actually
-        manipulating the image.
+        manipulating the image. By default, just returns the given dimensions.
+
+        :param dims: ``(width, height)`` tuple of the current image
+                     dimensions.
+        :param areas: iterable of :class:`.Area` instances to be considered in
+                      calculating the adjustment.
 
         """
         return dims
@@ -87,6 +87,10 @@ class Adjustment(object):
     def adjust(self, image, areas=None):
         """
         Manipulates and returns the image. Must be implemented by subclasses.
+
+        :param image: PIL Image which will be adjusted.
+        :param areas: iterable of :class:`.Area` instances to be considered in
+                      performing the adjustment.
 
         """
         raise NotImplementedError
@@ -106,6 +110,7 @@ class Fit(Adjustment):
 
     If neither width nor height is specified, this adjustment will simply
     return a copy of the image.
+
     """
     parameters = ('width', 'height')
 
@@ -160,7 +165,6 @@ class Crop(Adjustment):
     protected as much as possible during the crop.
 
     """
-    uses_areas = True
     parameters = ('width', 'height')
 
     def calculate(self, dims, areas=None):
@@ -237,7 +241,13 @@ class Crop(Adjustment):
 
 @adjustments.register
 class RatioCrop(Crop):
-    # ratio should be formatted as w:h
+    """
+    Crops an image to the given aspect ratio, without scaling it.
+    :class:`~daguerre.models.Area` instances which are passed in will be
+    protected as much as possible during the crop.
+
+    """
+    #: ``ratio`` should be formatted as ``"<width>:<height>"``
     parameters = ('ratio',)
 
     def calculate(self, dims, areas=None):
@@ -265,7 +275,14 @@ class RatioCrop(Crop):
 
 @adjustments.register
 class NamedCrop(Adjustment):
-    uses_areas = True
+    """
+    Crops an image to the given named area, without scaling it.
+    :class:`~daguerre.models.Area` instances which are passed in will be
+    protected as much as possible during the crop.
+
+    If no area with the given name exists, this adjustment is a no-op.
+
+    """
     parameters = ('name',)
 
     def calculate(self, dims, areas=None):
@@ -304,11 +321,10 @@ class Fill(Adjustment):
     Crops the image to the requested ratio (using the same logic as
     :class:`.Crop` to protect :class:`~daguerre.models.Area` instances which
     are passed in), then resizes it to the actual requested dimensions. If
-    ``width`` or ``height`` is ``None``, then the unspecified dimension will be
-    allowed to expand up to ``max_width`` or ``max_height``, respectively.
+    ``width`` or ``height`` is not given, then the unspecified dimension will
+    be allowed to expand up to ``max_width`` or ``max_height``, respectively.
 
     """
-    uses_areas = True
     parameters = ('width', 'height', 'max_width', 'max_height')
 
     def calculate(self, dims, areas=None):

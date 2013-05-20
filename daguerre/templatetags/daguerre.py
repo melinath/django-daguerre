@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import re
 
 from django import template
+from django.conf import settings
 from django.template.defaultfilters import escape
 
 from daguerre.adjustments import adjustments
@@ -30,6 +31,8 @@ class AdjustmentNode(template.Node):
                 adj_cls = adjustments[adj]
                 adj_instances.append(adj_cls(**kwargs))
             except (KeyError, ValueError):
+                if settings.TEMPLATE_DEBUG:
+                    raise
                 if self.asvar is not None:
                     context[self.asvar] = AdjustmentInfoDict()
                 return ''
@@ -72,6 +75,8 @@ class BulkAdjustmentNode(template.Node):
                 adj_cls = adjustments[adj]
                 adj_instances.append(adj_cls(**kwargs))
             except (KeyError, ValueError):
+                if settings.TEMPLATE_DEBUG:
+                    raise
                 context[self.asvar] = []
                 return ''
 
@@ -103,31 +108,22 @@ def _get_adjustments(parser, tag_name, bits):
 @register.tag
 def adjust(parser, token):
     """
-    Returns a url to the adjusted image,
-    or (with ``as``) stores a variable in the context containing an
-    :class:`~AdjustmentInfoDict`.
+    Returns a url to the adjusted image, or (with ``as``) stores a dictionary
+    in the context with ``width``, ``height``, and ``url`` keys for the
+    adjusted image.
 
     Syntax::
 
         {% adjust <image> <adj> <key>=<val> ... <adj> <key>=<val> [as <varname>] %}
 
-    Where <image> is either an image file (like you would get as an
+    ``<image>`` should resolve to an image file (like you would get as an
     ImageField's value) or a direct storage path for an image.
 
-    If only one of width/height is supplied,
-    the proportions are automatically constrained.
+    Each ``<adj>`` should resolve to a string which corresponds to a
+    registered adjustment. The key/value pairs following each ``<adj>`` will
+    be passed into it on instantiation. If no matching adjustment is
+    registered or the arguments are invalid, the adjustment will fail.
 
-    Cropping and resizing will each only take place if the
-    relevant variables are defined.
-
-    The optional keyword arguments must be among:
-
-    * width
-    * height
-    * max_width
-    * max_height
-    * adjustment
-    * crop
     """
     bits = token.split_contents()
     tag_name = bits[0]
@@ -155,8 +151,8 @@ def adjust(parser, token):
 @register.tag
 def adjust_bulk(parser, token):
     """
-    Stores a variable in the context mapping instances from the iterable
-    with adjusted images for those instances.
+    Stores a variable in the context mapping items from the iterable
+    with adjusted images for those items.
 
     Syntax::
 
@@ -164,10 +160,15 @@ def adjust_bulk(parser, token):
 
     The keyword arguments have the same meaning as for :ttag:`{% adjust %}`.
 
-    ``lookup`` has the same format as a template variable
-    (for example, ``"get_profile.image"``).
-    The lookup will be performed on each item in the
-    ``iterable`` to get the image which should be adjusted.
+    ``<lookup>`` is a string with the same format as a template variable (for
+    example, ``"get_profile.image"``). The lookup will be performed on each
+    item in the ``iterable`` to get the image or path which will be adjusted.
+
+    Each ``<adj>`` should resolve to a string which corresponds to a
+    registered adjustment. The key/value pairs following each ``<adj>`` will
+    be passed into it on instantiation. If no matching adjustment is
+    registered or the arguments are invalid, the adjustment will fail.
+
     """
     bits = token.split_contents()
     tag_name = bits[0]

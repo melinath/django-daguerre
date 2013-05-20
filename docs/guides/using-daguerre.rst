@@ -14,10 +14,71 @@ template tag:
 .. code-block:: html+django
 
     {% load daguerre %}
-    <img src="{% adjust my_model.image width=128 height=256 %}" />
+    <img src="{% adjust my_model.image 'fill' width=128 height=256 %}" />
 
-:mod:`daguerre` works directly with any ImageField (or storage path).
+:mod:`.daguerre` works directly with any ImageField (or storage path).
 There is no magic. You don't need to change your models. It Just Works.
+
+Daguerre provides a number of built-in adjustments (such as 'fill') which
+can be used with the :ttag:`{% adjust %}` out of the box, as well as an
+API for registering custom adjustments.
+
+Take this picture:
+
+.. figure:: /_static/lenna.png
+
+    Full size: 512x512
+
+Let's use :ttag:`{% adjust %}` with width 128 (25%) and height 256
+(50%), with three of the built-in adjustments.
+
++-----------------------------------+------------------------------------+------------------------------------+
+| "fit"                             | "fill"                             | "crop"                             |
++===================================+====================================+====================================+
+| .. image:: /_static/lenna_fit.png | .. image:: /_static/lenna_fill.png | .. image:: /_static/lenna_crop.png |
++-----------------------------------+------------------------------------+------------------------------------+
+| Fits the entire image into the    | Fills the entire space given by    | Crops the image to the given       |
+| given dimensions without          | the dimensions by cropping to the  | dimensions without any resizing.   |
+| distorting it.                    | same width/height ratio and then   |                                    |
+|                                   | scaling.                           |                                    |
++-----------------------------------+------------------------------------+------------------------------------+
+
+.. note::
+
+    If you have defined :class:`Areas <.Area>` for an image in the admin,
+    those will be protected as much as possible (according to their
+    priority) when using the crop or fill adjustments. Otherwise,
+    any cropping will be done evenly from opposing sides.
+
+.. seealso:: :mod:`daguerre.adjustments` for more built-in adjustments.
+
+Getting adjusted width and height
+---------------------------------
+
+.. code-block:: html+django
+
+    {% load daguerre %}
+    {% adjust my_model.image 'fit' width=128 height=128 as image %}
+    <img src="{{ image }}" width={{ image.width }} height={{ image.height }} />
+
+The object being set to the ``image`` context variable is an
+:class:`.AdjustmentInfoDict` instance. In addition to rendering as
+the URL for an image, this object provides access to some other
+useful pieces of information—in particular, the width and height
+that the adjusted image *will have*, based on the width and height
+of the original image and the parameters given to the tag. This can
+help you avoid changes to page flow as adjusted images load.
+
+Chaining Adjustments
+--------------------
+
+The :ttag:`{% adjust %}` tag allows multiple adjustments to be passed in.
+For example, to crop an image and then resize it, you could do the following:
+
+.. code-block:: html+django
+
+    {% load daguerre %}
+    {% adjust my_model.image 'crop' width=128 height=128 'fit' width=64 as image %}
 
 Let's be lazy
 -------------
@@ -40,82 +101,6 @@ starts to request them.
     make sure that users can't run arbitrary image resizes on your
     servers.
 
-Different adjustments
----------------------
-
-The :ttag:`{% adjust %}` tag currently supports three different
-adjustments: **fit, fill, and crop.** These can be passed in as an
-additional parameter to the tag:
-
-.. code-block:: html+django
-
-    <img src="{% adjust my_model.image width=128 height=256 adjustment="fit" %}" />
-
-Take this picture:
-
-.. figure:: /_static/lenna.png
-
-    Full size: 512x512
-
-Let's use :ttag:`{% adjust %}` with width 128 (25%) and height 256
-(50%), with each of the three adjustments.
-
-+-----------------------------------+------------------------------------+------------------------------------+
-| "fit"                             | "fill" (default)                   | "crop"                             |
-+===================================+====================================+====================================+
-| .. image:: /_static/lenna_fit.png | .. image:: /_static/lenna_fill.png | .. image:: /_static/lenna_crop.png |
-+-----------------------------------+------------------------------------+------------------------------------+
-| Fits the entire image into the    | Fills the entire space given by    | Crops the image to the given       |
-| given dimensions without          | the dimensions by cropping to the  | dimensions without any resizing.   |
-| distorting it.                    | same width/height ratio and then   |                                    |
-|                                   | scaling.                           |                                    |
-+-----------------------------------+------------------------------------+------------------------------------+
-
-.. note::
-
-    If you have defined :class:`.Area`\ s for an image in the admin,
-    those will be protected as much as possible (according to their
-    priority) when using the crop or fill adjustments. Otherwise,
-    any cropping will be done evenly from opposing sides.
-
-Getting adjusted width and height
----------------------------------
-
-.. code-block:: html+django
-
-    {% load daguerre %}
-    {% adjust my_model.image width=128 height=128 adjustment="fit" as image %}
-    <img src="{{ image }}" width={{ image.width }} height={{ image.height }} />
-
-The object being set to the ``image`` context variable is an
-:class:`.AdjustmentInfoDict` instance. In addition to rendering as
-the URL for an image, this object provides access to some other
-useful pieces of information—in particular, the width and height
-that the adjusted image *will have*, based on the width and height
-of the original image and the parameters given to the tag. This can
-help you avoid changes to page flow as adjusted images load.
-
-Named crops (advanced)
-----------------------
-
-If you are defining :class:`.Area`\ s in the admin, you can refer to
-these by name to pre-crop images **before** applying the adjustment
-you've selected. For example:
-
-.. code-block:: html+django
-
-    {% load daguerre %}
-    <img src="{% adjust my_model.image width=128 height=128 adjustment="fit" crop="face" %}" />
-
-This would first crop the image to the "face" :class:`.Area` (if available)
-and then fit that cropped image into a 128x128 box.
-
-.. note::
-
-    If a named crop is being used, :class:`.Area`\ s will be
-    ignored even if you're using a fill or crop adjustment. (This may
-    change in the future.)
-
 
 .. templatetag:: {% adjust_bulk %}
 
@@ -130,7 +115,7 @@ attribute each time - you can save yourself queries by using
 .. code-block:: html+django
 
     {% load daguerre %}
-    {% adjust_bulk my_queryset "method.image" width=200 height=400 as adjusted_list %}
+    {% adjust_bulk my_queryset "method.image" "fill" width=200 height=400 as adjusted_list %}
     {% for my_model, image in adjusted_list %}
       <img src="{{ image }}" />
     {% endfor %}
@@ -138,10 +123,10 @@ attribute each time - you can save yourself queries by using
 The syntax is similar to :ttag:`{% adjust %}`, except that:
 
 * ``as <varname>`` is required.
-* an iterable (``my_queryset``) and an lookup to be performed on each
+* an iterable (``my_queryset``) and a lookup to be performed on each
   item in the iterable (``"method.image"``) are provided in place
-  of an image file or storage path.
-* :ttag:`{% adjust_bulk %}` **doesn't support named crops**.
+  of an image file or storage path. (If the iterable is an iterable of
+  image files or storage paths, the lookup is not required.)
 
 Editing Areas
 +++++++++++++
