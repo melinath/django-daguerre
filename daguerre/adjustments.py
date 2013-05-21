@@ -353,3 +353,12 @@ class Fill(Adjustment):
 
         fit = Fit(width=new_width, height=new_height)
         return fit.adjust(new_image)
+
+
+@registry.register
+class SeamCarve(Crop):
+    def adjust(self, image, areas=None):
+        from daguerre.seam_carve import seam_carve
+        return seam_carve(image,
+                          new_width=self.kwargs.get('width'),
+                          new_height=self.kwargs.get('height'))
