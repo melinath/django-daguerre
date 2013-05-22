@@ -49,8 +49,8 @@ def get_cost(image):
         energy_row = array('B', energy[y])
         zipped = zip(xrange(width), energy_row)
         # iff x-1 wraps around, the first array will be empty.
-        cost.append([mi(last_row[x - 1:x + 1] or
-                        last_row[x:x + 1]) + val
+        cost.append([mi(last_row[x - 1:x + 2] or
+                        last_row[x:x + 2]) + val
                      for x, val in zipped])
     return cost
 
@@ -76,8 +76,8 @@ def recalculate_cost(image, cost, seam):
         last_row = cost[y - 1]
         energy_row = array('B', energy[y, left:right])
         zipped = zip(xrange(left, right), energy_row)
-        cost[y][left:right] = [mi(last_row[x - 1:x + 1] or
-                                  last_row[x:x + 1]) + val
+        cost[y][left:right] = [mi(last_row[x - 1:x + 2] or
+                                  last_row[x:x + 2]) + val
                                for x, val in zipped]
     return cost
 
