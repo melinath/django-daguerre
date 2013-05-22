@@ -32,9 +32,8 @@ def carve_width(image, new_width):
 
 def get_cost(image):
     width, height = image.size
-    im_arr = numpy.reshape(ImageOps.grayscale(image).getdata(),
-                           (height, width))
-    energy = generic_gradient_magnitude(im_arr, derivative=sobel)
+    energy = generic_gradient_magnitude(fromimage(image, flatten=True),
+                                        derivative=sobel)
     # Clip the energy to color values.
     energy = energy.clip(0, 255)
     cost = []
@@ -56,9 +55,8 @@ def get_cost(image):
 def recalculate_cost(image, cost, seam):
     width, height = image.size
     # Recalculate the pieces of the cost that will have changed.
-    im_arr = numpy.reshape(ImageOps.grayscale(image).getdata(),
-                           (height, width))
-    energy = generic_gradient_magnitude(im_arr, derivative=sobel)
+    energy = generic_gradient_magnitude(fromimage(image, flatten=True),
+                                        derivative=sobel)
     energy = energy.clip(0, 255)
     for y, x in enumerate(seam):
         del cost[y][x]
