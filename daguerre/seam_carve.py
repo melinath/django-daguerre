@@ -1,4 +1,5 @@
 from array import array
+from itertools import chain, repeat, izip
 
 import numpy
 from scipy.misc import fromimage, toimage
@@ -68,11 +69,12 @@ def recalculate_cost(image, cost, seam):
     first_x = seam[0][1]
     mi = min
 
-    for y in range(1, height):
-        # We start with one pixel left/right of the first deleted
-        # pixel and go up in a cone.
-        left = max((first_x - y - 1, 0))
-        right = mi((first_x + y, width))
+    # We start with one pixel left/right of the first deleted
+    # pixel and go up in a cone.
+    lefts = chain(xrange(first_x - 1, -1, -1), repeat(0))
+    rights = chain(xrange(first_x, width), repeat(width - 1))
+    ys = xrange(1, height)
+    for y, left, right in izip(ys, lefts, rights):
         last_row = cost[y - 1]
         energy_row = array('B', energy[y, left:right])
         zipped = zip(xrange(left, right), energy_row)
