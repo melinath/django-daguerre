@@ -39,6 +39,9 @@ def get_cost(image):
     # initialize the bottom row.
     cost.append(array('B', energy[0]))
 
+    # Localize min to save lookups.
+    mi = min
+
     for y in range(1, height):
         # Perhaps use row, last_row to avoid row lookup?
         # row = [min([last_row[dx]...)]
@@ -46,8 +49,8 @@ def get_cost(image):
         energy_row = array('B', energy[y])
         zipped = zip(xrange(width), energy_row)
         # iff x-1 wraps around, the first array will be empty.
-        cost.append([min(last_row[x - 1:x + 1] or
-                         last_row[x:x + 1]) + val
+        cost.append([mi(last_row[x - 1:x + 1] or
+                        last_row[x:x + 1]) + val
                      for x, val in zipped])
     return cost
 
@@ -63,17 +66,18 @@ def recalculate_cost(image, cost, seam):
 
     # Localize a few things to avoid lookups
     first_x = seam[0][1]
+    mi = min
 
     for y in range(1, height):
         # We start with one pixel left/right of the first deleted
         # pixel and go up in a cone.
         left = max((first_x - y - 1, 0))
-        right = min((first_x + y, width))
+        right = mi((first_x + y, width))
         last_row = cost[y - 1]
         energy_row = array('B', energy[y, left:right])
         zipped = zip(xrange(left, right), energy_row)
-        cost[y][left:right] = [min(last_row[x - 1:x + 1] or
-                                   last_row[x:x + 1]) + val
+        cost[y][left:right] = [mi(last_row[x - 1:x + 1] or
+                                  last_row[x:x + 1]) + val
                                for x, val in zipped]
     return cost
 
