@@ -1,3 +1,5 @@
+from array import array
+
 import numpy
 from scipy.misc import fromimage, toimage
 from scipy.ndimage.filters import generic_gradient_magnitude, sobel
@@ -37,13 +39,13 @@ def get_cost(image):
     energy = energy.clip(0, 255)
     cost = []
     # initialize the bottom row.
-    cost.append(list(energy[0]))
+    cost.append(array('B', energy[0]))
 
     for y in range(1, height):
         # Perhaps use row, last_row to avoid row lookup?
         # row = [min([last_row[dx]...)]
         last_row = cost[y - 1]
-        energy_row = list(energy[y])
+        energy_row = array('B', energy[y])
         # iff x-1 wraps around, the first array will be empty.
         cost.append([min(last_row[x - 1:x + 1] or
                          last_row[x:x + 1]) + energy_row[x]
@@ -70,7 +72,7 @@ def recalculate_cost(image, cost, seam):
         left = max((first_x - y - 1, 0))
         right = min((first_x + y, width))
         last_row = cost[y - 1]
-        energy_row = list(energy[y])
+        energy_row = array('B', energy[y])
         cost[y][left:right] = [min(last_row[x - 1:x + 1] or
                                    last_row[x:x + 1]) + energy_row[x]
                                for x in xrange(left, right)]
@@ -86,8 +88,7 @@ def get_seam(cost):
         if val < mincost:
             mincost = val
             x = dx
-    seam = numpy.zeros(height, int)
-    seam[height - 1] = x
+    seam = [x]
 
     for y in range(height - 2, -1, -1):
         bestcost = numpy.inf
@@ -97,12 +98,14 @@ def get_seam(cost):
                 if new_cost < bestcost:
                     bestcost = new_cost
                     x = dx
-        seam[y] = x
+        seam.append(x)
 
-    return numpy.flipud(seam)
+    seam.reverse()
+    return seam
 
 
 def delete_seam(arr, seam):
+    seam = numpy.array(seam)
     mask = numpy.fromfunction(lambda y, x, *args: seam[y] == x,
                               arr.shape,
                               dtype=int)
