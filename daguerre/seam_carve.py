@@ -1,4 +1,5 @@
 import numpy
+from scipy.misc import fromimage, toimage
 from scipy.ndimage.filters import generic_gradient_magnitude, sobel
 
 try:
@@ -21,7 +22,7 @@ def carve_width(image, new_width):
 
     while width > new_width:
         seam = get_seam(cost)
-        image = delete_seam(image, seam)
+        image = toimage(delete_seam(fromimage(image), seam))
         cost = recalculate_cost(image, cost, seam)
         width, height = image.size
     return image
@@ -56,15 +57,15 @@ def recalculate_cost(image, cost, seam):
                            (height, width))
     energy = generic_gradient_magnitude(im_arr, derivative=sobel)
     energy = energy.clip(0, 255)
-    new_cost = numpy.delete(cost, [x + cost.shape[1] * y
-                                   for y, x in enumerate(seam)])
+    new_cost = delete_seam(cost, seam)
     new_cost = numpy.reshape(new_cost, (height, width))
+    first_x = seam[0]
 
     for y in range(0, height):
         # We start with one pixel left/right of the first deleted
         # pixel and go up in a cone.
-        left = max((seam[0] - y - 1, 0))
-        right = min((seam[0] + y, width))
+        left = max((first_x - y - 1, 0))
+        right = min((first_x + y, width))
         for x in range(left, right):
             bestcost = min([new_cost[y - 1, dx]
                             for dx in (x - 1, x, x + 1)
@@ -81,36 +82,26 @@ def get_seam(cost):
         if cost[-1, dx] < mincost:
             mincost = cost[-1, dx]
             x = dx
-    seam = [x]
+    seam = numpy.zeros(height, int)
+    seam[height - 1] = x
 
-    for y in range(height - 1, 0, -1):
+    for y in range(height - 2, -1, -1):
         bestcost = numpy.inf
         for dx in (x - 1, x, x + 1):
             if dx >= 0 and dx < width:
                 if cost[y, dx] < bestcost:
                     bestcost = cost[y, dx]
                     x = dx
-        seam.append(x)
+        seam[y] = x
 
-    seam.reverse()
-    return seam
+    return numpy.flipud(seam)
 
 
-def delete_seam(image, seam):
-    width, height = image.size
-    new_width, new_height = width - 1, height
-    new_image = Image.new(image.mode, (new_width, new_height))
-    pixels = image.load()
-    new_pixels = new_image.load()
-
-    for y in range(0, height):
-        for x in range(0, width - 1):
-            if x < seam[y]:
-                # left of the seam: copy
-                new_pixels[x, y] = pixels[x, y]
-            elif x >= seam[y]:
-                # right of the seam: shift 1px.
-                # Should maybe do some sort of composite?
-                new_pixels[x, y] = pixels[x + 1, y]
-
-    return new_image
+def delete_seam(arr, seam):
+    mask = numpy.fromfunction(lambda y, x, *args: seam[y] == x,
+                              arr.shape,
+                              dtype=int)
+    masked = numpy.ma.array(arr, mask=mask)
+    resized = masked.compressed()
+    return numpy.reshape(resized,
+                         (arr.shape[0], arr.shape[1] - 1) + arr.shape[2:])
