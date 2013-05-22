@@ -108,11 +108,8 @@ def get_seam(cost):
 
 
 def delete_seam(arr, seam):
-    seam = numpy.array(zip(*seam)[1])
-    mask = numpy.fromfunction(lambda y, x, *args: seam[y] == x,
-                              arr.shape,
-                              dtype=int)
-    masked = numpy.ma.array(arr, mask=mask)
-    resized = masked.compressed()
-    return numpy.reshape(resized,
+    mask = numpy.ones(arr.shape, dtype=numpy.bool)
+    for y, x in seam:
+        mask[y, x] = False
+    return numpy.reshape(arr[mask],
                          (arr.shape[0], arr.shape[1] - 1) + arr.shape[2:])
