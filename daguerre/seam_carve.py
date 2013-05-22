@@ -5,10 +5,9 @@ from scipy.misc import fromimage, toimage
 from scipy.ndimage.filters import generic_gradient_magnitude, sobel
 
 try:
-    from PIL import Image, ImageOps
+    from PIL import Image
 except ImportError:
     import Image
-    import ImageOps
 
 
 def seam_carve(image, new_width, new_height):
@@ -58,11 +57,11 @@ def recalculate_cost(image, cost, seam):
     energy = generic_gradient_magnitude(fromimage(image, flatten=True),
                                         derivative=sobel)
     energy = energy.clip(0, 255)
-    for y, x in enumerate(seam):
+    for y, x in seam:
         del cost[y][x]
 
     # Localize a few things to avoid lookups
-    first_x = seam[0]
+    first_x = seam[0][1]
 
     for y in range(1, height):
         # We start with one pixel left/right of the first deleted
@@ -86,7 +85,7 @@ def get_seam(cost):
         if val < mincost:
             mincost = val
             x = dx
-    seam = [x]
+    seam = [(height - 1, x)]
 
     for y in range(height - 2, -1, -1):
         bestcost = numpy.inf
@@ -96,14 +95,14 @@ def get_seam(cost):
                 if new_cost < bestcost:
                     bestcost = new_cost
                     x = dx
-        seam.append(x)
+        seam.append((y, x))
 
     seam.reverse()
     return seam
 
 
 def delete_seam(arr, seam):
-    seam = numpy.array(seam)
+    seam = numpy.array(zip(*seam)[1])
     mask = numpy.fromfunction(lambda y, x, *args: seam[y] == x,
                               arr.shape,
                               dtype=int)
