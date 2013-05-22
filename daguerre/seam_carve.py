@@ -44,10 +44,11 @@ def get_cost(image):
         # row = [min([last_row[dx]...)]
         last_row = cost[y - 1]
         energy_row = array('B', energy[y])
+        zipped = zip(xrange(width), energy_row)
         # iff x-1 wraps around, the first array will be empty.
         cost.append([min(last_row[x - 1:x + 1] or
-                         last_row[x:x + 1]) + energy_row[x]
-                     for x in xrange(width)])
+                         last_row[x:x + 1]) + val
+                     for x, val in zipped])
     return cost
 
 
@@ -69,10 +70,11 @@ def recalculate_cost(image, cost, seam):
         left = max((first_x - y - 1, 0))
         right = min((first_x + y, width))
         last_row = cost[y - 1]
-        energy_row = array('B', energy[y])
+        energy_row = array('B', energy[y, left:right])
+        zipped = zip(xrange(left, right), energy_row)
         cost[y][left:right] = [min(last_row[x - 1:x + 1] or
-                                   last_row[x:x + 1]) + energy_row[x]
-                               for x in xrange(left, right)]
+                                   last_row[x:x + 1]) + val
+                               for x, val in zipped]
     return cost
 
 
