@@ -43,9 +43,10 @@ def get_cost(image):
         # Perhaps use row, last_row to avoid row lookup?
         # row = [min([last_row[dx]...)]
         last_row = cost[y - 1]
+        energy_row = list(energy[y])
         # iff x-1 wraps around, the first array will be empty.
         cost.append([min(last_row[x - 1:x + 1] or
-                         last_row[x:x + 1]) + energy[y, x]
+                         last_row[x:x + 1]) + energy_row[x]
                      for x in xrange(width)])
     return cost
 
@@ -69,8 +70,9 @@ def recalculate_cost(image, cost, seam):
         left = max((first_x - y - 1, 0))
         right = min((first_x + y, width))
         last_row = cost[y - 1]
+        energy_row = list(energy[y])
         cost[y][left:right] = [min(last_row[x - 1:x + 1] or
-                                   last_row[x:x + 1]) + energy[y, x]
+                                   last_row[x:x + 1]) + energy_row[x]
                                for x in xrange(left, right)]
     return cost
 
