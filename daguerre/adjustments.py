@@ -225,6 +225,85 @@ class Crop(Adjustment):
 
 
 @registry.register
+class SmartCrop(Crop):
+    def adjust(self, image, areas=None):
+        from numpy import inf
+        from scipy.misc import fromimage
+        from scipy.ndimage.filters import generic_gradient_magnitude, sobel
+
+        image_width, image_height = image.size
+        new_width, new_height = self.calculate(image.size, areas)
+
+        energy = generic_gradient_magnitude(fromimage(image, flatten=True),
+                                            derivative=sobel).clip(0, 255)
+        borderx = min(image_width / 2, 200)
+        bordery = min(image_height / 2, 200)
+        y2 = image_height - 1
+        x2 = image_width - 1
+        edges = {
+            'top': [0,
+                    energy[0:bordery].sum(),
+                    'bottom'],
+            'bottom': [image_height - 1,
+                       energy[y2:y2 - bordery:-1].sum(),
+                       'top'],
+            'left': [0,
+                     energy[:, 0:borderx].sum(),
+                     'right'],
+            'right': [x2,
+                      energy[:, x2:x2 - borderx:-1].sum(),
+                      'left'],
+        }
+
+        while image_width > new_width or image_height > new_height:
+            borderx = min(image_width / 2, 200)
+            bordery = min(image_height / 2, 200)
+            keys = []
+            if image_width > new_width:
+                keys += ['left', 'right']
+            if image_height > new_height:
+                keys += ['top', 'bottom']
+
+            minkey = None
+            minval = None
+            minsum = inf
+            for k in keys:
+                v = edges[k]
+                if v[1] < minsum:
+                    minkey = k
+                    minval = v
+                    minsum = v[1]
+
+            if minkey in ('top', 'left'):
+                minval[0] = minval[0] + 1
+            elif minkey in('bottom', 'right'):
+                minval[0] = minval[0] - 1
+
+            x1 = edges['left'][0]
+            y1 = edges['top'][0]
+            x2 = edges['right'][0]
+            y2 = edges['bottom'][0]
+
+            for k, v in edges.iteritems():
+                if v[2] == minkey:
+                    continue
+                if k == 'top':
+                    v[1] = energy[y1:y1 + bordery, x1:x2].sum()
+                elif k == 'bottom':
+                    v[1] = energy[y2:y2 - bordery:-1, x1:x2].sum()
+                elif k == 'left':
+                    v[1] = energy[y1:y2, x1:x1 + borderx].sum()
+                elif k == 'right':
+                    v[1] = energy[y1:y2, x2:x2 - borderx:-1].sum()
+
+            image_width = x2 - x1 + 1
+            image_height = y2 - y1 + 1
+
+        return image.crop((x1, y1, x2 + 1, y2 + 1))
+    adjust.uses_areas = False
+
+
+@registry.register
 class RatioCrop(Crop):
     """
     Crops an image to the given aspect ratio, without scaling it.
@@ -256,6 +335,11 @@ class RatioCrop(Crop):
 
         return new_width, new_height
     calculate.uses_areas = False
+
+
+@registry.register
+class SmartRatioCrop(RatioCrop, SmartCrop):
+    pass
 
 
 @registry.register
