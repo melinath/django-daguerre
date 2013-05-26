@@ -12,104 +12,198 @@ from daguerre.tests.base import BaseTestCase
 
 
 class FitTestCase(BaseTestCase):
-    def test_calculate(self):
+    def test_calculate__both(self):
         fit = Fit(width=50, height=50)
         self.assertEqual(fit.calculate((100, 100)), (50, 50))
+
+    def test_calculate__width(self):
         fit = Fit(width=50)
         self.assertEqual(fit.calculate((100, 100)), (50, 50))
+
+    def test_calculate__height(self):
         fit = Fit(height=50)
         self.assertEqual(fit.calculate((100, 100)), (50, 50))
+
+    def test_calculate__smallest(self):
         fit = Fit(width=60, height=50)
         self.assertEqual(fit.calculate((100, 100)), (50, 50))
 
-    def test_adjust(self):
+    def test_adjust__both(self):
         im = Image.open(self._data_path('100x100.png'))
-        new_im = Image.open(self._data_path('50x50_fit.png'))
         fit = Fit(width=50, height=50)
-        self.assertImageEqual(fit.adjust(im), new_im)
+        adjusted = fit.adjust(im)
+        self.assertEqual(adjusted.size, (50, 50))
+        expected = Image.open(self._data_path('50x50_fit.png'))
+        self.assertImageEqual(adjusted, expected)
+
+    def test_adjust__width(self):
+        im = Image.open(self._data_path('100x100.png'))
         fit = Fit(width=50)
-        self.assertImageEqual(fit.adjust(im), new_im)
+        adjusted = fit.adjust(im)
+        self.assertEqual(adjusted.size, (50, 50))
+        expected = Image.open(self._data_path('50x50_fit.png'))
+        self.assertImageEqual(adjusted, expected)
+
+    def test_adjust__height(self):
+        im = Image.open(self._data_path('100x100.png'))
         fit = Fit(height=50)
-        self.assertImageEqual(fit.adjust(im), new_im)
+        adjusted = fit.adjust(im)
+        self.assertEqual(adjusted.size, (50, 50))
+        expected = Image.open(self._data_path('50x50_fit.png'))
+        self.assertImageEqual(adjusted, expected)
+
+    def test_adjust__smallest(self):
+        im = Image.open(self._data_path('100x100.png'))
         fit = Fit(width=60, height=50)
-        self.assertImageEqual(fit.adjust(im), new_im)
+        adjusted = fit.adjust(im)
+        self.assertEqual(adjusted.size, (50, 50))
+        expected = Image.open(self._data_path('50x50_fit.png'))
+        self.assertImageEqual(adjusted, expected)
 
 
 class CropTestCase(BaseTestCase):
-    def test_calculate(self):
+    def test_calculate__both(self):
         crop = Crop(width=50, height=50)
         self.assertEqual(crop.calculate((100, 100)), (50, 50))
+
+    def test_calculate__width(self):
         crop = Crop(width=50)
         self.assertEqual(crop.calculate((100, 100)), (50, 100))
+
+    def test_calculate__height(self):
         crop = Crop(height=50)
         self.assertEqual(crop.calculate((100, 100)), (100, 50))
 
-    def test_adjust(self):
+    def test_adjust__both(self):
         im = Image.open(self._data_path('100x100.png'))
-
-        new_im = Image.open(self._data_path('50x50_crop.png'))
         crop = Crop(width=50, height=50)
-        self.assertImageEqual(crop.adjust(im), new_im)
+        adjusted = crop.adjust(im)
+        self.assertEqual(adjusted.size, (50, 50))
+        expected = Image.open(self._data_path('50x50_crop.png'))
+        self.assertImageEqual(adjusted, expected)
 
-        new_im = Image.open(self._data_path('50x100_crop.png'))
+    def test_adjust__width(self):
+        im = Image.open(self._data_path('100x100.png'))
         crop = Crop(width=50)
-        self.assertImageEqual(crop.adjust(im), new_im)
+        adjusted = crop.adjust(im)
+        self.assertEqual(adjusted.size, (50, 100))
+        expected = Image.open(self._data_path('50x100_crop.png'))
+        self.assertImageEqual(adjusted, expected)
 
-        new_im = Image.open(self._data_path('100x50_crop.png'))
+    def test_adjust__height(self):
+        im = Image.open(self._data_path('100x100.png'))
         crop = Crop(height=50)
-        self.assertImageEqual(crop.adjust(im), new_im)
+        adjusted = crop.adjust(im)
+        self.assertEqual(adjusted.size, (100, 50))
+        expected = Image.open(self._data_path('100x50_crop.png'))
+        self.assertImageEqual(adjusted, expected)
 
-        new_im = Image.open(self._data_path('50x50_crop_area.png'))
+    def test_adjust__area(self):
+        im = Image.open(self._data_path('100x100.png'))
         crop = Crop(width=50, height=50)
         areas = [Area(x1=21, y1=46, x2=70, y2=95)]
-        self.assertImageEqual(crop.adjust(im, areas=areas), new_im)
+        adjusted = crop.adjust(im, areas=areas)
+        self.assertEqual(adjusted.size, (50, 50))
+        expected = Image.open(self._data_path('50x50_crop_area.png'))
+        self.assertImageEqual(adjusted, expected)
 
 
 class FillTestCase(BaseTestCase):
-    def test_calculate(self):
+    def test_calculate__both(self):
         fill = Fill(width=50, height=50)
         self.assertEqual(fill.calculate((100, 100)), (50, 50))
+
+    def test_calculate__unequal(self):
         fill = Fill(width=50, height=40)
         self.assertEqual(fill.calculate((100, 100)), (50, 40))
+
+    def test_calculate__width(self):
         fill = Fill(width=50)
         self.assertEqual(fill.calculate((100, 100)), (50, 50))
+
+    def test_calculate__height(self):
         fill = Fill(height=50)
         self.assertEqual(fill.calculate((100, 100)), (50, 50))
+
+    def test_calculate__max_height(self):
         fill = Fill(width=50, max_height=200)
         self.assertEqual(fill.calculate((100, 100)), (50, 50))
+
+    def test_calculate__max_width(self):
         fill = Fill(height=50, max_width=200)
         self.assertEqual(fill.calculate((100, 100)), (50, 50))
+
+    def test_calculate__max_height__smaller(self):
         fill = Fill(width=100, max_height=50)
         self.assertEqual(fill.calculate((100, 100)), (100, 50))
+
+    def test_calculate__max_width__smaller(self):
         fill = Fill(height=100, max_width=50)
         self.assertEqual(fill.calculate((100, 100)), (50, 100))
 
-    def test_adjust(self):
+    def test_adjust__both(self):
         im = Image.open(self._data_path('100x100.png'))
-
-        new_im = Image.open(self._data_path('50x50_fit.png'))
         fill = Fill(width=50, height=50)
-        self.assertImageEqual(fill.adjust(im), new_im)
+        adjusted = fill.adjust(im)
+        self.assertEqual(adjusted.size, (50, 50))
+        expected = Image.open(self._data_path('50x50_fit.png'))
+        self.assertImageEqual(adjusted, expected)
+
+    def test_adjust__width(self):
+        im = Image.open(self._data_path('100x100.png'))
         fill = Fill(width=50)
-        self.assertImageEqual(fill.adjust(im), new_im)
+        adjusted = fill.adjust(im)
+        self.assertEqual(adjusted.size, (50, 50))
+        expected = Image.open(self._data_path('50x50_fit.png'))
+        self.assertImageEqual(adjusted, expected)
+
+    def test_adjust__height(self):
+        im = Image.open(self._data_path('100x100.png'))
         fill = Fill(height=50)
-        self.assertImageEqual(fill.adjust(im), new_im)
+        adjusted = fill.adjust(im)
+        self.assertEqual(adjusted.size, (50, 50))
+        expected = Image.open(self._data_path('50x50_fit.png'))
+        self.assertImageEqual(adjusted, expected)
+
+    def test_adjust__max_height(self):
+        im = Image.open(self._data_path('100x100.png'))
         fill = Fill(width=50, max_height=200)
-        self.assertImageEqual(fill.adjust(im), new_im)
+        adjusted = fill.adjust(im)
+        self.assertEqual(adjusted.size, (50, 50))
+        expected = Image.open(self._data_path('50x50_fit.png'))
+        self.assertImageEqual(adjusted, expected)
+
+    def test_adjust__max_width(self):
+        im = Image.open(self._data_path('100x100.png'))
         fill = Fill(height=50, max_width=200)
-        self.assertImageEqual(fill.adjust(im), new_im)
+        adjusted = fill.adjust(im)
+        self.assertEqual(adjusted.size, (50, 50))
+        expected = Image.open(self._data_path('50x50_fit.png'))
+        self.assertImageEqual(adjusted, expected)
 
-        new_im = Image.open(self._data_path('50x40_fill.png'))
+    def test_adjust__unequal(self):
+        im = Image.open(self._data_path('100x100.png'))
         fill = Fill(width=50, height=40)
-        self.assertImageEqual(fill.adjust(im), new_im)
+        adjusted = fill.adjust(im)
+        self.assertEqual(adjusted.size, (50, 40))
+        expected = Image.open(self._data_path('50x40_fill.png'))
+        self.assertImageEqual(adjusted, expected)
 
-        new_im = Image.open(self._data_path('100x50_crop.png'))
+    def test_adjust__max_height__smaller(self):
+        im = Image.open(self._data_path('100x100.png'))
         fill = Fill(width=100, max_height=50)
-        self.assertImageEqual(fill.adjust(im), new_im)
+        adjusted = fill.adjust(im)
+        self.assertEqual(adjusted.size, (100, 50))
+        expected = Image.open(self._data_path('100x50_crop.png'))
+        self.assertImageEqual(adjusted, expected)
 
-        new_im = Image.open(self._data_path('50x100_crop.png'))
+    def test_adjust__max_width__smaller(self):
+        im = Image.open(self._data_path('100x100.png'))
         fill = Fill(height=100, max_width=50)
-        self.assertImageEqual(fill.adjust(im), new_im)
+        adjusted = fill.adjust(im)
+        self.assertEqual(adjusted.size, (50, 100))
+        expected = Image.open(self._data_path('50x100_crop.png'))
+        self.assertImageEqual(adjusted, expected)
 
 
 class AdjustmentHelperTestCase(BaseTestCase):
