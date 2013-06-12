@@ -325,15 +325,15 @@ class Fill(Adjustment):
         image_ratio = float(image_width) / image_height
 
         if width is None:
-            new_width = int(height * image_ratio)
+            new_height = int(height)
+            new_width = int(new_height * image_ratio)
             if max_width is not None:
                 new_width = min(new_width, int(max_width))
-            new_height = int(height)
         elif height is None:
-            new_height = int(width / image_ratio)
+            new_width = int(width)
+            new_height = int(new_width / image_ratio)
             if max_height is not None:
                 new_height = min(new_height, int(max_height))
-            new_width = int(width)
         else:
             new_width = int(width)
             new_height = int(height)

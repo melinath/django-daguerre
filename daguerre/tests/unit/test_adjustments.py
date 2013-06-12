@@ -141,6 +141,10 @@ class FillTestCase(BaseTestCase):
         fill = Fill(height=100, max_width=50)
         self.assertEqual(fill.calculate((100, 100)), (50, 100))
 
+    def test_calculate__strings(self):
+        fill = Fill(height='100', max_width='50')
+        self.assertEqual(fill.calculate((100, 100)), (50, 100))
+
     def test_adjust__both(self):
         im = Image.open(self._data_path('100x100.png'))
         fill = Fill(width=50, height=50)
