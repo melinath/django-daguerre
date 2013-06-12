@@ -102,11 +102,11 @@ class AdjustmentHelper(object):
         adj_list = []
         for adj_string in requested.split(cls.adjustment_sep):
             bits = adj_string.split(cls.param_sep)
-            cls = registry[bits[0]]
+            adj_cls = registry[bits[0]]
             kwargs = {}
             for i, bit in enumerate(bits[1:]):
-                kwargs[cls.parameters[i]] = bit or None
-            adj_list.append(cls(**kwargs))
+                kwargs[adj_cls.parameters[i]] = bit or None
+            adj_list.append(adj_cls(**kwargs))
         return adj_list
 
     def get_query_kwargs(self):

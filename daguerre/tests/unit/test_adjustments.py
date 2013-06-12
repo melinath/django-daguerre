@@ -334,6 +334,19 @@ class AdjustmentHelperTestCase(BaseTestCase):
         self.assertEqual(helper.adjusted, {helper.iterable[0]: {}})
         self.assertEqual(helper.remaining, {})
 
+    def test_serialize(self):
+        adjustments = [Fit(width=25, height=50), Crop(width=25)]
+        requested = AdjustmentHelper._serialize_requested(adjustments)
+        self.assertEqual(requested, 'fit|25|50>crop|25|')
+
+    def test_deserialize(self):
+        requested = 'fit|25|50>crop|25|'
+        fit, crop = AdjustmentHelper._deserialize_requested(requested)
+        self.assertIsInstance(fit, Fit)
+        self.assertEqual(fit.kwargs, {'width': '25', 'height': '50'})
+        self.assertIsInstance(crop, Crop)
+        self.assertEqual(crop.kwargs, {'width': '25', 'height': None})
+
 
 class BulkTestObject(object):
     def __init__(self, storage_path):

@@ -6,9 +6,6 @@ except ImportError:
     import Image
 
 
-PARAM_SEP = '|'
-
-
 class AdjustmentRegistry(object):
     def __init__(self):
         self._registry = {}
