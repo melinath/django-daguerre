@@ -9,9 +9,9 @@ your models; it **Just Works**.
 .. code-block:: html+django
 
     {% load daguerre %}
-    <img src="{% adjust my_model.image width=200 height=400 %}" />
+    <img src="{% adjust my_model.image "fill" width=200 height=400 %}" />
 
-    {% adjust_bulk my_queryset "method.image" width=200 height=400 as adjusted_list %}
+    {% adjust_bulk my_queryset "method.image" "fill" width=200 height=400 as adjusted_list %}
     {% for my_model, image in adjusted_list %}
       <img src="{{ image }}" />
     {% endfor %}
