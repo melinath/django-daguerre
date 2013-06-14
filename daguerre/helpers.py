@@ -215,7 +215,8 @@ class AdjustmentHelper(object):
     def _fetch_adjusted(self):
         if self.remaining:
             query_kwargs = self.get_query_kwargs()
-            adjusted_images = AdjustedImage.objects.filter(**query_kwargs)
+            adjusted_images = AdjustedImage.objects.filter(**query_kwargs
+                                                           ).defer('requested')
             for adjusted_image in adjusted_images:
                 path = adjusted_image.storage_path
                 if path not in self.remaining:
@@ -295,7 +296,8 @@ class AdjustmentHelper(object):
                                 storage=default_storage)
         # Try to handle race conditions gracefully.
         try:
-            adjusted = AdjustedImage.objects.filter(**kwargs)[:1][0]
+            adjusted = AdjustedImage.objects.filter(**kwargs
+                                                    ).only('adjusted')[:1][0]
         except IndexError:
             adjusted.adjusted = final_path
             adjusted.save()
