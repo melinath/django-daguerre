@@ -27,7 +27,8 @@ Take this picture:
 
 .. figure:: /_static/cat.jpg
 
-    Full size: 800x600
+    Full size: 800x600. This photograph, by Wikipedia user `Sloesch <http://de.wikipedia.org/wiki/Benutzer:Sloesch>`_,
+    is licensed as `CC BY-SA <http://creativecommons.org/licenses/by-sa/3.0/>`_.
 
 Let's use :ttag:`{% adjust %}` with width 200 (25%) and height 300
 (50%), with three of the built-in adjustments.
