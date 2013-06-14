@@ -32,8 +32,8 @@ Built-In Adjustments
     :members: parameters
     :undoc-members:
 
-When used with the template tag, these adjustments should be referred to by
-their lowercase name:
+When used with the template tag, these adjustments should be referred
+to by their lowercase name:
 
 .. code-block:: html+django
 

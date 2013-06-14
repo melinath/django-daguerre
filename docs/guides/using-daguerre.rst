@@ -25,30 +25,39 @@ API for registering custom adjustments.
 
 Take this picture:
 
-.. figure:: /_static/lenna.png
+.. figure:: /_static/cat.jpg
 
-    Full size: 512x512
+    Full size: 800x600
 
-Let's use :ttag:`{% adjust %}` with width 128 (25%) and height 256
+Let's use :ttag:`{% adjust %}` with width 200 (25%) and height 300
 (50%), with three of the built-in adjustments.
 
 +-----------------------------------+------------------------------------+------------------------------------+
 | "fit"                             | "fill"                             | "crop"                             |
 +===================================+====================================+====================================+
-| .. image:: /_static/lenna_fit.png | .. image:: /_static/lenna_fill.png | .. image:: /_static/lenna_crop.png |
+| .. image:: /_static/cat_fit.jpg   | .. image:: /_static/cat_fill.jpg   | .. image:: /_static/cat_crop.jpg   |
 +-----------------------------------+------------------------------------+------------------------------------+
 | Fits the entire image into the    | Fills the entire space given by    | Crops the image to the given       |
 | given dimensions without          | the dimensions by cropping to the  | dimensions without any resizing.   |
 | distorting it.                    | same width/height ratio and then   |                                    |
-|                                   | scaling.                           |                                    |
+|                                   | scaling down or up.                |                                    |
 +-----------------------------------+------------------------------------+------------------------------------+
 
-.. note::
+Chaining Adjustments
+--------------------
 
-    If you have defined :class:`Areas <.Area>` for an image in the admin,
-    those will be protected as much as possible (according to their
-    priority) when using the crop or fill adjustments. Otherwise,
-    any cropping will be done evenly from opposing sides.
+You can also use the :ttag:`{% adjust %}` tag to chain multiple
+adjustments. Take the following:
+
+.. code-block:: html+django
+
+    {% load daguerre %}
+    {% adjust my_model.image 'ratiocrop' ratio='16:9' 'fit' width=200 %}
+
+This tag first crops the image to a 16:9 ratio, then scales as much as
+needed to fit within a 200-pixel width. In other words:
+
+.. image:: /_static/cat_ratiocrop_fit.jpg
 
 .. seealso:: :mod:`daguerre.adjustments` for more built-in adjustments.
 
@@ -68,17 +77,6 @@ useful pieces of information—in particular, the width and height
 that the adjusted image *will have*, based on the width and height
 of the original image and the parameters given to the tag. This can
 help you avoid changes to page flow as adjusted images load.
-
-Chaining Adjustments
---------------------
-
-The :ttag:`{% adjust %}` tag allows multiple adjustments to be passed in.
-For example, to crop an image and then resize it, you could do the following:
-
-.. code-block:: html+django
-
-    {% load daguerre %}
-    {% adjust my_model.image 'crop' width=128 height=128 'fit' width=64 as image %}
 
 Let's be lazy
 -------------
@@ -147,5 +145,11 @@ appropriate `formfield_overrides`_.
             models.ImageField: {'widget': AreaWidget},
         }
         ...
+
+After you define :class:`Areas <.Area>` for an image in the admin,
+adjustments that remove parts of the image (such as crop and fill) can
+take them into account and protect those parts of the image during
+processing. Otherwise, any cropping will be done evenly from opposing
+sides.
 
 .. _formfield_overrides: https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.formfield_overrides
