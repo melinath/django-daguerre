@@ -83,17 +83,19 @@ For example, to crop an image and then resize it, you could do the following:
 Let's be lazy
 -------------
 
-So the :ttag:`{% adjust %}` tag renders as a URL, which gets an
-adjusted image, right? Well, yes, but in a very lazy fashion. It
-actually renders a URL to an adjustment view, which runs the
-adjustment (if necessary), and then redirects the user to the actual
-adjusted image's URL.
+So the :ttag:`{% adjust %}` tag renders as a URL to adjusted image,
+right? Yes, but as lazily as possible. If the adjustment has already
+been performed, the adjusted image's URL is fetched from the database.
+If the adjustment has *not* been performed, the tag renders as a URL
+to a view which, when accessed, will create an adjusted version of the
+image and return a redirect to the adjusted image's actual URL.
 
-The upshot is that no matter how many :ttag:`{% adjust %}`
-tags you have on a page, it will render as quickly when the
-thumbnails already exist as it will when the thumbnails still need
-to be created. The thumbnails will then be filled in as the user
-starts to request them.
+This does have the downside of requiring an additional
+request/response cycle when unadjusted images are fetched by the user
+– but it has the upside that no matter how many :ttag:`{% adjust %}`
+tags you have on a page, the initial load of the page won't be slowed
+down by (potentially numerous, potentially expensive) image
+adjustments.
 
 .. note::
 
