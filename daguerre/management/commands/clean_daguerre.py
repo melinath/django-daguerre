@@ -5,6 +5,7 @@ from django.core.management.base import NoArgsCommand
 from django.db import models
 from django.template.defaultfilters import pluralize
 
+from daguerre.helpers import IOERRORS
 from daguerre.models import AdjustedImage, Area
 
 
@@ -52,40 +53,56 @@ class Command(NoArgsCommand):
         if not topdown:
             yield dirpath, dirnames, filenames
 
-    def handle_noargs(self, **options):
-        # First, clear all adjusted images that reference nonexistant
-        # storage paths.
-        storage_paths = AdjustedImage.objects.values_list(
+    def _old_adjustments(self):
+        """
+        Returns a queryset of AdjustedImages whose storage_paths no longer
+        exist in storage.
+
+        """
+        paths = AdjustedImage.objects.values_list(
             'storage_path', flat=True).distinct()
-        nonexistant = [
-            path for path in storage_paths
+        missing = [
+            path for path in paths
             if not default_storage.exists(path)
         ]
-        self._delete_queryset(
-            AdjustedImage.objects.filter(storage_path__in=nonexistant))
+        return AdjustedImage.objects.filter(storage_path__in=missing)
 
-        # Clear all adjusted images that reference nonexistant adjustments.
-        adjusted = AdjustedImage.objects.values_list(
+    def _old_areas(self):
+        """
+        Returns a queryset of Areas whose storage_paths no longer exist in
+        storage.
+
+        """
+        paths = Area.objects.values_list(
+            'storage_path', flat=True).distinct()
+        missing = [
+            path for path in paths
+            if not default_storage.exists(path)
+        ]
+        return Area.objects.filter(storage_path__in=missing)
+
+    def _missing_adjustments(self):
+        """
+        Returns a queryset of AdjustedImages whose adjusted image files no
+        longer exist in storage.
+
+        """
+        paths = AdjustedImage.objects.values_list(
             'adjusted', flat=True).distinct()
-        nonexistant = [
-            path for path in adjusted
+        missing = [
+            path for path in paths
             if not default_storage.exists(path)
         ]
-        self._delete_queryset(
-            AdjustedImage.objects.filter(adjusted__in=nonexistant),
-            'reference missing adjustments')
+        return AdjustedImage.objects.filter(adjusted__in=missing)
 
-        # Clear all areas that reference nonexistant storage paths.
-        storage_paths = Area.objects.values_list(
-            'storage_path', flat=True).distinct()
-        nonexistant = [
-            path for path in storage_paths
-            if not default_storage.exists(path)
-        ]
-        self._delete_queryset(Area.objects.filter(
-            storage_path__in=nonexistant))
+    def _duplicate_adjustments(self):
+        """
+        Returns a queryset of AdjustedImages which are duplicates - i.e. have
+        the same requested adjustment and storage path as another
+        AdjustedImage. This excludes one adjusted image as the canonical
+        version.
 
-        # Clear all duplicate adjusted images.
+        """
         fields = (
             'storage_path',
             'requested'
@@ -100,32 +117,58 @@ class Command(NoArgsCommand):
             pks = AdjustedImage.objects.filter(
                 **kwargs).values_list('pk', flat=True)
             duplicate_pks.extend(list(pks)[1:])
-        self._delete_queryset(AdjustedImage.objects.filter(
-            pk__in=duplicate_pks),
-            reason='is a duplicate',
-            reason_plural='are duplicates')
+        return AdjustedImage.objects.filter(pk__in=duplicate_pks)
 
-        # Clean up files that aren't referenced by any adjusted images.
+    def _orphaned_files(self):
+        """
+        Returns a list of files which aren't referenced by any adjusted images
+        in the database.
+
+        """
         known_paths = set(
             AdjustedImage.objects.values_list('adjusted', flat=True).distinct()
         )
-        orphaned_count = 0
+        orphans = []
         for dirpath, dirnames, filenames in self._walk(
                 'daguerre', topdown=False):
             for filename in filenames:
                 filepath = os.path.join(dirpath, filename)
                 if filepath not in known_paths:
-                    orphaned_count += 1
-                    try:
-                        default_storage.delete(filepath)
-                    except IOError:
-                        pass
-        if not orphaned_count:
+                    orphans.append(filepath)
+        return orphans
+
+    def handle_noargs(self, **options):
+        # Clear all adjusted images that reference nonexistant
+        # storage paths.
+        self._delete_queryset(self._old_adjustments())
+
+        # Clear all areas that reference nonexistant storage paths.
+        self._delete_queryset(self._old_areas())
+
+        # Clear all adjusted images that reference nonexistant adjustments.
+        self._delete_queryset(self._missing_adjustments(),
+                              'reference missing adjustments')
+
+        # Clear all duplicate adjusted images.
+        self._delete_queryset(self._duplicate_adjustments(),
+                              reason='is a duplicate',
+                              reason_plural='are duplicates')
+
+        # Clean up files that aren't referenced by any adjusted images.
+        orphans = self._orphaned_files()
+        if not orphans:
             self.stdout.write("No orphaned files found.\n")
         else:
             self.stdout.write(
-                "Deleted {0} orphaned file{1}.\n".format(
-                    orphaned_count,
-                    pluralize(orphaned_count)))
+                "Deleting {0} orphaned file{1}... ".format(
+                    len(orphans),
+                    pluralize(len(orphans))))
+            self.stdout.flush()
+            for filepath in orphans:
+                try:
+                    default_storage.delete(filepath)
+                except IOERRORS:
+                    pass
+            self.stdout.write("Done.\n")
 
         self.stdout.write("\n")

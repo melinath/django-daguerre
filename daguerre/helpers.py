@@ -49,6 +49,9 @@ class AdjustmentHelper(object):
     adjustment_sep = '>'
 
     def __init__(self, iterable, adjustments, lookup=None):
+        adjustments = list(adjustments)
+        if not adjustments:
+            raise ValueError("At least one adjustment must be provided.")
         self.adjustments = adjustments
         self.adjust_uses_areas = any([getattr(adj.adjust, 'uses_areas', True)
                                       for adj in adjustments])
