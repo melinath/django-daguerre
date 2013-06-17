@@ -1,7 +1,7 @@
 Management commands
 ===================
 
-``./manage.py clean_daguerre``
+``./manage.py daguerre clean``
 ------------------------------
 
 Cleans out extra or invalid data stored by daguerre:
@@ -11,11 +11,13 @@ Cleans out extra or invalid data stored by daguerre:
 * Adjusted image files which don't have an associated :class:`.AdjustedImage`.
 * :class:`.AdjustedImage` instances with missing adjusted image files.
 
-``./manage.py preadjust [--remove]``
-------------------------------------
+``./manage.py daguerre preadjust [--remove] [--nocreate]``
+----------------------------------------------------------
 
 Looks for a ``DAGUERRE_PREADJUSTMENTS`` setting using the following 
-structure::
+structure:
+
+.. code-block:: python
 
     from daguerre.adjustments import Fit, Fill
     DAGUERRE_PREADJUSTMENTS = (
