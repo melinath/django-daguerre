@@ -60,11 +60,14 @@ class Command(NoArgsCommand):
                     model_or_iterable = get_model(app_label, model_name)
                 if (isinstance(model_or_iterable, type) and
                         issubclass(model_or_iterable, Model)):
-                    queryset = model_or_iterable.objects.all()
+                    iterable = model_or_iterable.objects.all()
                 elif isinstance(model_or_iterable, QuerySet):
-                    queryset = model_or_iterable._clone()
+                    iterable = model_or_iterable._clone()
+                else:
+                    iterable = model_or_iterable
 
-                helpers.append(AdjustmentHelper(queryset, adjustments, lookup))
+                helpers.append(
+                    AdjustmentHelper(iterable, adjustments, lookup))
         except (ValueError, TypeError):
             raise CommandError(BAD_STRUCTURE)
 

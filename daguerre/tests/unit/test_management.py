@@ -1,7 +1,13 @@
+from django.conf import settings
 from django.core.files.storage import default_storage
+from django.core.management.base import CommandError
+from django.test.utils import override_settings
 import mock
 
+from daguerre.adjustments import Fit
 from daguerre.management.commands._daguerre_clean import Command as Clean
+from daguerre.management.commands._daguerre_preadjust import (NO_ADJUSTMENTS,
+    BAD_STRUCTURE, Command as Preadjust)
 from daguerre.models import AdjustedImage, Area
 from daguerre.tests.base import BaseTestCase
 
@@ -105,3 +111,85 @@ class CleanTestCase(BaseTestCase):
                              ['daguerre/test/fake1.png',
                               'daguerre/test/fake3.png'])
             walk.assert_called_once_with('daguerre', topdown=False)
+
+
+class PreadjustTestCase(BaseTestCase):
+    @override_settings()
+    def test_get_helpers__no_setting(self):
+        try:
+            del settings.DAGUERRE_PREADJUSTMENTS
+        except AttributeError:
+            pass
+        preadjust = Preadjust()
+        self.assertRaisesMessage(CommandError,
+                                 NO_ADJUSTMENTS,
+                                 preadjust._get_helpers)
+
+    @override_settings(DAGUERRE_PREADJUSTMENTS=(
+        ('model', [Fit(width=50)], None),))
+    def test_get_helpers__bad_string(self):
+        preadjust = Preadjust()
+        self.assertRaisesMessage(CommandError,
+                                 BAD_STRUCTURE,
+                                 preadjust._get_helpers)
+
+    @override_settings(DAGUERRE_PREADJUSTMENTS=(
+        ('app.model', [Fit(width=50)], None),))
+    def test_get_helpers__bad_model(self):
+        preadjust = Preadjust()
+        self.assertRaisesMessage(CommandError,
+                                 BAD_STRUCTURE,
+                                 preadjust._get_helpers)
+
+    @override_settings(DAGUERRE_PREADJUSTMENTS=(1, 2, 3))
+    def test_get_helpers__not_tuples(self):
+        preadjust = Preadjust()
+        self.assertRaisesMessage(CommandError,
+                                 BAD_STRUCTURE,
+                                 preadjust._get_helpers)
+
+    @override_settings(DAGUERRE_PREADJUSTMENTS=(
+        ('daguerre.adjustedimage', [], 'storage_path'),))
+    def test_get_helpers__no_adjustments(self):
+        preadjust = Preadjust()
+        self.assertRaisesMessage(CommandError,
+                                 BAD_STRUCTURE,
+                                 preadjust._get_helpers)
+
+    @override_settings(DAGUERRE_PREADJUSTMENTS=(
+        ('daguerre.adjustedimage', [Fit(width=50)], 'storage_path'),))
+    def test_get_helpers__good_string(self):
+        preadjust = Preadjust()
+        helpers = preadjust._get_helpers()
+        self.assertEqual(len(helpers), 1)
+
+    @override_settings(DAGUERRE_PREADJUSTMENTS=(
+        (AdjustedImage, [Fit(width=50)], 'storage_path'),))
+    def test_get_helpers__model(self):
+        preadjust = Preadjust()
+        helpers = preadjust._get_helpers()
+        self.assertEqual(len(helpers), 1)
+
+    def test_get_helpers__queryset(self):
+        preadjust = Preadjust()
+        qs = AdjustedImage.objects.all()
+        dp = ((qs, [Fit(width=50)], 'storage_path'),)
+        with override_settings(DAGUERRE_PREADJUSTMENTS=dp):
+            helpers = preadjust._get_helpers()
+        self.assertEqual(len(helpers), 1)
+        self.assertTrue(qs._result_cache is None)
+
+    def test_get_helpers__iterable(self):
+        preadjust = Preadjust()
+        storage_path = self.create_image('100x100.png')
+        adjusted = AdjustedImage.objects.create(storage_path=storage_path,
+                                                adjusted=storage_path)
+
+        def _iter():
+            yield adjusted
+
+        dp = ((_iter(), [Fit(width=50)], 'storage_path'),)
+
+        with override_settings(DAGUERRE_PREADJUSTMENTS=dp):
+            helpers = preadjust._get_helpers()
+        self.assertEqual(len(helpers), 1)
