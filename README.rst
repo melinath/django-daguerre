@@ -27,8 +27,10 @@ your models; it **Just Works**.
 Requirements
 ------------
 
-* Python 2.6+
-* PIL 1.1.7 (Or `Pillow <http://pypi.python.org/pypi/Pillow>`_)
+* Python 2.6+, 3.3+
+* Pillow 2.0.0+
+* Django 1.4.5+
+* Six 1.3.0+
 
 Installation
 ------------
