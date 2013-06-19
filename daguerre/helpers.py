@@ -1,5 +1,5 @@
 import datetime
-import httplib
+import itertools
 import ssl
 
 from django.conf import settings
@@ -9,6 +9,8 @@ from django.core.urlresolvers import reverse
 from django.http import QueryDict
 from django.template import Variable, VariableDoesNotExist, TemplateSyntaxError
 from django.utils.datastructures import SortedDict
+import six
+from six.moves import http_client
 try:
     from PIL import Image
 except ImportError:
@@ -22,7 +24,7 @@ from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT
 # If any of the following errors appear during file manipulations, we will
 # treat them as IOErrors.
 # See http://code.larlet.fr/django-storages/issue/162/reraise-boto-httplib-errors-as-ioerrors
-IOERRORS = (IOError, httplib.IncompleteRead, ssl.SSLError)
+IOERRORS = (IOError, http_client.IncompleteRead, ssl.SSLError)
 
 try:
     import boto.exception
@@ -36,8 +38,11 @@ else:
 class AdjustmentInfoDict(dict):
     "A simple dict subclass for making image data more usable in templates."
 
+    def __str__(self):
+        return self.__unicode__()
+
     def __unicode__(self):
-        return unicode(self.get('url', ''))
+        return six.text_type(self.get('url', ''))
 
 
 class AdjustmentHelper(object):
@@ -85,7 +90,7 @@ class AdjustmentHelper(object):
             if isinstance(path, ImageFile):
                 path = path.name
             # Skip empty paths (such as from an ImageFieldFile with no image.)
-            if path and isinstance(path, basestring):
+            if path and isinstance(path, six.string_types):
                 self.remaining.setdefault(path, []).append(item)
             else:
                 self.adjusted[item] = AdjustmentInfoDict()
@@ -117,7 +122,7 @@ class AdjustmentHelper(object):
             'requested': self.requested
         }
         if len(self.remaining) == 1:
-            kwargs['storage_path'] = self.remaining.keys()[0]
+            kwargs['storage_path'] = list(self.remaining.keys())[0]
         else:
             kwargs['storage_path__in'] = self.remaining
         return kwargs
@@ -134,7 +139,7 @@ class AdjustmentHelper(object):
     def make_security_hash(cls, kwargs):
         kwargs = SortedDict(kwargs)
         kwargs.keyOrder.sort()
-        args = kwargs.keys() + kwargs.values()
+        args = list(itertools.chain(kwargs.keys(), kwargs.values()))
         return make_hash(settings.SECRET_KEY, step=2, *args)
 
     @classmethod
@@ -150,7 +155,7 @@ class AdjustmentHelper(object):
         if secure:
             kwargs['security'] = self.make_security_hash(kwargs)
 
-        for k, v in kwargs.iteritems():
+        for k, v in six.iteritems(kwargs):
             qd[self.query_map[k]] = v
 
         return qd
@@ -158,7 +163,7 @@ class AdjustmentHelper(object):
     @classmethod
     def from_querydict(cls, image_or_storage_path, querydict, secure=False):
         kwargs = SortedDict()
-        for verbose, short in cls.query_map.iteritems():
+        for verbose, short in six.iteritems(cls.query_map):
             if short in querydict:
                 kwargs[verbose] = querydict[short]
 
@@ -185,7 +190,7 @@ class AdjustmentHelper(object):
 
     def _path_info_dict(self, storage_path):
         try:
-            with default_storage.open(storage_path) as im_file:
+            with default_storage.open(storage_path, 'rb') as im_file:
                 width, height = get_image_dimensions(im_file)
         except IOERRORS:
             return AdjustmentInfoDict()
@@ -234,7 +239,7 @@ class AdjustmentHelper(object):
 
         # And then make adjustment dicts for any remaining paths.
         if self.remaining:
-            for path, items in self.remaining.copy().iteritems():
+            for path, items in six.iteritems(self.remaining.copy()):
                 info_dict = self._path_info_dict(path)
                 for item in items:
                     self.adjusted[item] = info_dict
@@ -246,7 +251,7 @@ class AdjustmentHelper(object):
         self._fetch_adjusted()
 
         if self.remaining:
-            for path, items in self.remaining.copy().iteritems():
+            for path, items in six.iteritems(self.remaining.copy()):
                 try:
                     adjusted_image = self._adjust(path)
                 except IOERRORS:
@@ -268,7 +273,7 @@ class AdjustmentHelper(object):
             'storage_path': storage_path
         }
 
-        with default_storage.open(storage_path) as im_file:
+        with default_storage.open(storage_path, 'rb') as im_file:
             im = Image.open(im_file)
             try:
                 im.verify()
@@ -291,7 +296,7 @@ class AdjustmentHelper(object):
         adjusted = AdjustedImage(**kwargs)
         f = adjusted._meta.get_field('adjusted')
 
-        args = (unicode(kwargs), datetime.datetime.now().isoformat())
+        args = (six.text_type(kwargs), datetime.datetime.now().isoformat())
         filename = '.'.join((make_hash(*args, step=2), format.lower()))
         storage_path = f.generate_filename(adjusted, filename)
 

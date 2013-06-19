@@ -7,6 +7,7 @@ from django.core.management.base import NoArgsCommand, CommandError
 from django.db.models import Model, get_model
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import pluralize
+import six
 
 from daguerre.models import AdjustedImage
 from daguerre.helpers import AdjustmentHelper
@@ -55,10 +56,10 @@ class Command(NoArgsCommand):
         helpers = []
         try:
             for (model_or_iterable, adjustments, lookup) in dp:
-                if isinstance(model_or_iterable, basestring):
+                if isinstance(model_or_iterable, six.string_types):
                     app_label, model_name = model_or_iterable.split('.')
                     model_or_iterable = get_model(app_label, model_name)
-                if (isinstance(model_or_iterable, type) and
+                if (isinstance(model_or_iterable, six.class_types) and
                         issubclass(model_or_iterable, Model)):
                     iterable = model_or_iterable.objects.all()
                 elif isinstance(model_or_iterable, QuerySet):

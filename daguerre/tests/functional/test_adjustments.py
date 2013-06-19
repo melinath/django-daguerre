@@ -36,7 +36,7 @@ class RequestResponseTestCase(BaseTestCase):
         helper = AdjustmentHelper([image], [crop])
         with self.assertNumQueries(4):
             helper.adjust()
-        adjusted = helper.adjusted.values()[0]
+        adjusted = list(helper.adjusted.values())[0]
 
         with self.assertNumQueries(1):
             info_dict = AdjustmentHelper([image], [crop]

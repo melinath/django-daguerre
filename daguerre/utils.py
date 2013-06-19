@@ -3,7 +3,8 @@ from hashlib import sha1
 from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
-from django.utils.encoding import smart_str
+from django.utils.encoding import smart_bytes
+import six
 
 
 #: Formats that we trust to be able to handle gracefully.
@@ -16,8 +17,8 @@ def make_hash(*args, **kwargs):
     start = kwargs.get('start', None)
     stop = kwargs.get('stop', None)
     step = kwargs.get('step', None)
-    return sha1(smart_str(u''.join([
-        unicode(arg) for arg in args])
+    return sha1(smart_bytes(u''.join([
+        six.text_type(arg) for arg in args])
     )).hexdigest()[start:stop:step]
 
 

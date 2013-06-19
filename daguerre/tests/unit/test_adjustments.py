@@ -298,7 +298,7 @@ class AdjustmentHelperTestCase(BaseTestCase):
                                   [Crop(width=50, height=100)])
         with self.assertNumQueries(1):
             helper.adjust()
-        url = helper.adjusted.values()[0]['url']
+        url = list(helper.adjusted.values())[0]['url']
         self.assertEqual(url, adjusted1.adjusted.url)
         self.assertEqual(url, adjusted2.adjusted.url)
 
@@ -320,10 +320,10 @@ class AdjustmentHelperTestCase(BaseTestCase):
         self.assertEqual(helper.remaining, {})
 
     def test_adjust__broken(self):
-        broken_file = self._data_file('broken.png')
+        broken_file = self._data_file('broken.png', 'rb')
         storage_path = default_storage.save('daguerre/test/broken.png',
                                             ContentFile(broken_file.read()))
-        broken_file = default_storage.open(storage_path)
+        broken_file = default_storage.open(storage_path, 'rb')
         image = Image.open(broken_file)
         self.assertRaises(IndexError, image.verify)
 

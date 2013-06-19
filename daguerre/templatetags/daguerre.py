@@ -4,6 +4,7 @@ import re
 from django import template
 from django.conf import settings
 from django.template.defaultfilters import escape
+import six
 
 from daguerre.adjustments import registry
 from daguerre.helpers import AdjustmentHelper, AdjustmentInfoDict
@@ -26,7 +27,7 @@ class AdjustmentNode(template.Node):
         for adj_to_resolve, kwargs_to_resolve in self.adjustments:
             adj = adj_to_resolve.resolve(context)
             kwargs = dict((k, v.resolve(context))
-                          for k, v in kwargs_to_resolve.iteritems())
+                          for k, v in six.iteritems(kwargs_to_resolve))
             try:
                 adj_cls = registry[adj]
                 adj_instances.append(adj_cls(**kwargs))
@@ -59,7 +60,7 @@ class BulkAdjustmentNode(template.Node):
         for adj, kwargs in self.adjustments:
             adj_list.append((adj.resolve(context),
                              dict((k, v.resolve(context))
-                             for k, v in kwargs.iteritems())))
+                             for k, v in six.iteritems(kwargs))))
 
         # First adjustment *might* be a lookup.
         # We consider it a lookup if it is not an adjustment name.

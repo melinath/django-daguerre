@@ -2,12 +2,21 @@ language: python
 python:
   - "2.6"
   - "2.7"
+  - "3.3"
 env:
-  - DB=sqlite3
-  - DB=mysql
+  - DB=sqlite3 REQUIREMENTS=test_project/requirements-1.4.txt
+  - DB=mysql REQUIREMENTS=test_project/requirements-1.4.txt
+  - DB=sqlite3 REQUIREMENTS=test_project/requirements-1.5.txt
+  - DB=mysql REQUIREMENTS=test_project/requirements-1.5.txt
+matrix:
+  exclude:
+    - python: "3.3"
+      env: DB=sqlite3 REQUIREMENTS=test_project/requirements-1.4.txt
+    - python: "3.3"
+      env: DB=mysql REQUIREMENTS=test_project/requirements-1.4.txt
 install:
   - pip install . --no-deps
-  - pip install --use-mirrors --no-deps -r test_project/requirements.txt
+  - pip install --use-mirrors --no-deps -r $REQUIREMENTS
   - if [ $DB == 'mysql' ]; then pip install --use-mirrors --no-deps mysql-python; fi
 before_script:
   - if [ $DB == 'mysql' ]; then mysql -e 'CREATE DATABASE daguerre_test;'; fi

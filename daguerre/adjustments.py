@@ -1,4 +1,5 @@
-from itertools import ifilter
+from __future__ import division
+from six.moves import xrange
 
 try:
     from PIL import Image
@@ -24,9 +25,8 @@ class AdjustmentRegistry(object):
     def __contains__(self, item):
         return item in self._registry
 
-    @property
-    def iteritems(self):
-        return self._registry.iteritems
+    def items(self):
+        return self._registry.items()
 
 
 registry = AdjustmentRegistry()
@@ -152,16 +152,9 @@ class Crop(Adjustment):
     def calculate(self, dims, areas=None):
         image_width, image_height = dims
         width, height = self.kwargs.get('width'), self.kwargs.get('height')
-        not_none = lambda x: x is not None
         # image_width and image_height are known to be defined.
-        new_width = ifilter(not_none,
-                            (width,
-                             image_width)
-                            ).next()
-        new_height = ifilter(not_none,
-                             (height,
-                              image_height)
-                             ).next()
+        new_width = int(width) if width is not None else image_width
+        new_height = int(height) if height is not None else image_height
 
         new_width = min(new_width, image_width)
         new_height = min(new_height, image_height)
@@ -177,8 +170,8 @@ class Crop(Adjustment):
             return image.copy()
 
         if not areas:
-            x1 = (image_width - new_width) / 2
-            y1 = (image_height - new_height) / 2
+            x1 = int((image_width - new_width) / 2)
+            y1 = int((image_height - new_height) / 2)
         else:
             min_penalty = None
             optimal_coords = None

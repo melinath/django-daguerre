@@ -30,7 +30,7 @@ class SaveImageTestCase(BaseTestCase):
 
         storage_path = save_image(image, 'daguerre/test/keeper.png',
                                   format=image.format)
-        with default_storage.open(storage_path, 'r') as f:
+        with default_storage.open(storage_path, 'rb') as f:
             new_image = Image.open(f)
 
         self.assertEqual(new_image.format, image.format)
@@ -46,7 +46,7 @@ class SaveImageTestCase(BaseTestCase):
 
         storage_path = save_image(image, 'daguerre/test/nonkeeper.png',
                                   format=image.format)
-        with default_storage.open(storage_path, 'r') as f:
+        with default_storage.open(storage_path, 'rb') as f:
             new_image = Image.open(f)
 
         self.assertEqual(new_image.format, DEFAULT_FORMAT)
