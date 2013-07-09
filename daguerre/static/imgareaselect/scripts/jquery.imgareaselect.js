@@ -727,4 +727,4 @@ $.fn.imgAreaSelect = function (options) {
     return this;
 };
 
-})(jQuery);
+})(jQuery || django.jQuery.noConflict(true) || grp.jQuery.noConflict(true));
