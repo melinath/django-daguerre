@@ -12,13 +12,13 @@ from django.utils.datastructures import SortedDict
 import six
 from six.moves import http_client
 try:
-    from PIL import Image
+    from PIL import Image, ExifTags
 except ImportError:
-    import Image
+    import Image, ExifTags
 
 from daguerre.adjustments import registry
 from daguerre.models import Area, AdjustedImage
-from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT
+from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT, ORIENTATION_TO_TRANSPOSE
 
 
 # If any of the following errors appear during file manipulations, we will
@@ -284,6 +284,21 @@ class AdjustmentHelper(object):
             im = Image.open(im_file)
             im.load()
         format = im.format if im.format in KEEP_FORMATS else DEFAULT_FORMAT
+
+        # The following lines check if rotation is stored in EXIF and then
+        # manually apply the rotation to the image as the EXIF data will
+        # be discarded.
+
+        # Extract the orientation tag
+        EXIF = {v:k for k, v in ExifTags.TAGS.items()} # flip the ExifTags dict
+        exif_data = im._getexif() # should be careful with that _method
+        if EXIF['Orientation'] in exif_data: 
+            orientation = exif_data[EXIF['Orientation']]
+            # Apply the corresponding tranpositions
+            transpositions = ORIENTATION_TO_TRANSPOSE[orientation]
+            if transpositions:
+                for t in transpositions:
+                    im = im.transpose(t)
 
         if self.adjust_uses_areas:
             areas = self.get_areas(storage_path)
