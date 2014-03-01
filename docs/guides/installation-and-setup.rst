@@ -16,7 +16,7 @@ You can install the latest version of Daguerre using ``pip``::
 
     pip install django-daguerre
 
-You can clone the repository yourself at https://github.com/oberlin/django-daguerre.
+You can clone the repository yourself at https://github.com/littleweaver/django-daguerre.
 
 .. highlight:: python
 
