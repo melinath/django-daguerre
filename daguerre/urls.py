@@ -1,4 +1,7 @@
-from django.conf.urls.defaults import patterns, url
+try:
+    from django.conf.urls import patterns, url
+except: # Django 1.3 and earlier
+    from django.conf.urls.defaults import patterns, url
 
 from daguerre.views import (AdjustedImageRedirectView, AjaxAdjustmentInfoView,
                             AjaxUpdateAreaView)
