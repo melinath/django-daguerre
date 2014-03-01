@@ -17,12 +17,12 @@ your models; it **Just Works**.
     {% endfor %}
 
 
-:code:         http://github.com/oberlin/django-daguerre
+:code:         http://github.com/littleweaver/django-daguerre
 :docs:         http://readthedocs.org/docs/django-daguerre/
 :build status: |build-image|
 
-.. |build-image| image:: https://secure.travis-ci.org/oberlin/django-daguerre.png?branch=master
-                 :target: http://travis-ci.org/oberlin/django-daguerre/branches
+.. |build-image| image:: https://secure.travis-ci.org/littleweaver/django-daguerre.png?branch=master
+                 :target: http://travis-ci.org/littleweaver/django-daguerre/branches
 
 Requirements
 ------------
@@ -37,7 +37,7 @@ You can install the latest version of Daguerre using ``pip``::
 
     pip install django-daguerre
 
-You can clone the repository yourself at https://github.com/oberlin/django-daguerre.
+You can clone the repository yourself at https://github.com/littleweaver/django-daguerre.
 
 .. highlight:: python
 

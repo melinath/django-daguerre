@@ -25,12 +25,12 @@ your models; it **Just Works**.
     {% endfor %}
 
 
-:Code:         http://github.com/oberlin/django-daguerre
+:Code:         http://github.com/littleweaver/django-daguerre
 :Docs:         http://readthedocs.org/docs/django-daguerre/
 :Build status: |build-image|
 
-.. |build-image| image:: https://secure.travis-ci.org/oberlin/django-daguerre.png?branch=master
-                 :target: http://travis-ci.org/oberlin/django-daguerre/branches
+.. |build-image| image:: https://secure.travis-ci.org/littleweaver/django-daguerre.png?branch=master
+                 :target: http://travis-ci.org/littleweaver/django-daguerre/branches
 
 Contents
 --------
