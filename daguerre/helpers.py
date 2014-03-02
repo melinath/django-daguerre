@@ -18,8 +18,7 @@ except ImportError:
 
 from daguerre.adjustments import registry
 from daguerre.models import Area, AdjustedImage
-from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT, ORIENTATION_TO_TRANSPOSE
-
+from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT, apply_exif_orientation
 
 # If any of the following errors appear during file manipulations, we will
 # treat them as IOErrors.
@@ -285,25 +284,13 @@ class AdjustmentHelper(object):
             im.load()
         format = im.format if im.format in KEEP_FORMATS else DEFAULT_FORMAT
 
-        # The following lines check if rotation is stored in EXIF and then
-        # manually apply the rotation to the image as the EXIF data will
-        # be discarded.
-
-        # Extract the orientation tag
-        EXIF = {v:k for k, v in ExifTags.TAGS.items()} # flip the ExifTags dict
-        exif_data = im._getexif() # should be careful with that _method
-        if EXIF['Orientation'] in exif_data: 
-            orientation = exif_data[EXIF['Orientation']]
-            # Apply the corresponding tranpositions
-            transpositions = ORIENTATION_TO_TRANSPOSE[orientation]
-            if transpositions:
-                for t in transpositions:
-                    im = im.transpose(t)
-
         if self.adjust_uses_areas:
             areas = self.get_areas(storage_path)
         else:
             areas = None
+
+        # Before doing any adjustments, apply Exif orientation.
+        im = apply_exif_orientation(im)
 
         for adjustment in self.adjustments:
             im = adjustment.adjust(im, areas=areas)

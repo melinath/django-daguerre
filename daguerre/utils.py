@@ -14,7 +14,7 @@ except ImportError:
 KEEP_FORMATS = ('PNG', 'JPEG', 'GIF')
 #: Default format to convert other file types to.
 DEFAULT_FORMAT = 'PNG'
-#: Mapping EXIF orientation data to corresponding PIL image transpose values
+#: Map Exif orientation data to corresponding PIL image transpose values
 ORIENTATION_TO_TRANSPOSE = {
     1: None,
     2: (Image.FLIP_LEFT_RIGHT,),
@@ -25,6 +25,9 @@ ORIENTATION_TO_TRANSPOSE = {
     7: (Image.ROTATE_90, Image.FLIP_LEFT_RIGHT,),
     8: (Image.ROTATE_90,),
 }
+#: Map human-readable Exif tag names to their markers.
+EXIF_TAGS = dict((v,k) for k, v in ExifTags.TAGS.items())
+
 
 def make_hash(*args, **kwargs):
     start = kwargs.get('start', None)
@@ -33,6 +36,32 @@ def make_hash(*args, **kwargs):
     return sha1(smart_bytes(u''.join([
         six.text_type(arg) for arg in args])
     )).hexdigest()[start:stop:step]
+
+
+def apply_exif_orientation(image):
+    """
+    Reads an image Exif data for orientation information. Applies the
+    appropriate rotation with PIL transposition. Use before performing a PIL
+    .resize() in order to retain correct image rotation. (.resize() discards
+    Exif tags.)
+
+    Accepts a PIL image and returns a PIL image.
+
+    """
+    # Extract the orientation tag
+    try:
+       exif_data = image._getexif() # should be careful with that _method
+    except AttributeError:
+        # No exif data, return original image
+        return image
+    if EXIF_TAGS['Orientation'] in exif_data: 
+        orientation = exif_data[EXIF_TAGS['Orientation']]
+        # Apply the corresponding tranpositions
+        transpositions = ORIENTATION_TO_TRANSPOSE[orientation]
+        if transpositions:
+            for t in transpositions:
+                image = image.transpose(t)
+    return image
 
 
 def save_image(
