@@ -54,7 +54,7 @@ def apply_exif_orientation(image):
     except AttributeError:
         # No exif data, return original image
         return image
-    if EXIF_TAGS['Orientation'] in exif_data: 
+    if exif_data is not None and EXIF_TAGS['Orientation'] in exif_data: 
         orientation = exif_data[EXIF_TAGS['Orientation']]
         # Apply the corresponding tranpositions
         transpositions = ORIENTATION_TO_TRANSPOSE[orientation]
