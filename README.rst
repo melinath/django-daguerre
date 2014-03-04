@@ -29,6 +29,7 @@ Requirements
 
 * Python 2.6+
 * PIL 1.1.7 (Or `Pillow <http://pypi.python.org/pypi/Pillow>`_)
+* Django < 1.7
 
 Installation
 ------------

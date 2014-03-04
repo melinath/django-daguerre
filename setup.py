@@ -18,8 +18,8 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'Pillow',
-        'django',
+        'Pillow<=2.3.0',
+        'django<1.7',
     ],
     extras_require={
         'docs': ["sphinx>=1.0"],
