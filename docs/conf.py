@@ -45,7 +45,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Django Daguerre'
-copyright = u'2012, Stephen Burrows & Harris Lapiroff'
+copyright = u'2010-2014, Little Weaver Web Collective, LLC'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
