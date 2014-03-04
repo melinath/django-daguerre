@@ -28,9 +28,11 @@ Requirements
 ------------
 
 * Python 2.6+, 3.3+
-* Pillow 2.0.0+
-* Django 1.4.5+
+* Pillow 2.3.0+
+* Django 1.6+
 * Six 1.3.0+
+
+Daguerre *may* work with earlier versions of these packages, but it is untested.
 
 Installation
 ------------

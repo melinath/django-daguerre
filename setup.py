@@ -18,8 +18,8 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'Pillow>=2.0',
-        'django>=1.4.5',
+        'Pillow>=2.3.0',
+        'django>=1.6.1',
         'six>=1.3.0',
     ],
     extras_require={
