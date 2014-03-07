@@ -1,15 +1,14 @@
 language: python
 python:
-  - "2.6"
   - "2.7"
   - "3.3"
 env:
-  - DB=sqlite3 REQUIREMENTS=test_project/requirements-1.6.txt
-  - DB=mysql REQUIREMENTS=test_project/requirements-1.6.txt
+  - DB=sqlite3 REQUIREMENTS=test_project/requirements-1.7.txt
+  - DB=mysql REQUIREMENTS=test_project/requirements-1.7.txt
 matrix:
   exclude:
     - python: "3.3"
-      env: DB=mysql REQUIREMENTS=test_project/requirements-1.6.txt
+      env: DB=mysql REQUIREMENTS=test_project/requirements-1.7.txt
 install:
   - pip install . --no-deps
   - pip install --use-mirrors --no-deps -r $REQUIREMENTS

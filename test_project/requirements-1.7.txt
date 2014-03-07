@@ -1,0 +1,5 @@
+Pillow==2.3.0
+# 1.7 alpha tarball
+https://www.djangoproject.com/download/1.7a2/tarball/
+mock==1.0.1
+six==1.5.2
