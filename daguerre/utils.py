@@ -56,7 +56,6 @@ def get_exif_orientation(image):
     return None
 
 
-
 def apply_exif_orientation(image):
     """
     Reads an image Exif data for orientation information. Applies the
