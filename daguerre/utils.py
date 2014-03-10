@@ -45,7 +45,7 @@ def make_hash(*args, **kwargs):
 def get_exif_orientation(image):
     # Extract the orientation tag
     try:
-       exif_data = image._getexif() # should be careful with that _method
+        exif_data = image._getexif() # should be careful with that _method
     except AttributeError:
         # No Exif data, return None
         return None
