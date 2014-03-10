@@ -7,7 +7,8 @@ except ImportError:
 
 from daguerre.tests.base import BaseTestCase
 from daguerre.utils import (make_hash, save_image, get_exif_orientation,
-    get_image_dimensions, apply_exif_orientation, DEFAULT_FORMAT, KEEP_FORMATS)
+    get_image_dimensions, apply_exif_orientation, exif_aware_size,
+    DEFAULT_FORMAT, KEEP_FORMATS)
 
 
 class MakeHashTestCase(TestCase):
@@ -85,7 +86,25 @@ class ApplyExifOrientationTestCase(BaseTestCase):
         "If no exif data is present the original image should be left intact."
         original_image = Image.open(self._data_path('20x7_no_exif.png'))
         image = apply_exif_orientation(original_image)
-        self.assertEqual(image, original_image)
+        self.assertImageEqual(image, original_image)
+
+
+class ApplyExifOrientationTestCase(BaseTestCase):
+    ORIGINAL_ORIENTATION = (20, 7)
+    ROTATED_ORIENTATION = (7, 20)
+
+    def test_exif_rotated(self):
+        image = Image.open(self._data_path('20x7_exif_rotated.jpg'))
+        self.assertEqual(exif_aware_size(image), self.ROTATED_ORIENTATION)
+
+    def test_exif_not_rotated(self):
+        image = Image.open(self._data_path('20x7_exif_not_rotated.jpg'))
+        self.assertEqual(exif_aware_size(image), self.ORIGINAL_ORIENTATION)
+
+
+    def test_non_exif(self):
+        image = Image.open(self._data_path('20x7_no_exif.png'))
+        self.assertEqual(exif_aware_size(image), self.ORIGINAL_ORIENTATION)
 
 
 class GetImageDimensionsTest(BaseTestCase):
