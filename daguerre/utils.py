@@ -8,9 +8,9 @@ from django.core.files.temp import NamedTemporaryFile
 from django.utils.encoding import smart_bytes
 import six
 try:
-    from PIL import Image, ExifTags
+    from PIL import Image, ImageFile, ExifTags
 except ImportError:
-    import Image, ExifTags
+    import Image, ImageFile, ExifTags
 
 #: Formats that we trust to be able to handle gracefully.
 KEEP_FORMATS = ('PNG', 'JPEG', 'GIF')
@@ -116,9 +116,7 @@ def get_image_dimensions(file_or_path, close=False):
 
     """
 
-    from django.utils.image import ImageFile as PILImageFile
-
-    p = PILImageFile.Parser()
+    p = ImageFile.Parser()
     if hasattr(file_or_path, 'read'):
         file = file_or_path
         file_pos = file.tell()
