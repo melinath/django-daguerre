@@ -126,7 +126,7 @@ class Fit(Adjustment):
 
     def adjust(self, image, areas=None):
         image_width, image_height = exif_aware_size(image)
-        new_width, new_height = self.calculate(exif_aware_size(image))
+        new_width, new_height = self.calculate((image_width, image_height))
 
         if (new_width, new_height) == (image_width, image_height):
             return image.copy()
@@ -167,7 +167,7 @@ class Crop(Adjustment):
 
     def adjust(self, image, areas=None):
         image_width, image_height = exif_aware_size(image)
-        new_width, new_height = self.calculate(exif_aware_size(image))
+        new_width, new_height = self.calculate((image_width, image_height))
 
         if (new_width, new_height) == (image_width, image_height):
             return image.copy()
@@ -336,7 +336,7 @@ class Fill(Adjustment):
 
     def adjust(self, image, areas=None):
         image_width, image_height = exif_aware_size(image)
-        new_width, new_height = self.calculate(exif_aware_size(image))
+        new_width, new_height = self.calculate((image_width, image_height))
 
         if (new_width, new_height) == (image_width, image_height):
             return image.copy()
