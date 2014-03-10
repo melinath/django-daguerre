@@ -3,7 +3,7 @@ import itertools
 import ssl
 
 from django.conf import settings
-from django.core.files.images import ImageFile, get_image_dimensions
+from django.core.files.images import ImageFile
 from django.core.files.storage import default_storage
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
@@ -18,7 +18,7 @@ except ImportError:
 
 from daguerre.adjustments import registry
 from daguerre.models import Area, AdjustedImage
-from daguerre.utils import make_hash, save_image, KEEP_FORMATS, DEFAULT_FORMAT, apply_exif_orientation
+from daguerre.utils import make_hash, save_image, get_image_dimensions, KEEP_FORMATS, DEFAULT_FORMAT
 
 # If any of the following errors appear during file manipulations, we will
 # treat them as IOErrors.
@@ -288,9 +288,6 @@ class AdjustmentHelper(object):
             areas = self.get_areas(storage_path)
         else:
             areas = None
-
-        # Before doing any adjustments, apply Exif orientation.
-        im = apply_exif_orientation(im)
 
         for adjustment in self.adjustments:
             im = adjustment.adjust(im, areas=areas)

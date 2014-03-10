@@ -1,6 +1,8 @@
 from __future__ import division
 from six.moves import xrange
 
+from daguerre.utils import exif_aware_resize, exif_aware_size
+
 try:
     from PIL import Image
 except ImportError:
@@ -123,8 +125,8 @@ class Fit(Adjustment):
     calculate.uses_areas = False
 
     def adjust(self, image, areas=None):
-        image_width, image_height = image.size
-        new_width, new_height = self.calculate(image.size)
+        image_width, image_height = exif_aware_size(image)
+        new_width, new_height = self.calculate(exif_aware_size(image))
 
         if (new_width, new_height) == (image_width, image_height):
             return image.copy()
@@ -135,7 +137,8 @@ class Fit(Adjustment):
             f = Image.ANTIALIAS
         else:
             f = Image.BICUBIC
-        return image.resize((new_width, new_height), f)
+
+        return exif_aware_resize(image, (new_width, new_height), f)
     adjust.uses_areas = False
 
 
@@ -163,8 +166,8 @@ class Crop(Adjustment):
     calculate.uses_areas = False
 
     def adjust(self, image, areas=None):
-        image_width, image_height = image.size
-        new_width, new_height = self.calculate(image.size)
+        image_width, image_height = exif_aware_size(image)
+        new_width, new_height = self.calculate(exif_aware_size(image))
 
         if (new_width, new_height) == (image_width, image_height):
             return image.copy()
@@ -275,7 +278,7 @@ class NamedCrop(Adjustment):
         return area.width, area.height
 
     def adjust(self, image, areas=None):
-        image_width, image_height = image.size
+        image_width, image_height = exif_aware_size(image)
 
         if not areas:
             return image.copy()
@@ -332,8 +335,8 @@ class Fill(Adjustment):
     calculate.uses_areas = False
 
     def adjust(self, image, areas=None):
-        image_width, image_height = image.size
-        new_width, new_height = self.calculate(image.size)
+        image_width, image_height = exif_aware_size(image)
+        new_width, new_height = self.calculate(exif_aware_size(image))
 
         if (new_width, new_height) == (image_width, image_height):
             return image.copy()
