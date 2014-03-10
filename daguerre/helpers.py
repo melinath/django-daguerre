@@ -12,9 +12,9 @@ from django.utils.datastructures import SortedDict
 import six
 from six.moves import http_client
 try:
-    from PIL import Image, ExifTags
+    from PIL import Image
 except ImportError:
-    import Image, ExifTags
+    import Image
 
 from daguerre.adjustments import registry
 from daguerre.models import Area, AdjustedImage
