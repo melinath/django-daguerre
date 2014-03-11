@@ -89,7 +89,7 @@ class ApplyExifOrientationTestCase(BaseTestCase):
         self.assertImageEqual(image, original_image)
 
 
-class ApplyExifOrientationTestCase(BaseTestCase):
+class ExifAwareSizeTestCase(BaseTestCase):
     ORIGINAL_ORIENTATION = (20, 7)
     ROTATED_ORIENTATION = (7, 20)
 
@@ -107,7 +107,7 @@ class ApplyExifOrientationTestCase(BaseTestCase):
         self.assertEqual(exif_aware_size(image), self.ORIGINAL_ORIENTATION)
 
 
-class GetImageDimensionsTest(BaseTestCase):
+class GetImageDimensionsTestCase(BaseTestCase):
     ORIGINAL_ORIENTATION = (20, 7)
     ROTATED_ORIENTATION = (7, 20)
 
