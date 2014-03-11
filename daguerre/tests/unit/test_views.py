@@ -190,7 +190,10 @@ class AjaxUpdateAreaViewTestCase(BaseTestCase):
                                     HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         request.user = self.create_user(permissions=['daguerre.change_area'])
         self.assertTrue(request.user.has_perm('daguerre.change_area'))
-        with self.assertNumQueries(4):
+        # SB: Used to assert 4 - don't remember why.
+        # Three queries expected: get the area, update the area,
+        # and clear the adjustment cache.
+        with self.assertNumQueries(3):
             response = view.post(request)
 
         self.assertEqual(response.status_code, 200)

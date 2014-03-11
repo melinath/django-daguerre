@@ -1,5 +1,6 @@
 import json
 
+from django.contrib.auth import get_permission_codename
 from django.core.exceptions import ValidationError
 from django.http import (HttpResponse, Http404, HttpResponseRedirect,
                          HttpResponseForbidden)
@@ -62,20 +63,19 @@ class AjaxAdjustmentInfoView(AdjustedImageRedirectView):
 
 
 class AjaxUpdateAreaView(View):
+    def has_permission(self, user, action, model):
+        opts = model._meta
+        codename = get_permission_codename(action, opts)
+        return user.has_perm('.'.join((opts.app_label, codename)))
+
     def has_add_permission(self, request):
-        opts = Area._meta
-        return request.user.has_perm(
-            opts.app_label + '.' + opts.get_add_permission())
+        return self.has_permission(request.user, 'add', Area)
 
     def has_change_permission(self, request):
-        opts = Area._meta
-        return request.user.has_perm(
-            opts.app_label + '.' + opts.get_change_permission())
+        return self.has_permission(request.user, 'change', Area)
 
     def has_delete_permission(self, request):
-        opts = Area._meta
-        return request.user.has_perm(
-            opts.app_label + '.' + opts.get_delete_permission())
+        return self.has_permission(request.user, 'delete', Area)
 
     def get(self, request, *args, **kwargs):
         if not request.is_ajax():

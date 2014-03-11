@@ -5,9 +5,11 @@ Requirements
 ------------
 
 * Python 2.6+, 3.3+
-* Pillow 2.0.0+
-* Django 1.4.5+
+* Pillow 2.3.0+
+* Django 1.6+
 * Six 1.3.0+
+
+Daguerre *may* work with earlier versions of these packages, but it is untested.
 
 Installation
 ------------
@@ -16,7 +18,7 @@ You can install the latest version of Daguerre using ``pip``::
 
     pip install django-daguerre
 
-You can clone the repository yourself at https://github.com/oberlin/django-daguerre.
+You can clone the repository yourself at https://github.com/littleweaver/django-daguerre.
 
 .. highlight:: python
 

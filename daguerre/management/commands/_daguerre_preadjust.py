@@ -69,7 +69,7 @@ class Command(NoArgsCommand):
 
                 helpers.append(
                     AdjustmentHelper(iterable, adjustments, lookup))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, LookupError):
             raise CommandError(BAD_STRUCTURE)
 
         return helpers
