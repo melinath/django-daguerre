@@ -30,7 +30,7 @@ ORIENTATION_TO_TRANSPOSE = {
 #: Which Exif orientation tags correspond to a 90deg or 270deg rotation.
 ROTATION_TAGS = (5, 6, 7, 8)
 #: Map human-readable Exif tag names to their markers.
-EXIF_TAGS = dict((v,k) for k, v in ExifTags.TAGS.items())
+EXIF_TAGS = {y:x for x,y in ExifTags.TAGS.items()}
 
 
 def make_hash(*args, **kwargs):
