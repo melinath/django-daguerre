@@ -4,7 +4,7 @@ Installation and Setup
 Requirements
 ------------
 
-* Python 2.6+, 3.3+
+* Python 2.7+, 3.3+
 * Pillow 2.3.0+
 * Django 1.6+
 * Six 1.3.0+
@@ -14,30 +14,33 @@ Daguerre *may* work with earlier versions of these packages, but it is untested.
 Installation
 ------------
 
-You can install the latest version of Daguerre using ``pip``::
+Install the latest version of Daguerre using ``pip``::
 
     pip install django-daguerre
 
-You can clone the repository yourself at https://github.com/littleweaver/django-daguerre.
+You can also clone the repository or download a package at
+https://github.com/littleweaver/django-daguerre.
 
 .. highlight:: python
 
 Setup
 -----
 
-Ensure that ``'daguerre'`` is in your project's ``INSTALLED_APPS``::
+Add ``'daguerre'`` to your project's ``INSTALLED_APPS``::
 
    INSTALLED_APPS = (
        'daguerre',
        ...
    )
 
-Add the following or similar anywhere in your URLconf::
+Add Daguerre's URL patterns to your URLconf::
 
    urlpatterns = patterns('',
        url(r'^daguerre/', include('daguerre.urls')),
        ...
    )
+
+Now you're ready to :doc:`use Daguerre's template tags <using-daguerre>`!
 
 .. _upgrade-from-1.0:
 
