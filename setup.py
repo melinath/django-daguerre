@@ -19,7 +19,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'Pillow>=2.3.0',
-        'django>=1.6.1',
+        'django>=1.7',
         'six>=1.3.0',
     ],
     extras_require={
