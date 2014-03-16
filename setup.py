@@ -19,12 +19,15 @@ setup(
     zip_safe=False,
     install_requires=[
         'Pillow>=2.3.0',
-        'django>=1.6.1',
+        'django>=1.7',
         'six>=1.3.0',
     ],
     extras_require={
         'docs': ["sphinx>=1.0"],
     },
+    dependency_links=[
+        'https://www.djangoproject.com/download/1.7a2/tarball/'
+    ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Programming Language :: Python',
