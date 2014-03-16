@@ -46,7 +46,8 @@ Contents
    :maxdepth: 2
 
    guides/installation-and-setup
-   guides/using-daguerre
+   guides/template-tags
+   guides/areas
    guides/commands
 
 

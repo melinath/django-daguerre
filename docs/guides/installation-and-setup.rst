@@ -40,7 +40,7 @@ Add Daguerre's URL patterns to your URLconf::
        ...
    )
 
-Now you're ready to :doc:`use Daguerre's template tags <using-daguerre>`!
+Now you're ready to :doc:`use Daguerre's template tags </guides/template-tags>`!
 
 .. _upgrade-from-1.0:
 
