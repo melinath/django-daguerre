@@ -25,9 +25,6 @@ setup(
     extras_require={
         'docs': ["sphinx>=1.0"],
     },
-    dependency_links=[
-        'https://www.djangoproject.com/download/1.7a2/tarball/'
-    ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Programming Language :: Python',
