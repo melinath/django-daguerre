@@ -262,7 +262,7 @@ daguerre.jQuery(function($){
                 });
             });
 
-            $.getJSON(ele.data('url'), {w: 540, h: 300, a: 'fit'}, function(data){
+            $.getJSON(ele.data('url'), {r: "fit|540|300"}, function(data){
                 img.attr('src', data['url']);
                 img.attr('width', data['width']);
                 img.attr('height', data['height']);
