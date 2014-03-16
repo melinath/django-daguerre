@@ -16,7 +16,7 @@ template tag:
     {% load daguerre %}
     <img src="{% adjust my_model.image 'fill' width=128 height=256 %}" />
 
-The {% adjust %} tag works directly with any ImageField (or storage path).
+The :ttag:`{% adjust %}` tag works directly with any ImageField (or storage path).
 There is no magic. You don't need to change your models. It Just Works.
 
 Daguerre provides a number of built-in adjustments (such as 'fill') which
