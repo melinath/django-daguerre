@@ -1,15 +1,8 @@
 Installation and Setup
 ======================
 
-Requirements
-------------
-
-* Python 2.7+, 3.3+
-* Pillow 2.3.0+
-* Django 1.7+
-* Six 1.5.2+
-
-Daguerre *may* work with earlier versions of these packages, but they are not officially supported.
+.. note::
+   Daguerre 2.1 requires Python 2.7+ and Django 1.7+. For more information, see :ref:`versions-and-requirements`.
 
 Installation
 ------------
@@ -76,3 +69,33 @@ following migration path::
     $ pip install -U django-daguerre
     $ python manage.py migrate daguerre
     $ python manage.py daguerre clean
+
+.. _versions-and-requirements:
+
+Versions and Requirements
+-------------------------
+
+* Python 2.7+, 3.3+
+* Pillow 2.3.0+
+* Django 1.7+
+* Six 1.5.2+
+
+Daguerre *may* work with earlier versions of these packages, but they
+are not officially supported.
+
+If you need to use earlier versions of Python or Django, refer this
+versions table to determine which version of Daguerre to install.
+
+=============== =================== ===============
+Package         Python              Django
+=============== =================== ===============
+Daguerre 2.1.0  Python 2.7+, 3.3+   Django 1.7+  
+Daguerre 2.0.0  Python 2.6+, 3.3+   Django 1.6.1+
+Daguerre 1.0.1  Python 2.6+         Django 1.4+
+=============== =================== ===============
+
+You can install older versions of Daguerre with pip. E.g.,
+
+.. code-block:: bash
+
+   pip install django-daguerre==2.0
