@@ -4,16 +4,19 @@ Installation and Setup
 .. note::
    Daguerre 2.1 requires Python 2.7+ and Django 1.7+. For more information, see :ref:`versions-and-requirements`.
 
+.. highlight:: bash
+
 Installation
 ------------
 
 Install the latest version of Daguerre using ``pip``::
 
-    $ pip install django-daguerre
+    pip install django-daguerre
 
-.. note:: If you get an error saying ``Could not find a version that satisfies the requirement django>=1.7`` use the following command instead::
-
-    $ pip install django-daguerre -f https://www.djangoproject.com/download/1.7a2/tarball/#egg=django-1.7
+.. note:: If you get an error saying ``Could not find a version that satisfies
+   the requirement django>=1.7`` use the following command instead::
+      
+      pip install django-daguerre -f https://www.djangoproject.com/download/1.7a2/tarball/#egg=django-1.7
 
 You can also clone the repository or download a package at
 https://github.com/littleweaver/django-daguerre.
@@ -39,6 +42,8 @@ Add Daguerre's URL patterns to your URLconf::
 
 Now you're ready to :doc:`use Daguerre's template tags </guides/template-tags>`!
 
+.. highlight:: bash
+
 .. _upgrade-from-1.0:
 
 Upgrading from 1.0.X
@@ -53,22 +58,22 @@ included in that version, and *then* upgrade to Daguerre
 
 This migration path would look as follows::
 
-    $ cd path/to/my/project
-    $ pip install django-daguerre==2.0.0
-    $ python manage.py migrate daguerre
-    $ pip install -U django-daguerre
-    $ python manage.py migrate daguerre 0001 --fake
-    $ python manage.py migrate daguerre
+    cd path/to/my/project
+    pip install django-daguerre==2.0.0
+    python manage.py migrate daguerre
+    pip install -U django-daguerre
+    python manage.py migrate daguerre 0001 --fake
+    python manage.py migrate daguerre
 
 If you *don't* have any manual data to preserve, and if it
 would not adversely affect your site, you can also use the
 following migration path::
 
-    $ cd path/to/my/project
-    $ python manage.py migrate daguerre zero # Or manually delete the daguerre tables
-    $ pip install -U django-daguerre
-    $ python manage.py migrate daguerre
-    $ python manage.py daguerre clean
+    cd path/to/my/project
+    python manage.py migrate daguerre zero # Or manually delete the daguerre tables
+    pip install -U django-daguerre
+    python manage.py migrate daguerre
+    python manage.py daguerre clean
 
 .. _versions-and-requirements:
 
