@@ -1,5 +1,5 @@
-Using Daguerre's Template Tags
-==============================
+Template Tags
+=============
 
 .. module:: daguerre.templatetags.daguerre
 

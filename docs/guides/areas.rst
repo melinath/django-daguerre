@@ -1,4 +1,4 @@
-Smart Cropping With Areas
+Smart Cropping with Areas
 =========================
 
 Daguerre allows you to influence how images are cropped with
