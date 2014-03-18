@@ -1,4 +1,4 @@
-Management commands
+Management Commands
 ===================
 
 ``./manage.py daguerre clean``

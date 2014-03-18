@@ -39,7 +39,7 @@ to by their lowercase name:
 
 	{% adjust image "fit" width=300 %}
 
-See :doc:`/guides/using-daguerre` for examples.
+See :doc:`/guides/template-tags` for examples.
 
 Custom Adjustments
 ------------------

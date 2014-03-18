@@ -1,12 +1,12 @@
-Using daguerre
-==============
+Template Tags
+=============
 
 .. module:: daguerre.templatetags.daguerre
 
 .. templatetag:: {% adjust %}
 
-{% adjust %}
-++++++++++++
+adjust
+++++++
 
 The easiest way to use Daguerre is through the :ttag:`{% adjust %}`
 template tag:
@@ -16,7 +16,7 @@ template tag:
     {% load daguerre %}
     <img src="{% adjust my_model.image 'fill' width=128 height=256 %}" />
 
-:mod:`.daguerre` works directly with any ImageField (or storage path).
+The :ttag:`{% adjust %}` tag works directly with any ImageField (or storage path).
 There is no magic. You don't need to change your models. It Just Works.
 
 Daguerre provides a number of built-in adjustments (such as 'fill') which
@@ -69,7 +69,7 @@ Getting adjusted width and height
 
     {% load daguerre %}
     {% adjust my_model.image 'fit' width=128 height=128 as image %}
-    <img src="{{ image }}" width={{ image.width }} height={{ image.height }} />
+    <img src="{{ image }}" width="{{ image.width }}" height="{{ image.height }}" />
 
 The object being set to the ``image`` context variable is an
 :class:`.AdjustmentInfoDict` instance. In addition to rendering as
@@ -105,8 +105,8 @@ adjustments.
 
 .. templatetag:: {% adjust_bulk %}
 
-{% adjust_bulk %}
-+++++++++++++++++
+adjust_bulk
++++++++++++
 
 If you are using a large number of similar adjustments in one
 template - say, looping over a queryset and adjusting the same
@@ -129,28 +129,6 @@ The syntax is similar to :ttag:`{% adjust %}`, except that:
   of an image file or storage path. (If the iterable is an iterable of
   image files or storage paths, the lookup is not required.)
 
-Editing Areas
-+++++++++++++
-
-Daguerre provides a widget which can be used with any
-:class:`ImageField` to edit :class:`Areas <.Area>` for that image file.
-Using this widget with a :class:`ModelAdmin` is as simple as defining
-appropriate `formfield_overrides`_.
-
-.. code-block:: python
-
-    from daguerre.widgets import AreaWidget
-
-    class YourModelAdmin(admin.ModelAdmin):
-        formfield_overrides = {
-            models.ImageField: {'widget': AreaWidget},
-        }
-        ...
-
-After you define :class:`Areas <.Area>` for an image in the admin,
-adjustments that remove parts of the image (such as crop and fill) can
-take them into account and protect those parts of the image during
-processing. Otherwise, any cropping will be done evenly from opposing
-sides.
-
-.. _formfield_overrides: https://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.formfield_overrides
+You've got everything you need now to use Daguerre and resize images
+like a champ. But what if you need more control over *how* your images
+are cropped? Read on to learn about :doc:`/guides/areas`.
