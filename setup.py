@@ -23,7 +23,7 @@ setup(
         'six>=1.3.0',
     ],
     extras_require={
-        'docs': ["sphinx>=1.0"],
+        'docs': ["sphinx-rtd-theme>=0.1.5"],
     },
     classifiers=[
         'Development Status :: 5 - Production/Stable',
