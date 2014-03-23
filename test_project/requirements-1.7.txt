@@ -3,3 +3,4 @@ Pillow==2.3.0
 https://www.djangoproject.com/download/1.7b1/tarball/
 mock==1.0.1
 six==1.5.2
+selenium==2.40.0
