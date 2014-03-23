@@ -9,6 +9,9 @@ matrix:
   exclude:
     - python: "3.3"
       env: DB=mysql REQUIREMENTS=test_project/requirements-1.7.txt
+before_install:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
 install:
   - pip install . --no-deps
   - pip install --use-mirrors --no-deps -r $REQUIREMENTS
