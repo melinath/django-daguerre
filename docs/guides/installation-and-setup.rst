@@ -13,11 +13,6 @@ Install the latest version of Daguerre using ``pip``::
 
     pip install django-daguerre
 
-.. note:: If you get error ``Could not find a version that satisfies
-   the requirement django>=1.7`` use the following command instead::
-      
-      pip install django-daguerre -f https://www.djangoproject.com/download/1.7a2/tarball/#egg=django-1.7
-
 You can also clone the repository or download a package at
 https://github.com/littleweaver/django-daguerre.
 
