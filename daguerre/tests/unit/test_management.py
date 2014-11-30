@@ -8,6 +8,7 @@ from daguerre.adjustments import Fit
 from daguerre.management.commands._daguerre_clean import Command as Clean
 from daguerre.management.commands._daguerre_preadjust import (NO_ADJUSTMENTS,
     BAD_STRUCTURE, Command as Preadjust)
+from daguerre.management.commands.daguerre import Command as Daguerre
 from daguerre.models import AdjustedImage, Area
 from daguerre.tests.base import BaseTestCase
 
@@ -193,3 +194,12 @@ class PreadjustTestCase(BaseTestCase):
         with override_settings(DAGUERRE_PREADJUSTMENTS=dp):
             helpers = preadjust._get_helpers()
         self.assertEqual(len(helpers), 1)
+
+
+class DaguerreTestCase(BaseTestCase):
+    def test_find_commands(self):
+        daguerre_command = Daguerre()
+        self.assertEqual(daguerre_command._find_commands(), {
+            'clean': '_daguerre_clean',
+            'preadjust': '_daguerre_preadjust'
+        })
