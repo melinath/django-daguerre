@@ -23,14 +23,14 @@ class AdjustmentNode(template.Node):
     def render(self, context):
         image = self.image.resolve(context)
 
-        adj_instances = []
+        helper = AdjustmentHelper([image], generate=False)
+
         for adj_to_resolve, kwargs_to_resolve in self.adjustments:
             adj = adj_to_resolve.resolve(context)
             kwargs = dict((k, v.resolve(context))
                           for k, v in six.iteritems(kwargs_to_resolve))
             try:
-                adj_cls = registry[adj]
-                adj_instances.append(adj_cls(**kwargs))
+                helper.adjust(adj, **kwargs)
             except (KeyError, ValueError):
                 if settings.TEMPLATE_DEBUG:
                     raise
@@ -38,8 +38,7 @@ class AdjustmentNode(template.Node):
                     context[self.asvar] = AdjustmentInfoDict()
                 return ''
 
-        helper = AdjustmentHelper([image], adj_instances)
-        info_dict = helper.info_dicts()[0][1]
+        info_dict = helper[0][1]
 
         if self.asvar is not None:
             context[self.asvar] = info_dict
@@ -60,7 +59,7 @@ class BulkAdjustmentNode(template.Node):
         for adj, kwargs in self.adjustments:
             adj_list.append((adj.resolve(context),
                              dict((k, v.resolve(context))
-                             for k, v in six.iteritems(kwargs))))
+                                  for k, v in six.iteritems(kwargs))))
 
         # First adjustment *might* be a lookup.
         # We consider it a lookup if it is not an adjustment name.
@@ -69,20 +68,18 @@ class BulkAdjustmentNode(template.Node):
         else:
             lookup = adj_list[0][0]
             adj_list = adj_list[1:]
+        helper = AdjustmentHelper(iterable, lookup=lookup, generate=False)
 
-        adj_instances = []
         for adj, kwargs in adj_list:
             try:
-                adj_cls = registry[adj]
-                adj_instances.append(adj_cls(**kwargs))
+                helper.adjust(adj, **kwargs)
             except (KeyError, ValueError):
                 if settings.TEMPLATE_DEBUG:
                     raise
                 context[self.asvar] = []
                 return ''
 
-        helper = AdjustmentHelper(iterable, adj_instances, lookup)
-        context[self.asvar] = helper.info_dicts()
+        context[self.asvar] = helper
         return ''
 
 

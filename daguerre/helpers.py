@@ -16,7 +16,7 @@ try:
 except ImportError:
     import Image
 
-from daguerre.adjustments import registry
+from daguerre.adjustments import registry, Adjustment
 from daguerre.models import Area, AdjustedImage
 from daguerre.utils import make_hash, save_image, get_image_dimensions, KEEP_FORMATS, DEFAULT_FORMAT
 
@@ -52,21 +52,18 @@ class AdjustmentHelper(object):
     param_sep = '|'
     adjustment_sep = '>'
 
-    def __init__(self, iterable, adjustments, lookup=None):
-        adjustments = list(adjustments)
-        if not adjustments:
-            raise ValueError("At least one adjustment must be provided.")
-        self.adjustments = adjustments
-        self.adjust_uses_areas = any([getattr(adj.adjust, 'uses_areas', True)
-                                      for adj in adjustments])
-        self.calc_uses_areas = any([getattr(adj.calculate, 'uses_areas', True)
-                                    for adj in adjustments])
-        self.requested = self._serialize_requested(adjustments)
-
+    def __init__(self, iterable, lookup=None, generate=False):
+        # generate: whether iterating over this object should actually
+        # run adjustments, or just return infodicts.
+        self.adjustments = []
         self.iterable = list(iterable)
         self.lookup = lookup
+        self.generate = generate
         self.remaining = {}
         self.adjusted = {}
+        self.adjust_uses_areas = False
+        self.calc_uses_areas = False
+        self._finalized = False
 
         if lookup is None:
             lookup_func = lambda obj, default=None: obj
@@ -84,15 +81,50 @@ class AdjustmentHelper(object):
 
         self.lookup_func = lookup_func
 
-        for item in iterable:
-            path = self.lookup_func(item, None)
-            if isinstance(path, ImageFile):
-                path = path.name
-            # Skip empty paths (such as from an ImageFieldFile with no image.)
-            if path and isinstance(path, six.string_types):
-                self.remaining.setdefault(path, []).append(item)
-            else:
-                self.adjusted[item] = AdjustmentInfoDict()
+    def __unicode__(self):
+        return u"<{0}: {1}, {2}, {3}>".format(
+            self.__class__.__name__,
+            self.__class__._serialize_requested(self.adjustments),
+            self.lookup,
+            self.generate
+        )
+
+    def __iter__(self):
+        if not self._finalized:
+            self._finalize()
+        for item in self.iterable:
+            yield (item, self.adjusted[item])
+
+    def __getitem__(self, key):
+        if not self._finalized:
+            self._finalize()
+        if isinstance(key, slice):
+            return [(item, self.adjusted[item])
+                    for item in self.iterable]
+        item = self.iterable[key]
+        return item, self.adjusted[item]
+
+    def adjust(self, key, **kwargs):
+        if self._finalized:
+            raise ValueError("Finalized helpers can't be adjusted.")
+        if isinstance(key, Adjustment):
+            if kwargs:
+                raise ValueError("kwargs can't be specified with an "
+                                 "adjustment instance")
+            adj = key
+        else:
+            cls = registry[key]
+            adj = cls(**kwargs)
+        self.adjustments.append(adj)
+        self.adjust_uses_areas = (self.adjust_uses_areas or
+                                  getattr(adj.adjust, 'uses_areas', True))
+        self.calc_uses_areas = (self.calc_uses_areas or
+                                getattr(adj.calculate, 'uses_areas', True))
+        return self
+
+    @property
+    def requested(self):
+        return self._serialize_requested(self.adjustments)
 
     @classmethod
     def _serialize_requested(cls, adjustments):
@@ -160,7 +192,7 @@ class AdjustmentHelper(object):
         return qd
 
     @classmethod
-    def from_querydict(cls, image_or_storage_path, querydict, secure=False):
+    def from_querydict(cls, image_or_storage_path, querydict, secure=False, generate=False):
         kwargs = SortedDict()
         for verbose, short in six.iteritems(cls.query_map):
             if short in querydict:
@@ -173,7 +205,10 @@ class AdjustmentHelper(object):
             raise ValueError("Security hash missing.")
 
         adjustments = cls._deserialize_requested(kwargs['requested'])
-        return cls([image_or_storage_path], adjustments)
+        helper = cls([image_or_storage_path], generate=generate)
+        for adjustment in adjustments:
+            helper.adjust(adjustment)
+        return helper
 
     def _adjusted_image_info_dict(self, adjusted_image):
         try:
@@ -219,7 +254,24 @@ class AdjustmentHelper(object):
             'ajax_url': ajax_url,
         })
 
-    def _fetch_adjusted(self):
+    def _finalize(self):
+        if not self.adjustments:
+            raise ValueError("At least one adjustment must be provided.")
+        if self._finalized:
+            return
+
+        self.finalized = True
+
+        for item in self.iterable:
+            path = self.lookup_func(item, None)
+            if isinstance(path, ImageFile):
+                path = path.name
+            # Skip empty paths (such as from an ImageFieldFile with no image.)
+            if path and isinstance(path, six.string_types):
+                self.remaining.setdefault(path, []).append(item)
+            else:
+                self.adjusted[item] = AdjustmentInfoDict()
+
         if self.remaining:
             query_kwargs = self.get_query_kwargs()
             adjusted_images = AdjustedImage.objects.filter(**query_kwargs
@@ -233,35 +285,22 @@ class AdjustmentHelper(object):
                     self.adjusted[item] = info_dict
                 del self.remaining[path]
 
-    def info_dicts(self):
-        self._fetch_adjusted()
-
-        # And then make adjustment dicts for any remaining paths.
         if self.remaining:
             for path, items in six.iteritems(self.remaining.copy()):
-                info_dict = self._path_info_dict(path)
-                for item in items:
-                    self.adjusted[item] = info_dict
-                del self.remaining[path]
-
-        return [(item, self.adjusted[item]) for item in self.iterable]
-
-    def adjust(self):
-        self._fetch_adjusted()
-
-        if self.remaining:
-            for path, items in six.iteritems(self.remaining.copy()):
-                try:
-                    adjusted_image = self._adjust(path)
-                except IOERRORS:
-                    info_dict = AdjustmentInfoDict()
+                if self.generate is True:
+                    try:
+                        adjusted_image = self._generate(path)
+                    except IOERRORS:
+                        info_dict = AdjustmentInfoDict()
+                    else:
+                        info_dict = self._adjusted_image_info_dict(adjusted_image)
                 else:
-                    info_dict = self._adjusted_image_info_dict(adjusted_image)
+                    info_dict = self._path_info_dict(path)
                 for item in items:
                     self.adjusted[item] = info_dict
                 del self.remaining[path]
 
-    def _adjust(self, storage_path):
+    def _generate(self, storage_path):
         # May raise IOError if the file doesn't exist or isn't a valid image.
 
         # If we're here, we can assume that the adjustment doesn't already
