@@ -67,8 +67,11 @@ class Command(NoArgsCommand):
                 else:
                     iterable = model_or_iterable
 
-                helpers.append(
-                    AdjustmentHelper(iterable, adjustments, lookup))
+                helper = AdjustmentHelper(iterable, lookup=lookup, generate=True)
+                for adjustment in adjustments:
+                    helper.adjust(adjustment)
+                helper._finalize()
+                helpers.append(helper)
         except (ValueError, TypeError, LookupError):
             raise CommandError(BAD_STRUCTURE)
 

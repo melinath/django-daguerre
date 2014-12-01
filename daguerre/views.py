@@ -21,20 +21,20 @@ class AdjustedImageRedirectView(View):
     """
     secure = True
 
-    def get_helper(self):
+    def get_helper(self, generate=False):
         try:
             return AdjustmentHelper.from_querydict(
                 self.kwargs['storage_path'],
                 self.request.GET,
-                secure=self.secure)
+                secure=self.secure,
+                generate=generate)
         except ValueError as e:
             raise Http404(six.text_type(e))
 
     def get(self, request, *args, **kwargs):
-        helper = self.get_helper()
-        helper.adjust()
+        helper = self.get_helper(generate=True)
         try:
-            adjusted = list(helper.adjusted.values())[0]
+            adjusted = helper[0][1]
             url = adjusted['url']
         except (IndexError, KeyError):
             raise Http404("Adjustment failed.")
@@ -50,8 +50,8 @@ class AjaxAdjustmentInfoView(AdjustedImageRedirectView):
         if not request.is_ajax():
             raise Http404("Request is not AJAX.")
 
-        helper = self.get_helper()
-        info_dict = helper.info_dicts()[0][1]
+        helper = self.get_helper(generate=False)
+        info_dict = helper[0][1]
 
         if not info_dict:
             # Something went wrong. The image probably doesn't exist.

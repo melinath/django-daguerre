@@ -7,10 +7,10 @@ class RequestResponseTestCase(BaseTestCase):
     def test_unprepped(self):
         image = self.create_image('100x100.png')
 
-        crop = Crop(width=50, height=50)
-
         with self.assertNumQueries(1):
-            info_dict = AdjustmentHelper([image], [crop]).info_dicts()[0][1]
+            helper = AdjustmentHelper([image], generate=False)
+            helper.adjust('crop', width=50, height=50)
+            info_dict = helper[0][1]
         with self.assertNumQueries(4):
             response = self.client.get(info_dict['url'])
         self.assertEqual(response.status_code, 302)
@@ -21,9 +21,11 @@ class RequestResponseTestCase(BaseTestCase):
         crop = Crop(width=50, height=50)
 
         with self.assertNumQueries(1):
-            info_dict = AdjustmentHelper([image], [crop]).info_dicts()[0][1]
+            helper = AdjustmentHelper([image], generate=False)
+            helper.adjust(crop)
+            info_dict = helper[0][1]
         with self.assertNumQueries(4):
-            AdjustmentHelper([image], [crop]).adjust()
+            AdjustmentHelper([image], generate=True).adjust(crop)._finalize()
         with self.assertNumQueries(1):
             response = self.client.get(info_dict['url'])
         self.assertEqual(response.status_code, 302)
@@ -33,12 +35,10 @@ class RequestResponseTestCase(BaseTestCase):
 
         crop = Crop(width=50, height=50)
 
-        helper = AdjustmentHelper([image], [crop])
+        helper = AdjustmentHelper([image], generate=True).adjust(crop)
         with self.assertNumQueries(4):
-            helper.adjust()
-        adjusted = list(helper.adjusted.values())[0]
+            adjusted = helper[0][1]
 
         with self.assertNumQueries(1):
-            info_dict = AdjustmentHelper([image], [crop]
-                                         ).info_dicts()[0][1]
+            info_dict = AdjustmentHelper([image], generate=False).adjust(crop)[0][1]
         self.assertEqual(info_dict['url'], adjusted['url'])
