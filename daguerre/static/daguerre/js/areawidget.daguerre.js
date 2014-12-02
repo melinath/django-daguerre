@@ -203,7 +203,7 @@ daguerre.jQuery(function($){
         var container = this,
             areas = container.areas = [],
             img = container.img = $('<img />'),
-            add_link = container.add_link = $('<a class="add-area" href="javascript://" title="Add Another"><img src="/static/admin/img/icon_addlink.gif" width="10" height="10" alt="Add Area"></a>'),
+            add_link = container.add_link = $('<a class="add-area icons-add-another" href="javascript://" title="Add Another"><img src="/static/admin/img/icon_addlink.gif" width="10" height="10" alt="Add Area"></a>'),
             table = container.table = $(
                 '<table><thead><tr>' +
                 '<th>Name</th>' +
