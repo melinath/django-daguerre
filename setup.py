@@ -9,7 +9,7 @@ setup(
     name='django-daguerre',
     version='.'.join([str(v) for v in version]),
     url="http://django-daguerre.readthedocs.org/",
-    description='Image management and processing for Django.',
+    description='On-the-fly image manipulation for Django 1.7+.',
     long_description=open(
             os.path.join(os.path.dirname(__file__), 'README.rst')
     ).read(),
