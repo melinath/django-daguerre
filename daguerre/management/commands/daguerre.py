@@ -1,7 +1,11 @@
 import os
 import sys
 
-from django.apps import apps
+try:
+    from django.apps import apps
+except ImportError:
+    apps = None
+    from django.core.management import find_management_module
 from django.core.management import load_command_class
 from django.core.management.base import BaseCommand
 from django.utils.encoding import smart_str
@@ -14,8 +18,13 @@ NO_ARGS = """The daguerre management command requires a subcommand.
 
 class Command(BaseCommand):
     def _find_commands(self):
-        command_dir = os.path.join(apps.get_app_config('daguerre').path,
-                                   'management', 'commands')
+        if apps:
+            parts = (apps.get_app_config('daguerre').path,
+                     'management', 'commands')
+        else:
+            parts = (find_management_module('daguerre'),
+                     'commands')
+        command_dir = os.path.join(*parts)
         try:
             return dict((f[10:-3], f[:-3]) for f in os.listdir(command_dir)
                         if f.startswith('_daguerre_') and f.endswith('.py'))
