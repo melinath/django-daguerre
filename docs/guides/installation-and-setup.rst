@@ -37,6 +37,17 @@ Add Daguerre's URL patterns to your URLconf::
 
 Now you're ready to :doc:`use Daguerre's template tags </guides/template-tags>`!
 
+Using South
+-----------
+
+If you are using the South migrations (for example, if you
+are on Django 1.6) you will need to add the following lines
+to your settings::
+
+    SOUTH_MIGRATION_MODULES = {
+        'daguerre': 'daguerre.south_migrations',
+    }
+
 .. highlight:: bash
 
 .. _upgrade-from-1.0:
@@ -44,12 +55,12 @@ Now you're ready to :doc:`use Daguerre's template tags </guides/template-tags>`!
 Upgrading from 1.0.X
 --------------------
 
-Daguerre 2.1 and up use native Django migrations. If you are
-migrating from Daguerre 1.0, and you have manually created
-data (for example Areas) that you want to preserve, you
-*must* first upgrade to Daguerre 2.0, run the migrations
-included in that version, and *then* upgrade to Daguerre
-2.1.
+Daguerre 2.1 and up provide native Django migrations alongside
+(new) South migrations. If you are migrating from Daguerre
+1.0, and you have manually created data (for example Areas)
+that you want to preserve, you *must* first upgrade to
+Daguerre 2.0, run the migrations included in that version, and
+*then* upgrade to Daguerre 2.1.
 
 This migration path would look as follows::
 
@@ -75,9 +86,9 @@ following migration path::
 Versions and Requirements
 -------------------------
 
-* Python 2.7+, 3.3+
+* Python 2.6+, 3.3+
 * Pillow 2.3.0+
-* Django 1.7+
+* Django 1.6+
 * Six 1.5.2+
 
 Daguerre *may* work with earlier versions of these packages, but they
