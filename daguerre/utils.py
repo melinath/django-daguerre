@@ -30,7 +30,7 @@ ORIENTATION_TO_TRANSPOSE = {
 #: Which Exif orientation tags correspond to a 90deg or 270deg rotation.
 ROTATION_TAGS = (5, 6, 7, 8)
 #: Map human-readable Exif tag names to their markers.
-EXIF_TAGS = {y:x for x,y in ExifTags.TAGS.items()}
+EXIF_TAGS = dict((y, x) for (x, y) in six.iteritems(ExifTags.TAGS))
 
 
 def make_hash(*args, **kwargs):
@@ -45,11 +45,11 @@ def make_hash(*args, **kwargs):
 def get_exif_orientation(image):
     # Extract the orientation tag
     try:
-        exif_data = image._getexif() # should be careful with that _method
+        exif_data = image._getexif()  # should be careful with that _method
     except AttributeError:
         # No Exif data, return None
         return None
-    if exif_data is not None and EXIF_TAGS['Orientation'] in exif_data: 
+    if exif_data is not None and EXIF_TAGS['Orientation'] in exif_data:
         orientation = exif_data[EXIF_TAGS['Orientation']]
         return orientation
     # No Exif orientation tag, return None
