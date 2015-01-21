@@ -7,7 +7,7 @@ from django.template.defaultfilters import escape
 import six
 
 from daguerre.adjustments import registry
-from daguerre.helpers import AdjustmentHelper, AdjustmentInfoDict
+from daguerre.helpers import adjust, AdjustmentInfoDict
 
 
 register = template.Library()
@@ -21,16 +21,14 @@ class AdjustmentNode(template.Node):
         self.asvar = asvar
 
     def render(self, context):
-        image = self.image.resolve(context)
-
-        helper = AdjustmentHelper([image], generate=False)
+        adjusted = adjust(self.image.resolve(context))
 
         for adj_to_resolve, kwargs_to_resolve in self.adjustments:
             adj = adj_to_resolve.resolve(context)
             kwargs = dict((k, v.resolve(context))
                           for k, v in six.iteritems(kwargs_to_resolve))
             try:
-                helper.adjust(adj, **kwargs)
+                adjusted = adjust(adjusted, adj, **kwargs)
             except (KeyError, ValueError):
                 if settings.TEMPLATE_DEBUG:
                     raise
@@ -38,12 +36,10 @@ class AdjustmentNode(template.Node):
                     context[self.asvar] = AdjustmentInfoDict()
                 return ''
 
-        info_dict = helper[0][1]
-
         if self.asvar is not None:
-            context[self.asvar] = info_dict
+            context[self.asvar] = adjusted
             return ''
-        return escape(info_dict.get('url', ''))
+        return escape(adjusted)
 
 
 class BulkAdjustmentNode(template.Node):
@@ -68,18 +64,18 @@ class BulkAdjustmentNode(template.Node):
         else:
             lookup = adj_list[0][0]
             adj_list = adj_list[1:]
-        helper = AdjustmentHelper(iterable, lookup=lookup, generate=False)
+        adjusted = adjust(iterable, lookup=lookup)
 
         for adj, kwargs in adj_list:
             try:
-                helper.adjust(adj, **kwargs)
+                adjusted = adjust(adjusted, adj, **kwargs)
             except (KeyError, ValueError):
                 if settings.TEMPLATE_DEBUG:
                     raise
                 context[self.asvar] = []
                 return ''
 
-        context[self.asvar] = helper
+        context[self.asvar] = adjusted
         return ''
 
 
@@ -103,8 +99,8 @@ def _get_adjustments(parser, tag_name, bits):
     return adjustments
 
 
-@register.tag
-def adjust(parser, token):
+@register.tag(name="adjust")
+def adjust_tag(parser, token):
     """
     Returns a url to the adjusted image, or (with ``as``) stores a dictionary
     in the context with ``width``, ``height``, and ``url`` keys for the

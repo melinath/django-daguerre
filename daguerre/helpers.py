@@ -15,6 +15,10 @@ try:
     from PIL import Image
 except ImportError:
     import Image
+try:
+    import jingo
+except ImportError:
+    jingo = None
 
 from daguerre.adjustments import registry, Adjustment
 from daguerre.models import Area, AdjustedImage
@@ -32,6 +36,27 @@ except ImportError:
 else:
     IOERRORS = IOERRORS + (boto.exception.BotoServerError,
                            boto.exception.S3ResponseError)
+
+
+def adjust(path_or_iterable, adjustment=None, lookup=None, generate=False, **kwargs):
+    if isinstance(path_or_iterable, AdjustmentHelper):
+        helper = path_or_iterable
+    else:
+        if isinstance(path_or_iterable, six.string_types):
+            iterable = [path_or_iterable]
+        elif isinstance(path_or_iterable, ImageFile):
+            iterable = [path_or_iterable.name]
+        else:
+            try:
+                iterable = list(path_or_iterable)
+            except TypeError:
+                iterable = [path_or_iterable]
+        helper = AdjustmentHelper(iterable, lookup=lookup, generate=generate)
+    if adjustment:
+        helper.adjust(adjustment, **kwargs)
+    return helper
+if jingo:
+    jingo.register_filter(adjust)
 
 
 class AdjustmentInfoDict(dict):
@@ -82,6 +107,15 @@ class AdjustmentHelper(object):
         self.lookup_func = lookup_func
 
     def __unicode__(self):
+        try:
+            return six.text_type(self[0][1])
+        except IndexError:
+            return u''
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __repr__(self):
         return u"<{0}: {1}, {2}, {3}>".format(
             self.__class__.__name__,
             self.__class__._serialize_requested(self.adjustments),
