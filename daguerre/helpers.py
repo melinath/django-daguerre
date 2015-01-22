@@ -3,7 +3,7 @@ import itertools
 import ssl
 
 from django.conf import settings
-from django.core.files.images import ImageFile
+from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
@@ -44,7 +44,7 @@ def adjust(path_or_iterable, adjustment=None, lookup=None, generate=False, **kwa
     else:
         if isinstance(path_or_iterable, six.string_types):
             iterable = [path_or_iterable]
-        elif isinstance(path_or_iterable, ImageFile):
+        elif isinstance(path_or_iterable, File):
             iterable = [path_or_iterable.name]
         else:
             try:
@@ -298,7 +298,7 @@ class AdjustmentHelper(object):
 
         for item in self.iterable:
             path = self.lookup_func(item, None)
-            if isinstance(path, ImageFile):
+            if isinstance(path, File):
                 path = path.name
             # Skip empty paths (such as from an ImageFieldFile with no image.)
             if path and isinstance(path, six.string_types):
