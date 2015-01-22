@@ -56,7 +56,7 @@ def adjust(path_or_iterable, adjustment=None, lookup=None, generate=False, **kwa
         helper.adjust(adjustment, **kwargs)
     return helper
 if jingo:
-    jingo.register_filter(adjust)
+    jingo.register.filter(adjust)
 
 
 class AdjustmentInfoDict(dict):
