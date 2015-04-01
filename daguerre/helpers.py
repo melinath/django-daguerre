@@ -260,7 +260,10 @@ class AdjustmentHelper(object):
         try:
             with default_storage.open(storage_path, 'rb') as im_file:
                 width, height = get_image_dimensions(im_file)
-        except IOERRORS:
+        except IOERRORS + (TypeError,):
+            # TypeError will be raised if for any reason storage_path's
+            # dimensions can't be determined. get_image_dimensions will
+            # return None, which can't be split into width and height.
             return AdjustmentInfoDict()
 
         if self.calc_uses_areas:
