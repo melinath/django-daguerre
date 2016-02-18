@@ -58,7 +58,7 @@ You can also use the built-in "namedcrop" adjustment force a specific crop.
 
 .. code-block:: html+django
 
-	<img src="{% adjust my_model.image "namedcrop" area="face" %}" />
+	<img src="{% adjust my_model.image "namedcrop" name="face" %}" />
 
 .. image:: /_static/cat_named_crop.jpg
 
