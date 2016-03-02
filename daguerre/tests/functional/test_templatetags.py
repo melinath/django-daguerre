@@ -1,7 +1,6 @@
 from django.template import Template, Context
 from django.utils.html import escape
 
-from daguerre.adjustments import Fit, Crop
 from daguerre.helpers import AdjustmentHelper
 from daguerre.models import AdjustedImage
 from daguerre.tests.base import BaseTestCase

@@ -5,7 +5,6 @@ from django.http import Http404
 from django.test import RequestFactory
 from django.utils.encoding import force_text
 
-from daguerre.adjustments import NamedCrop, Fill
 from daguerre.helpers import AdjustmentHelper
 from daguerre.models import Area
 from daguerre.tests.base import BaseTestCase

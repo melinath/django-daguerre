@@ -26,7 +26,7 @@ install:
   - if [ $DB == 'mysql' ]; then pip install --use-mirrors --no-deps mysql-python; fi
   - if [ $DB == 'postgres' ]; then pip install --no-deps psycopg2==2.5.3; fi
 before_script:
-  - "flake8 --ignore=E501 daguerre"
+  - "flake8 --ignore=E501,E731 daguerre"
   - if [ $DB == 'mysql' ]; then mysql -e 'CREATE DATABASE daguerre_test;'; fi
   - if [ $DB == 'postgres' ]; then psql -c 'drop database if exists daguerre_test;'
     -U postgres; fi

@@ -6,9 +6,11 @@ except ImportError:
     import Image
 
 from daguerre.tests.base import BaseTestCase
-from daguerre.utils import (make_hash, save_image, get_exif_orientation,
-    get_image_dimensions, apply_exif_orientation, exif_aware_size,
-    DEFAULT_FORMAT, KEEP_FORMATS)
+from daguerre.utils import (
+    make_hash, save_image, get_exif_orientation,
+    get_image_dimensions, apply_exif_orientation,
+    exif_aware_size, DEFAULT_FORMAT, KEEP_FORMATS
+)
 
 
 class MakeHashTestCase(TestCase):
@@ -100,7 +102,6 @@ class ExifAwareSizeTestCase(BaseTestCase):
     def test_exif_not_rotated(self):
         image = Image.open(self._data_path('20x7_exif_not_rotated.jpg'))
         self.assertEqual(exif_aware_size(image), self.ORIGINAL_ORIENTATION)
-
 
     def test_non_exif(self):
         image = Image.open(self._data_path('20x7_no_exif.png'))

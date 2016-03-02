@@ -10,7 +10,9 @@ import six
 try:
     from PIL import Image, ImageFile, ExifTags
 except ImportError:
-    import Image, ImageFile, ExifTags
+    import Image
+    import ImageFile
+    import ExifTags
 
 #: Formats that we trust to be able to handle gracefully.
 KEEP_FORMATS = ('PNG', 'JPEG', 'GIF')
