@@ -1,31 +1,21 @@
 language: python
 python:
-  - "2.6"
   - "2.7"
   - "3.3"
   - "3.4"
+  - "3.5"
 env:
-  - DB=sqlite3 REQUIREMENTS=test_project/requirements-1.6.txt
-  - DB=mysql REQUIREMENTS=test_project/requirements-1.6.txt
-  - DB=sqlite3 REQUIREMENTS=test_project/requirements-1.7.txt
-  - DB=mysql REQUIREMENTS=test_project/requirements-1.7.txt
+  - DB=sqlite3 DJANGO=1.7
+  - DB=mysql DJANGO=1.7
 matrix:
   exclude:
-    - python: "2.6"
-      env: DB=sqlite3 REQUIREMENTS=test_project/requirements-1.7.txt
-    - python: "2.6"
-      env: DB=mysql REQUIREMENTS=test_project/requirements-1.7.txt
-    - python: "3.3"
-      env: DB=mysql REQUIREMENTS=test_project/requirements-1.6.txt
-    - python: "3.4"
-      env: DB=mysql REQUIREMENTS=test_project/requirements-1.6.txt
-    - python: "3.3"
-      env: DB=mysql REQUIREMENTS=test_project/requirements-1.7.txt
-    - python: "3.4"
-      env: DB=mysql REQUIREMENTS=test_project/requirements-1.7.txt
+    - python: "3.5"
+      env: DB=mysql DJANGO=1.7
+    - python: "3.5"
+      env: DB=sqlite3 DJANGO=1.7
 install:
   - pip install . --no-deps
-  - pip install --use-mirrors --no-deps -r $REQUIREMENTS
+  - pip install --no-deps -r requirements-$DJANGO.txt
   - if [ $DB == 'mysql' ]; then pip install --use-mirrors --no-deps mysql-python; fi
 before_script:
   - if [ $DB == 'mysql' ]; then mysql -e 'CREATE DATABASE daguerre_test;'; fi
