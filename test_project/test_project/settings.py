@@ -84,11 +84,6 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'daguerre',
-    #'south',
 )
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
-
-SOUTH_MIGRATION_MODULES = {
-    'daguerre': 'daguerre.south_migrations',
-}
