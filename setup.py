@@ -18,9 +18,9 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'Pillow>=2.3.0',
-        'django>=1.7',
-        'six>=1.3.0',
+        'Pillow<=2.7.0',
+        'django>=1.7,<1.9',
+        'six>=1.10.0',
     ],
     extras_require={
         'docs': ["sphinx-rtd-theme>=0.1.5"],
