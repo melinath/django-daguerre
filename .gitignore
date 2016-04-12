@@ -4,3 +4,4 @@
 /test_project/test_project/db.sl3
 /*.egg-info/
 /docs/_build/
+/dist/

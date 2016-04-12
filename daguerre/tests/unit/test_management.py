@@ -6,8 +6,11 @@ import mock
 
 from daguerre.adjustments import Fit
 from daguerre.management.commands._daguerre_clean import Command as Clean
-from daguerre.management.commands._daguerre_preadjust import (NO_ADJUSTMENTS,
-    BAD_STRUCTURE, Command as Preadjust)
+from daguerre.management.commands._daguerre_preadjust import (
+    NO_ADJUSTMENTS,
+    BAD_STRUCTURE,
+    Command as Preadjust,
+)
 from daguerre.management.commands.daguerre import Command as Daguerre
 from daguerre.models import AdjustedImage, Area
 from daguerre.tests.base import BaseTestCase
@@ -28,9 +31,9 @@ class CleanTestCase(BaseTestCase):
         adjusted1 = AdjustedImage.objects.create(requested='fit|50|50',
                                                  storage_path=nonexistant,
                                                  adjusted=adjusted)
-        adjusted2 = AdjustedImage.objects.create(requested='fit|50|50',
-                                                 storage_path=adjusted,
-                                                 adjusted=adjusted)
+        AdjustedImage.objects.create(requested='fit|50|50',
+                                     storage_path=adjusted,
+                                     adjusted=adjusted)
         clean = Clean()
         self.assertEqual(list(clean._old_adjustments()), [adjusted1])
         default_storage.delete(adjusted)
@@ -53,8 +56,8 @@ class CleanTestCase(BaseTestCase):
         }
         area1 = Area.objects.create(storage_path=nonexistant,
                                     **kwargs)
-        area2 = Area.objects.create(storage_path=storage_path,
-                                    **kwargs)
+        Area.objects.create(storage_path=storage_path,
+                            **kwargs)
         clean = Clean()
         self.assertEqual(list(clean._old_areas()), [area1])
         default_storage.delete(storage_path)
@@ -73,9 +76,9 @@ class CleanTestCase(BaseTestCase):
         adjusted1 = AdjustedImage.objects.create(requested='fit|50|50',
                                                  storage_path=storage_path,
                                                  adjusted=nonexistant)
-        adjusted2 = AdjustedImage.objects.create(requested='fit|50|50',
-                                                 storage_path=storage_path,
-                                                 adjusted=storage_path)
+        AdjustedImage.objects.create(requested='fit|50|50',
+                                     storage_path=storage_path,
+                                     adjusted=storage_path)
         clean = Clean()
         self.assertEqual(list(clean._missing_adjustments()), [adjusted1])
         default_storage.delete(storage_path)

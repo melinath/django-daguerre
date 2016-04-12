@@ -35,10 +35,6 @@ any changes to your models. It **just works**.
 .. |build-image| image:: https://secure.travis-ci.org/littleweaver/django-daguerre.png?branch=master
                  :target: http://travis-ci.org/littleweaver/django-daguerre/branches
 
-.. note::
-   Daguerre 2.1 and up use native Django migrations. If you are
-   upgrading from Daguerre 1.0.X or earlier, see :ref:`upgrade-from-1.0`.
-
 Contents
 --------
 

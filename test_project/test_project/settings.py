@@ -22,6 +22,17 @@ if DB == 'mysql':
             'TEST_COLLATION': 'utf8_general_ci',
         }
     }
+elif DB == 'postgres':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': 'daguerre_test',
+            'USER': 'postgres',
+            'PASSWORD': '',
+            'HOST': 'localhost',
+            'PORT': 5432,
+        }
+    }
 else:
     DATABASES = {
         'default': {
@@ -73,11 +84,6 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'daguerre',
-    #'south',
 )
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
-
-SOUTH_MIGRATION_MODULES = {
-    'daguerre': 'daguerre.south_migrations',
-}
