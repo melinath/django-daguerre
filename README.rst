@@ -32,7 +32,7 @@ Requirements
 * Django 1.7 & 1.8
 * Six 1.10.0+
 
-Daguerre *may* work with earlier versions of these packages, but they are not officially supported.
+Daguerre *may* work with earlier or later versions of these packages, but they are not officially supported.
 
 Installation
 ------------
