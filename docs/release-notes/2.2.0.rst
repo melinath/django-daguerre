@@ -1,0 +1,7 @@
+2.2.0 (2016-04-13)
+------------------
+
+* Improved efficiency of adjusted image queries (thanks `@mislavcimpersak <https://github.com/mislavcimpersak>`_!)
+* Fixed some minor image adjustment bugs.
+* Added Jinja template support.
+* Added compatibility with Django 1.8
