@@ -8,7 +8,6 @@ from django.core.files.storage import default_storage
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
 from django.template import Variable, VariableDoesNotExist, TemplateSyntaxError
-from django.utils.datastructures import SortedDict
 import six
 from six.moves import http_client
 try:
@@ -21,6 +20,7 @@ except ImportError:
     jingo = None
 
 from daguerre.adjustments import registry, Adjustment
+from daguerre.compat import SortedDict
 from daguerre.models import Area, AdjustedImage
 from daguerre.utils import make_hash, save_image, get_image_dimensions, KEEP_FORMATS, DEFAULT_FORMAT
 
