@@ -4,10 +4,18 @@ from optparse import make_option
 
 from django.conf import settings
 from django.core.management.base import NoArgsCommand, CommandError
-from django.db.models import Model, get_model
+from django.db.models import Model
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import pluralize
 import six
+
+try:
+    # django > 1.7
+    from django.apps import apps
+    get_model = apps.get_model
+except ImportError:
+    # django <= 1.7
+    from django.db.models import get_model
 
 from daguerre.models import AdjustedImage
 from daguerre.helpers import AdjustmentHelper
