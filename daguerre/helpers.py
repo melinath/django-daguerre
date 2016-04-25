@@ -2,13 +2,14 @@ import datetime
 import itertools
 import ssl
 
+from collections import OrderedDict
+
 from django.conf import settings
 from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
 from django.template import Variable, VariableDoesNotExist, TemplateSyntaxError
-from django.utils.datastructures import SortedDict
 import six
 from six.moves import http_client
 try:
@@ -202,8 +203,8 @@ class AdjustmentHelper(object):
 
     @classmethod
     def make_security_hash(cls, kwargs):
-        kwargs = SortedDict(kwargs)
-        kwargs.keyOrder.sort()
+        kwargs = OrderedDict(kwargs)
+        kwargs.keys().sort()
         args = list(itertools.chain(kwargs.keys(), kwargs.values()))
         return make_hash(settings.SECRET_KEY, step=2, *args)
 
@@ -227,7 +228,7 @@ class AdjustmentHelper(object):
 
     @classmethod
     def from_querydict(cls, image_or_storage_path, querydict, secure=False, generate=False):
-        kwargs = SortedDict()
+        kwargs = OrderedDict()
         for verbose, short in six.iteritems(cls.query_map):
             if short in querydict:
                 kwargs[verbose] = querydict[short]

@@ -11,6 +11,9 @@ env:
   - DB=sqlite3 DJANGO=1.8
   - DB=mysql DJANGO=1.8
   - DB=postgres DJANGO=1.8
+  - DB=sqlite3 DJANGO=1.9
+  - DB=mysql DJANGO=1.9
+  - DB=postgres DJANGO=1.9
 matrix:
   exclude:
     - python: "3.5"
