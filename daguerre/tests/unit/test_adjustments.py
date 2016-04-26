@@ -439,3 +439,15 @@ class BulkAdjustmentHelperTestCase(BaseTestCase):
         helper._finalize()
         self.assertEqual(helper.adjusted, {iterable[0]: {}})
         self.assertEqual(helper.remaining, {})
+
+
+class AdjustmentHelperSecurityHashTestCase(BaseTestCase):
+    def test_make_security_hash(self):
+        kwargs = {'requested': 'fill|10|10||'}
+        security_hash = AdjustmentHelper.make_security_hash(kwargs)
+        self.assertEqual(security_hash, 'd520a2f75d029b2da727')
+
+    def test_check_security_hash(self):
+        kwargs = {'requested': 'crop|50|50'}
+        security_hash = AdjustmentHelper.make_security_hash(kwargs)
+        self.assertTrue(AdjustmentHelper.check_security_hash(security_hash, kwargs))

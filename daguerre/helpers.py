@@ -202,9 +202,9 @@ class AdjustmentHelper(object):
 
     @classmethod
     def make_security_hash(cls, kwargs):
-        kwargs = SortedDict(kwargs)
-        kwargs.keyOrder.sort()
-        args = list(itertools.chain(kwargs.keys(), kwargs.values()))
+        keys_sorted = sorted(kwargs.keys())
+        values = [kwargs[key] for key in keys_sorted]
+        args = list(itertools.chain(keys_sorted, values))
         return make_hash(settings.SECRET_KEY, step=2, *args)
 
     @classmethod
