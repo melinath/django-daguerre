@@ -66,6 +66,7 @@ TEMPLATE_LOADERS = (
     'django.template.loaders.app_directories.Loader',
 )
 
+
 # Django 1.9+
 # https://docs.djangoproject.com/en/1.9/ref/templates/upgrading/
 TEMPLATES = [
