@@ -1,9 +1,3 @@
-import copy
-import warnings
-
-import django
-from django.utils import six
-
 # get_model
 try:
     # django >= 1.7
