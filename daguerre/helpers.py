@@ -20,7 +20,6 @@ except ImportError:
     jingo = None
 
 from daguerre.adjustments import registry, Adjustment
-from daguerre.compat import SortedDict
 from daguerre.models import Area, AdjustedImage
 from daguerre.utils import make_hash, save_image, get_image_dimensions, KEEP_FORMATS, DEFAULT_FORMAT
 
@@ -227,7 +226,7 @@ class AdjustmentHelper(object):
 
     @classmethod
     def from_querydict(cls, image_or_storage_path, querydict, secure=False, generate=False):
-        kwargs = SortedDict()
+        kwargs = {}
         for verbose, short in six.iteritems(cls.query_map):
             if short in querydict:
                 kwargs[verbose] = querydict[short]
