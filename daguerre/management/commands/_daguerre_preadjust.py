@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from optparse import make_option
 
+from django.apps import apps
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Model
@@ -9,7 +10,6 @@ from django.db.models.query import QuerySet
 from django.template.defaultfilters import pluralize
 import six
 
-from daguerre.compat import get_model
 from daguerre.models import AdjustedImage
 from daguerre.helpers import AdjustmentHelper
 
@@ -59,7 +59,7 @@ class Command(BaseCommand):
             for (model_or_iterable, adjustments, lookup) in dp:
                 if isinstance(model_or_iterable, six.string_types):
                     app_label, model_name = model_or_iterable.split('.')
-                    model_or_iterable = get_model(app_label, model_name)
+                    model_or_iterable = apps.get_model(app_label, model_name)
                 if (isinstance(model_or_iterable, six.class_types) and
                         issubclass(model_or_iterable, Model)):
                     iterable = model_or_iterable.objects.all()
