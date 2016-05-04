@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import os
 
 from django.core.files.storage import default_storage
-from django.core.management.base import NoArgsCommand
+from django.core.management.base import BaseCommand
 from django.db import models
 from django.template.defaultfilters import pluralize
 import six
@@ -11,7 +11,7 @@ from daguerre.helpers import IOERRORS
 from daguerre.models import AdjustedImage, Area
 
 
-class Command(NoArgsCommand):
+class Command(BaseCommand):
     def _delete_queryset(
             self,
             queryset,
@@ -139,7 +139,7 @@ class Command(NoArgsCommand):
                     orphans.append(filepath)
         return orphans
 
-    def handle_noargs(self, **options):
+    def handle(self, **options):
         # Clear all adjusted images that reference nonexistant
         # storage paths.
         self._delete_queryset(self._old_adjustments())

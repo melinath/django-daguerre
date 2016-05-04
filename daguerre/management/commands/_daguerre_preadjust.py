@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 from optparse import make_option
 
+from django.apps import apps
 from django.conf import settings
-from django.core.management.base import NoArgsCommand, CommandError
-from django.db.models import Model, get_model
+from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Model
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import pluralize
 import six
@@ -30,8 +31,8 @@ See the django-daguerre documentation for more details.
 """
 
 
-class Command(NoArgsCommand):
-    option_list = NoArgsCommand.option_list + (
+class Command(BaseCommand):
+    option_list = BaseCommand.option_list + (
         make_option(
             '--remove',
             action='store_true',
@@ -58,7 +59,7 @@ class Command(NoArgsCommand):
             for (model_or_iterable, adjustments, lookup) in dp:
                 if isinstance(model_or_iterable, six.string_types):
                     app_label, model_name = model_or_iterable.split('.')
-                    model_or_iterable = get_model(app_label, model_name)
+                    model_or_iterable = apps.get_model(app_label, model_name)
                 if (isinstance(model_or_iterable, six.class_types) and
                         issubclass(model_or_iterable, Model)):
                     iterable = model_or_iterable.objects.all()
@@ -139,7 +140,7 @@ class Command(NoArgsCommand):
             queryset.delete()
             self.stdout.write("Done.\n")
 
-    def handle_noargs(self, **options):
+    def handle(self, **options):
         if options['nocreate'] and not options['remove']:
             self.stdout.write("Doing nothing.\n")
 

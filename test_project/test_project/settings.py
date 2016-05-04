@@ -60,10 +60,19 @@ STATICFILES_FINDERS = (
 
 SECRET_KEY = 'test_key'
 
+# Django < 1.9
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
 )
+
+# Django 1.9+
+# https://docs.djangoproject.com/en/1.9/ref/templates/upgrading/
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+    },
+]
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',

@@ -1,11 +1,10 @@
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 from daguerre.views import (AdjustedImageRedirectView, AjaxAdjustmentInfoView,
                             AjaxUpdateAreaView)
 
 
-urlpatterns = patterns(
-    '',
+urlpatterns = [
     url(r'^adjust/(?P<storage_path>.+)$',
         AdjustedImageRedirectView.as_view(),
         name="daguerre_adjusted_image_redirect"),
@@ -15,4 +14,4 @@ urlpatterns = patterns(
     url(r'^area/(?P<storage_path>.+?)(?:/(?P<pk>\d+))?$',
         AjaxUpdateAreaView.as_view(),
         name="daguerre_ajax_update_area"),
-)
+]
