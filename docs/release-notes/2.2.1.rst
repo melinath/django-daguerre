@@ -1,0 +1,4 @@
+2.2.1 (2016-05-05)
+------------------
+
+* Added compatibility with Django 1.9 (thanks `@ajhi <https://github.com/ajhi>`_!)
