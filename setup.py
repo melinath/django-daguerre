@@ -9,6 +9,8 @@ setup(
     name='django-daguerre',
     version='.'.join([str(v) for v in version]),
     url="http://django-daguerre.readthedocs.org/",
+    maintainer='Little Weaver Web Collective',
+    maintainer_email='hello@littleweaverweb.com',
     description='On-the-fly image manipulation for Django 1.7+.',
     long_description=open(
             os.path.join(os.path.dirname(__file__), 'README.rst')
