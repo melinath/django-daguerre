@@ -1,5 +1,7 @@
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+import mock
+import struct
 try:
     from PIL import Image
 except ImportError:
@@ -320,21 +322,6 @@ class AdjustmentHelperTestCase(BaseTestCase):
         self.assertEqual(helper.adjusted, {helper.iterable[0]: {}})
         self.assertEqual(helper.remaining, {})
 
-    def test_adjust__broken(self):
-        broken_file = self._data_file('broken.png', 'rb')
-        storage_path = default_storage.save('daguerre/test/broken.png',
-                                            ContentFile(broken_file.read()))
-        broken_file = default_storage.open(storage_path, 'rb')
-        image = Image.open(broken_file)
-        self.assertRaises(IndexError, image.verify)
-
-        helper = AdjustmentHelper([storage_path], generate=True)
-        helper.adjust('fill', width=50, height=50)
-        with self.assertNumQueries(1):
-            helper._finalize()
-        self.assertEqual(helper.adjusted, {helper.iterable[0]: {}})
-        self.assertEqual(helper.remaining, {})
-
     def test_serialize(self):
         adjustments = [Fit(width=25, height=50), Crop(width=25)]
         requested = AdjustmentHelper._serialize_requested(adjustments)
@@ -347,6 +334,72 @@ class AdjustmentHelperTestCase(BaseTestCase):
         self.assertEqual(fit.kwargs, {'width': '25', 'height': '50'})
         self.assertIsInstance(crop, Crop)
         self.assertEqual(crop.kwargs, {'width': '25', 'height': None})
+
+
+class BrokenImageAdjustmentHelperTestCase(BaseTestCase):
+
+    def setUp(self):
+        super(BrokenImageAdjustmentHelperTestCase, self).setUp()
+
+        self.broken_file = self._data_file('broken.png', 'rb')
+        self.storage_path = default_storage.save(
+            'daguerre/test/broken.png', ContentFile(self.broken_file.read()))
+        self.helper = AdjustmentHelper([self.storage_path], generate=True)
+
+    def test_adjust__broken(self):
+        self.helper.adjust('fill', width=50, height=50)
+        with self.assertNumQueries(1):
+            self.helper._finalize()
+        self.assertEqual(self.helper.adjusted, {self.helper.iterable[0]: {}})
+        self.assertEqual(self.helper.remaining, {})
+
+    @mock.patch('daguerre.helpers.Image')
+    def test_adjust__broken_with_struct_error(self, image_mock):
+        bad_image = image_mock.open.return_value
+        bad_image.verify.side_effect = struct.error
+
+        self.helper.adjust('fill', width=50, height=50)
+
+        with self.assertNumQueries(1):
+            self.helper._finalize()
+        self.assertEqual(self.helper.adjusted, {self.helper.iterable[0]: {}})
+        self.assertEqual(self.helper.remaining, {})
+
+    @mock.patch('daguerre.helpers.Image')
+    def test_adjust__broken_with_indexerror_error(self, image_mock):
+        bad_image = image_mock.open.return_value
+        bad_image.verify.side_effect = IndexError('index out of range')
+
+        self.helper.adjust('fill', width=50, height=50)
+
+        with self.assertNumQueries(1):
+            self.helper._finalize()
+        self.assertEqual(self.helper.adjusted, {self.helper.iterable[0]: {}})
+        self.assertEqual(self.helper.remaining, {})
+
+    @mock.patch('daguerre.helpers.Image')
+    def test_adjust__broken_with_io_error(self, image_mock):
+        bad_image = image_mock.open.return_value
+        bad_image.verify.side_effect = IOError('truncated png file')
+
+        self.helper.adjust('fill', width=50, height=50)
+
+        with self.assertNumQueries(1):
+            self.helper._finalize()
+        self.assertEqual(self.helper.adjusted, {self.helper.iterable[0]: {}})
+        self.assertEqual(self.helper.remaining, {})
+
+    @mock.patch('daguerre.helpers.Image')
+    def test_adjust__broken_with_syntax_error(self, image_mock):
+        bad_image = image_mock.open.return_value
+        bad_image.verify.side_effect = SyntaxError('broken png file')
+
+        self.helper.adjust('fill', width=50, height=50)
+
+        with self.assertNumQueries(1):
+            self.helper._finalize()
+        self.assertEqual(self.helper.adjusted, {self.helper.iterable[0]: {}})
+        self.assertEqual(self.helper.remaining, {})
 
 
 class BulkTestObject(object):
