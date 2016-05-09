@@ -9,6 +9,8 @@ setup(
     name='django-daguerre',
     version='.'.join([str(v) for v in version]),
     url="http://django-daguerre.readthedocs.org/",
+    maintainer='Little Weaver Web Collective',
+    maintainer_email='hello@littleweaverweb.com',
     description='On-the-fly image manipulation for Django 1.7+.',
     long_description=open(
             os.path.join(os.path.dirname(__file__), 'README.rst')
@@ -19,7 +21,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'Pillow<=2.7.0',
-        'django>=1.7,<1.9',
+        'django>=1.7,<1.10',
         'six>=1.10.0',
     ],
     extras_require={
