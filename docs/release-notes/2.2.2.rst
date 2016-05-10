@@ -1,0 +1,5 @@
+2.2.2 (2016-05-10)
+------------------
+
+* Fixed incorrect requirements in setup.py.
+* Fixed tests for adjusting broken images so they're compatible with all versions of Pillow.
