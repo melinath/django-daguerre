@@ -1,6 +1,7 @@
 import datetime
 import itertools
 import ssl
+import struct
 
 from django.conf import settings
 from django.core.files.base import File
@@ -351,7 +352,7 @@ class AdjustmentHelper(object):
             im = Image.open(im_file)
             try:
                 im.verify()
-            except Exception:
+            except (IndexError, struct.error, SyntaxError):
                 # Raise an IOError if the image isn't valid.
                 raise IOError
             im_file.seek(0)
