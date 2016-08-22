@@ -32,6 +32,10 @@ Add Daguerre's URL patterns to your URLconf::
        ...
    )
 
+Run the migration command to create the database models::
+
+    python manage.py migrate daguerre
+
 Now you're ready to :doc:`use Daguerre's template tags </guides/template-tags>`!
 
 .. _versions-and-requirements:
