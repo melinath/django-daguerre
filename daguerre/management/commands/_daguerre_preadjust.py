@@ -11,7 +11,7 @@ from django.template.defaultfilters import pluralize
 import six
 
 from daguerre.models import AdjustedImage
-from daguerre.helpers import AdjustmentHelper
+from daguerre.helpers import AdjustmentHelper, IOERRORS
 
 
 NO_ADJUSTMENTS = """No adjustments were defined.
@@ -54,29 +54,30 @@ class Command(BaseCommand):
         if not hasattr(settings, 'DAGUERRE_PREADJUSTMENTS'):
             raise CommandError(NO_ADJUSTMENTS)
         dp = settings.DAGUERRE_PREADJUSTMENTS
-        helpers = []
-        try:
-            for (model_or_iterable, adjustments, lookup) in dp:
-                if isinstance(model_or_iterable, six.string_types):
-                    app_label, model_name = model_or_iterable.split('.')
-                    model_or_iterable = apps.get_model(app_label, model_name)
-                if (isinstance(model_or_iterable, six.class_types) and
-                        issubclass(model_or_iterable, Model)):
-                    iterable = model_or_iterable.objects.all()
-                elif isinstance(model_or_iterable, QuerySet):
-                    iterable = model_or_iterable._clone()
-                else:
-                    iterable = model_or_iterable
+        if not hasattr(self, '_helpers'):
+            self._helpers = []
+            try:
+                for (model_or_iterable, adjustments, lookup) in dp:
+                    if isinstance(model_or_iterable, six.string_types):
+                        app_label, model_name = model_or_iterable.split('.')
+                        model_or_iterable = apps.get_model(app_label, model_name)
+                    if (isinstance(model_or_iterable, six.class_types) and
+                            issubclass(model_or_iterable, Model)):
+                        iterable = model_or_iterable.objects.all()
+                    elif isinstance(model_or_iterable, QuerySet):
+                        iterable = model_or_iterable._clone()
+                    else:
+                        iterable = model_or_iterable
 
-                helper = AdjustmentHelper(iterable, lookup=lookup, generate=True)
-                for adjustment in adjustments:
-                    helper.adjust(adjustment)
-                helper._finalize()
-                helpers.append(helper)
-        except (ValueError, TypeError, LookupError):
-            raise CommandError(BAD_STRUCTURE)
+                    helper = AdjustmentHelper(iterable, lookup=lookup, generate=False)
+                    for adjustment in adjustments:
+                        helper.adjust(adjustment)
+                    helper._finalize()
+                    self._helpers.append(helper)
+            except (ValueError, TypeError, LookupError):
+                raise CommandError(BAD_STRUCTURE)
 
-        return helpers
+        return self._helpers
 
     def _preadjust(self):
         empty_count = 0
@@ -84,21 +85,22 @@ class Command(BaseCommand):
         remaining_count = 0
         helpers = self._get_helpers()
         for helper in helpers:
-            helper.empty_count = len(helper.adjusted)
-            empty_count += helper.empty_count
-            helper._fetch_adjusted()
-            skipped_count += len(helper.adjusted) - helper.empty_count
-            remaining_count += len(helper.remaining)
+            empty_count += len([info_dict for info_dict in six.itervalues(helper.adjusted)
+                                if not info_dict])
+            skipped_count += len([info_dict for info_dict in six.itervalues(helper.adjusted)
+                                  if info_dict and 'ajax_url' not in info_dict])
+            remaining_count += len(helper.adjusted) - skipped_count - empty_count
 
         self.stdout.write(
             "Skipped {0} empty path{1}.\n".format(
                 empty_count,
-                pluralize(skipped_count)))
+                pluralize(empty_count)))
 
         self.stdout.write(
-            "Skipped {0} path{1} which have already been adjusted.\n".format(
+            "Skipped {0} path{1} which ha{2} already been adjusted.\n".format(
                 skipped_count,
-                pluralize(skipped_count)))
+                pluralize(skipped_count),
+                pluralize(skipped_count, 's,ve')))
 
         if remaining_count == 0:
             self.stdout.write("No paths remaining to adjust.\n")
@@ -110,11 +112,22 @@ class Command(BaseCommand):
 
             failed_count = 0
             for helper in helpers:
-                helper.adjust()
-                empty_count = len([info_dict
-                                   for info_dict in helper.adjusted.values()
-                                   if not info_dict])
-                failed_count += empty_count - helper.empty_count
+                remaining = {}
+                for item, info_dict in six.iteritems(helper.adjusted):
+                    # Skip if missing
+                    if not info_dict:
+                        continue
+                    # Skip if already adjusted
+                    if 'ajax_url' not in info_dict:
+                        continue
+
+                    remaining.setdefault(helper.lookup_func(item, None), []).append(item)
+
+                for path, items in six.iteritems(remaining):
+                    try:
+                        helper._generate(path)
+                    except IOERRORS:
+                        failed_count += 1
             self.stdout.write("Done.\n")
             if failed_count:
                 self.stdout.write(
