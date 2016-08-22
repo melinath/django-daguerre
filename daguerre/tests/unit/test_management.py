@@ -198,6 +198,85 @@ class PreadjustTestCase(BaseTestCase):
             helpers = preadjust._get_helpers()
         self.assertEqual(len(helpers), 1)
 
+    @override_settings(DAGUERRE_PREADJUSTMENTS=(
+        (AdjustedImage, [Fit(width=50)], 'storage_path'),))
+    def test_preadjust__empty(self):
+        preadjust = Preadjust()
+        storage_path = 'does_not_exist.png'
+        AdjustedImage.objects.create(storage_path=storage_path,
+                                     adjusted=storage_path)
+        self.assertEqual(AdjustedImage.objects.count(), 1)
+
+        preadjust.stdout = mock.MagicMock()
+        preadjust._preadjust()
+        preadjust.stdout.write.assert_has_calls([
+            mock.call('Skipped 1 empty path.\n'),
+            mock.call('Skipped 0 paths which have already been adjusted.\n'),
+            mock.call('No paths remaining to adjust.\n'),
+        ])
+
+        self.assertEqual(AdjustedImage.objects.count(), 1)
+
+    @override_settings(DAGUERRE_PREADJUSTMENTS=(
+        (AdjustedImage, [Fit(width=50)], 'storage_path'),))
+    def test_preadjust__skipped(self):
+        preadjust = Preadjust()
+        storage_path = self.create_image('100x100.png')
+        AdjustedImage.objects.create(storage_path=storage_path,
+                                     adjusted=storage_path,
+                                     requested='fit|50|')
+        self.assertEqual(AdjustedImage.objects.count(), 1)
+
+        preadjust.stdout = mock.MagicMock()
+        preadjust._preadjust()
+        preadjust.stdout.write.assert_has_calls([
+            mock.call('Skipped 0 empty paths.\n'),
+            mock.call('Skipped 1 path which has already been adjusted.\n'),
+            mock.call('No paths remaining to adjust.\n'),
+        ])
+
+        self.assertEqual(AdjustedImage.objects.count(), 1)
+
+    def test_preadjust__generate(self):
+        preadjust = Preadjust()
+        storage_path = self.create_image('100x100.png')
+        self.assertEqual(AdjustedImage.objects.count(), 0)
+
+        preadjust.stdout = mock.MagicMock()
+
+        dp = (([storage_path], [Fit(width=50)], None),)
+        with override_settings(DAGUERRE_PREADJUSTMENTS=dp):
+            preadjust._preadjust()
+        preadjust.stdout.write.assert_has_calls([
+            mock.call('Skipped 0 empty paths.\n'),
+            mock.call('Skipped 0 paths which have already been adjusted.\n'),
+            mock.call('Adjusting 1 path... '),
+            mock.call('Done.\n'),
+        ])
+
+        self.assertEqual(AdjustedImage.objects.count(), 1)
+
+    def test_preadjust__generate__failed(self):
+        preadjust = Preadjust()
+        storage_path = self.create_image('100x100.png')
+        self.assertEqual(AdjustedImage.objects.count(), 0)
+
+        preadjust.stdout = mock.MagicMock()
+
+        dp = (([storage_path], [Fit(width=50)], None),)
+        with override_settings(DAGUERRE_PREADJUSTMENTS=dp):
+            with mock.patch('daguerre.helpers.save_image', side_effect=IOError):
+                preadjust._preadjust()
+        preadjust.stdout.write.assert_has_calls([
+            mock.call('Skipped 0 empty paths.\n'),
+            mock.call('Skipped 0 paths which have already been adjusted.\n'),
+            mock.call('Adjusting 1 path... '),
+            mock.call('Done.\n'),
+            mock.call('1 path failed due to I/O errors.')
+        ])
+
+        self.assertEqual(AdjustedImage.objects.count(), 0)
+
 
 class DaguerreTestCase(BaseTestCase):
     def test_find_commands(self):
