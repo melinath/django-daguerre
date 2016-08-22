@@ -62,6 +62,10 @@ Add the following or similar anywhere in your URLconf::
        ...
    )
 
+Run the migration command to create the database models::
+
+    python manage.py migrate daguerre
+
 Testing
 -------
 
