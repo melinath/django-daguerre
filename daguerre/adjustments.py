@@ -101,7 +101,6 @@ class Fit(Adjustment):
     def calculate(self, dims, areas=None):
         image_width, image_height = dims
         width, height = self.kwargs.get('width'), self.kwargs.get('height')
-
         if width is None and height is None:
             return image_width, image_height
 
@@ -118,8 +117,8 @@ class Fit(Adjustment):
         else:
             # Constrain strictly by both dimensions.
             width, height = int(width), int(height)
-            new_width = int(min(width, height * image_ratio))
-            new_height = int(min(height, width / image_ratio))
+            new_width = int(min(width, round(height * image_ratio)))
+            new_height = int(min(height, round(width / image_ratio)))
 
         return new_width, new_height
     calculate.uses_areas = False

@@ -30,6 +30,14 @@ class FitTestCase(BaseTestCase):
         fit = Fit(width=60, height=50)
         self.assertEqual(fit.calculate((100, 100)), (50, 50))
 
+    def test_calculate__portrait_to_landscape_rounding(self):
+        fit = Fit(width=300, height=180)
+        self.assertEqual(fit.calculate((666, 399)), (300, 180))
+
+    def test_calculate__landscape_to_portrait_rounding(self):
+        fit = Fit(width=180, height=300)
+        self.assertEqual(fit.calculate((399, 666)), (180, 300))
+
     def test_adjust__both(self):
         im = Image.open(self._data_path('100x100.png'))
         fit = Fit(width=50, height=50)
