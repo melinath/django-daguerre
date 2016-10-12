@@ -1,5 +1,9 @@
+import hashlib
 import operator
+import warnings
+from datetime import datetime
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -99,12 +103,48 @@ def delete_adjusted_images(sender, **kwargs):
     qs.delete()
 
 
+def upload_to(instance, filename):
+    """
+    Construct the directory path where the adjusted images will be saved to
+    using the MD5 hash algorithm.
+
+    Can be customized using the DAGUERRE_PATH setting set in the project's
+    settings. If left unspecified, the default value will be used, i.e. 'dg'.
+    WARNING: The maximum length of the specified string is 13 characters.
+
+    Example:
+    * Default: dg/ce/2b/7014c0bdbedea0e4f4bf.jpeg
+    * DAGUERRE_PATH = 'img': img/ce/2b/7014c0bdbedea0e4f4bf.jpeg
+
+    Known issue:
+    * If the extracted hash string is 'ad', ad blockers will block the image.
+      All occurrences of 'ad' will be replaced with 'ag' since the MD5 hash
+      produces letters from 'a' to 'f'.
+    """
+
+    first_dir = None
+    if hasattr(settings, 'DAGUERRE_PATH'):
+        first_dir = settings.DAGUERRE_PATH
+
+    if not first_dir or len(first_dir) > 13:
+        msg = ('The DAGUERRE_PATH value is more than 13 characters long!'
+               'Falling back to the default value: "dg".')
+        warnings.warn(msg)
+        first_dir = 'dg'
+
+    hash_for_dir = hashlib.md5('{} {}'.format(
+        filename, datetime.utcnow())).hexdigest().replace('ad', 'ag')
+    return '{0}/{1}/{2}/{3}'.format(
+        first_dir, hash_for_dir[0:2], hash_for_dir[2:4], filename)
+
+
 class AdjustedImage(models.Model):
     """Represents a managed image adjustment."""
     storage_path = models.CharField(max_length=200)
     # The image name is a 20-character hash, so the max length with a 4-char
-    # extension (jpeg) is 45.
-    adjusted = models.ImageField(upload_to='daguerre/%Y/%m/%d/',
+    # extension (jpeg) is 45. The maximum length of the DAGUERRE_PATH string
+    # is 13.
+    adjusted = models.ImageField(upload_to=upload_to,
                                  max_length=45)
     requested = models.CharField(max_length=100)
 
