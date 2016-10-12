@@ -9,6 +9,8 @@ This file lists the people whose contributions have made Daguerre possible.
 * Harris Lapiroff
 * Tomislav Pavlović
 * Violet Peña
+* Filip Todić
+* Stjepan Zlodi
 * Artem Zyryanov
 
 We have tried to include everyone, but if you've made a contribution and are not listed, please open an issue or a pull request with your name.
