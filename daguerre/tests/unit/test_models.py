@@ -1,5 +1,7 @@
-from daguerre.models import AdjustedImage
+from daguerre.models import AdjustedImage, upload_to
 from daguerre.tests.base import BaseTestCase
+
+from django.test.utils import override_settings
 
 
 class AreaTestCase(BaseTestCase):
@@ -50,3 +52,41 @@ class AreaTestCase(BaseTestCase):
                           AdjustedImage.objects.get,
                           pk=adjusted2.pk)
         AdjustedImage.objects.get(pk=adjusted1.pk)
+
+
+class AdjustesImageUploadToTestCase(BaseTestCase):
+
+    def setUp(self):
+        self.instance = None
+        self.filename = '7014c0bdbedea0e4f4bf.jpeg'
+
+    def test_upload_to__default_upload_dir(self):
+        hash_path = upload_to(instance=self.instance, filename=self.filename)
+        self.assertTrue(hash_path.startswith('dg/'))
+        self.assertTrue(hash_path.endswith('/{}'.format(self.filename)))
+        self.assertEqual(len(hash_path.split('/')), 4)
+        self.assertTrue(len(hash_path) < 45)
+
+    @override_settings(DAGUERRE_PATH='img')
+    def test_upload_to__custom_upload_dir(self):
+        hash_path = upload_to(instance=self.instance, filename=self.filename)
+        self.assertTrue(hash_path.startswith('img/'))
+        self.assertTrue(hash_path.endswith('/{}'.format(self.filename)))
+        self.assertEqual(len(hash_path.split('/')), 4)
+        self.assertTrue(len(hash_path) < 45)
+
+    @override_settings(DAGUERRE_PATH='0123456789123')
+    def test_upload_to__custom_upload_dir_small(self):
+        hash_path = upload_to(instance=self.instance, filename=self.filename)
+        self.assertTrue(hash_path.startswith('0123456789123/'))
+        self.assertTrue(hash_path.endswith('/{}'.format(self.filename)))
+        self.assertEqual(len(hash_path.split('/')), 4)
+        self.assertTrue(len(hash_path) == 45)
+
+    @override_settings(DAGUERRE_PATH='01234567891234')
+    def test_upload_to__custom_upload_dir_big(self):
+        hash_path = upload_to(instance=self.instance, filename=self.filename)
+        self.assertTrue(hash_path.startswith('dg/'))
+        self.assertTrue(hash_path.endswith('/{}'.format(self.filename)))
+        self.assertEqual(len(hash_path.split('/')), 4)
+        self.assertTrue(len(hash_path) < 45)
