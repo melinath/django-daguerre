@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+
 import hashlib
 import operator
 import warnings
@@ -9,11 +13,13 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
+from django.utils.encoding import force_bytes, python_2_unicode_compatible
 from six.moves import reduce
 
 from daguerre.adjustments import registry
 
 
+@python_2_unicode_compatible
 class Area(models.Model):
     """
     Represents an area of an image. Can be used to specify a crop. Also used
@@ -72,7 +78,7 @@ class Area(models.Model):
         return dict((f.name, getattr(self, f.name))
                     for f in self._meta.fields)
 
-    def __unicode__(self):
+    def __str__(self):
         if self.name:
             name = self.name
         else:
@@ -127,17 +133,21 @@ def upload_to(instance, filename):
         first_dir = settings.DAGUERRE_PATH
 
     if not first_dir or len(first_dir) > 13:
-        msg = ('The DAGUERRE_PATH value is more than 13 characters long!'
+        msg = ('The DAGUERRE_PATH value is more than 13 characters long! '
                'Falling back to the default value: "dg".')
         warnings.warn(msg)
         first_dir = 'dg'
 
-    hash_for_dir = hashlib.md5('{} {}'.format(
-        filename, datetime.utcnow())).hexdigest().replace('ad', 'ag')
+    # Avoid TypeError on Py3 by forcing the string to bytestring
+    # https://docs.djangoproject.com/en/dev/_modules/django/contrib/auth/hashers/
+    # https://github.com/django/django/blob/master/django/contrib/auth/hashers.py#L524
+    str_for_hash = force_bytes('{} {}'.format(filename, datetime.utcnow()))
+    hash_for_dir = hashlib.md5(str_for_hash).hexdigest().replace('ad', 'ag')
     return '{0}/{1}/{2}/{3}'.format(
         first_dir, hash_for_dir[0:2], hash_for_dir[2:4], filename)
 
 
+@python_2_unicode_compatible
 class AdjustedImage(models.Model):
     """Represents a managed image adjustment."""
     storage_path = models.CharField(max_length=200)
@@ -151,5 +161,5 @@ class AdjustedImage(models.Model):
     class Meta:
         index_together = [['requested', 'storage_path'], ]
 
-    def __unicode__(self):
+    def __str__(self):
         return u"{0}: {1}".format(self.storage_path, self.requested)
