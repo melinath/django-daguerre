@@ -101,6 +101,7 @@ class Fit(Adjustment):
     def calculate(self, dims, areas=None):
         image_width, image_height = dims
         width, height = self.kwargs.get('width'), self.kwargs.get('height')
+
         if width is None and height is None:
             return image_width, image_height
 
