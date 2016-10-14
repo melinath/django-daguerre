@@ -147,6 +147,7 @@ def upload_to(instance, filename):
     # https://docs.djangoproject.com/en/dev/_modules/django/contrib/auth/hashers/
     # https://github.com/django/django/blob/master/django/contrib/auth/hashers.py#L524
     str_for_hash = force_bytes('{} {}'.format(filename, datetime.utcnow()))
+    # Replace all occurrences of 'ad' with 'ag' to avoid ad blockers
     hash_for_dir = hashlib.md5(str_for_hash).hexdigest().replace('ad', 'ag')
     return '{0}/{1}/{2}/{3}'.format(
         image_path, hash_for_dir[0:2], hash_for_dir[2:4], filename)
