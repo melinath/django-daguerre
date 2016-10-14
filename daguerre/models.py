@@ -158,8 +158,8 @@ class AdjustedImage(models.Model):
     """Represents a managed image adjustment."""
     storage_path = models.CharField(max_length=200)
     # The image name is a 20-character hash, so the max length with a 4-char
-    # extension (jpeg) is 45. The maximum length of the DAGUERRE_PATH string
-    # is 13.
+    # extension (jpeg) is 45. The maximum length of the
+    # DAGUERRE_ADJUSTED_IMAGE_PATH string is 13.
     adjusted = models.ImageField(upload_to=upload_to,
                                  max_length=45)
     requested = models.CharField(max_length=100)

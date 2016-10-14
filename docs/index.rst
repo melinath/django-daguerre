@@ -6,7 +6,7 @@ Django Daguerre
    :align: right
    :scale: 33 %
    :target: http://en.wikipedia.org/wiki/Louis_Daguerre
-   
+
    Louis Daguerre, Father of Photography
 
 **Django Daguerre** manipulates images on the fly. Use it to scale
@@ -45,6 +45,7 @@ Contents
    guides/template-tags
    guides/areas
    guides/commands
+   guides/settings
 
 
 API Docs
