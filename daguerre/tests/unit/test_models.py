@@ -67,7 +67,7 @@ class AdjustesImageUploadToTestCase(BaseTestCase):
         self.assertEqual(len(hash_path.split('/')), 4)
         self.assertTrue(len(hash_path) < 45)
 
-    @override_settings(DAGUERRE_PATH='img')
+    @override_settings(DAGUERRE_ADJUSTED_IMAGE_PATH='img')
     def test_upload_to__custom_upload_dir(self):
         hash_path = upload_to(instance=self.instance, filename=self.filename)
         self.assertTrue(hash_path.startswith('img/'))
@@ -75,7 +75,7 @@ class AdjustesImageUploadToTestCase(BaseTestCase):
         self.assertEqual(len(hash_path.split('/')), 4)
         self.assertTrue(len(hash_path) < 45)
 
-    @override_settings(DAGUERRE_PATH='0123456789123')
+    @override_settings(DAGUERRE_ADJUSTED_IMAGE_PATH='0123456789123')
     def test_upload_to__custom_upload_dir_small(self):
         hash_path = upload_to(instance=self.instance, filename=self.filename)
         self.assertTrue(hash_path.startswith('0123456789123/'))
@@ -83,7 +83,7 @@ class AdjustesImageUploadToTestCase(BaseTestCase):
         self.assertEqual(len(hash_path.split('/')), 4)
         self.assertTrue(len(hash_path) == 45)
 
-    @override_settings(DAGUERRE_PATH='01234567891234')
+    @override_settings(DAGUERRE_ADJUSTED_IMAGE_PATH='01234567891234')
     def test_upload_to__custom_upload_dir_big(self):
         hash_path = upload_to(instance=self.instance, filename=self.filename)
         self.assertTrue(hash_path.startswith('dg/'))

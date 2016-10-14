@@ -18,6 +18,11 @@ from six.moves import reduce
 
 from daguerre.adjustments import registry
 
+# The default image path where the images will be saved to. Can be overriden by
+# defining the DAGUERRE_ADJUSTED_IMAGE_PATH setting in the project's settings.
+# Example: DAGUERRE_ADJUSTED_IMAGE_PATH = 'img'
+DAGUERRE_DEFAULT_IMAGE_PATH = 'dg'
+
 
 @python_2_unicode_compatible
 class Area(models.Model):
@@ -128,15 +133,15 @@ def upload_to(instance, filename):
       produces letters from 'a' to 'f'.
     """
 
-    first_dir = None
-    if hasattr(settings, 'DAGUERRE_PATH'):
-        first_dir = settings.DAGUERRE_PATH
+    image_path = getattr(
+        settings, 'DAGUERRE_ADJUSTED_IMAGE_PATH', DAGUERRE_DEFAULT_IMAGE_PATH)
 
-    if not first_dir or len(first_dir) > 13:
+    if len(image_path) > 13:
         msg = ('The DAGUERRE_PATH value is more than 13 characters long! '
-               'Falling back to the default value: "dg".')
+               'Falling back to the default value: "{}".'.format(
+                    DAGUERRE_DEFAULT_IMAGE_PATH))
         warnings.warn(msg)
-        first_dir = 'dg'
+        image_path = DAGUERRE_DEFAULT_IMAGE_PATH
 
     # Avoid TypeError on Py3 by forcing the string to bytestring
     # https://docs.djangoproject.com/en/dev/_modules/django/contrib/auth/hashers/
@@ -144,7 +149,7 @@ def upload_to(instance, filename):
     str_for_hash = force_bytes('{} {}'.format(filename, datetime.utcnow()))
     hash_for_dir = hashlib.md5(str_for_hash).hexdigest().replace('ad', 'ag')
     return '{0}/{1}/{2}/{3}'.format(
-        first_dir, hash_for_dir[0:2], hash_for_dir[2:4], filename)
+        image_path, hash_for_dir[0:2], hash_for_dir[2:4], filename)
 
 
 @python_2_unicode_compatible
