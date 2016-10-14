@@ -22,9 +22,25 @@ class FitTestCase(BaseTestCase):
         fit = Fit(width=50)
         self.assertEqual(fit.calculate((100, 100)), (50, 50))
 
+    def test_calculate__width_portrait_to_landscape_rounding(self):
+        fit = Fit(width=300)
+        self.assertEqual(fit.calculate((666, 399)), (300, 180))
+
+    def test_calculate__width_landscape_to_portrait_rounding(self):
+        fit = Fit(width=180)
+        self.assertEqual(fit.calculate((399, 666)), (180, 300))
+
     def test_calculate__height(self):
         fit = Fit(height=50)
         self.assertEqual(fit.calculate((100, 100)), (50, 50))
+
+    def test_calculate__height_portrait_to_landscape_rounding(self):
+        fit = Fit(height=180)
+        self.assertEqual(fit.calculate((666, 399)), (300, 180))
+
+    def test_calculate__height_landscape_to_portrait_rounding(self):
+        fit = Fit(height=300)
+        self.assertEqual(fit.calculate((399, 666)), (180, 300))
 
     def test_calculate__smallest(self):
         fit = Fit(width=60, height=50)
