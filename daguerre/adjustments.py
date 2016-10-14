@@ -110,16 +110,16 @@ class Fit(Adjustment):
         if height is None:
             # Constrain first by width, then by max_height.
             new_width = int(width)
-            new_height = int(new_width / image_ratio)
+            new_height = int(round(new_width / image_ratio))
         elif width is None:
             # Constrain first by height, then by max_width.
             new_height = int(height)
-            new_width = int(new_height * image_ratio)
+            new_width = int(round(new_height * image_ratio))
         else:
             # Constrain strictly by both dimensions.
             width, height = int(width), int(height)
-            new_width = int(min(width, height * image_ratio))
-            new_height = int(min(height, width / image_ratio))
+            new_width = int(min(width, round(height * image_ratio)))
+            new_height = int(min(height, round(width / image_ratio)))
 
         return new_width, new_height
     calculate.uses_areas = False
