@@ -138,8 +138,8 @@ def upload_to(instance, filename):
 
     if len(image_path) > 13:
         msg = ('The DAGUERRE_PATH value is more than 13 characters long! '
-               'Falling back to the default value: "{}".'.format(
-                    DAGUERRE_DEFAULT_IMAGE_PATH))
+               'Falling back to the default '
+               'value: "{}".'.format(DAGUERRE_DEFAULT_IMAGE_PATH))
         warnings.warn(msg)
         image_path = DAGUERRE_DEFAULT_IMAGE_PATH
 
