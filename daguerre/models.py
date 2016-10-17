@@ -21,7 +21,7 @@ from daguerre.adjustments import registry
 # The default image path where the images will be saved to. Can be overriden by
 # defining the DAGUERRE_ADJUSTED_IMAGE_PATH setting in the project's settings.
 # Example: DAGUERRE_ADJUSTED_IMAGE_PATH = 'img'
-DAGUERRE_DEFAULT_IMAGE_PATH = 'dg'
+DEFAULT_ADJUSTED_IMAGE_PATH = 'dg'
 
 
 @python_2_unicode_compatible
@@ -134,14 +134,14 @@ def upload_to(instance, filename):
     """
 
     image_path = getattr(
-        settings, 'DAGUERRE_ADJUSTED_IMAGE_PATH', DAGUERRE_DEFAULT_IMAGE_PATH)
+        settings, 'DAGUERRE_ADJUSTED_IMAGE_PATH', DEFAULT_ADJUSTED_IMAGE_PATH)
 
     if len(image_path) > 13:
         msg = ('The DAGUERRE_PATH value is more than 13 characters long! '
                'Falling back to the default '
-               'value: "{}".'.format(DAGUERRE_DEFAULT_IMAGE_PATH))
+               'value: "{}".'.format(DEFAULT_ADJUSTED_IMAGE_PATH))
         warnings.warn(msg)
-        image_path = DAGUERRE_DEFAULT_IMAGE_PATH
+        image_path = DEFAULT_ADJUSTED_IMAGE_PATH
 
     # Avoid TypeError on Py3 by forcing the string to bytestring
     # https://docs.djangoproject.com/en/dev/_modules/django/contrib/auth/hashers/
