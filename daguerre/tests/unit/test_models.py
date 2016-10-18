@@ -56,7 +56,7 @@ class AreaTestCase(BaseTestCase):
         AdjustedImage.objects.get(pk=adjusted1.pk)
 
 
-class AdjustesImageUploadToTestCase(BaseTestCase):
+class AdjustedImageUploadToTestCase(BaseTestCase):
 
     def setUp(self):
         self.instance = None
