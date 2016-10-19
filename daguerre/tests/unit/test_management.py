@@ -101,20 +101,36 @@ class CleanTestCase(BaseTestCase):
         self.assertTrue(list(duplicates) == [adjusted1] or
                         list(duplicates) == [adjusted2])
 
-    def test_orphaned_files(self):
+    def test_orphaned_files__default_path(self):
         clean = Clean()
         walk_ret = (
-            ('daguerre', ['test'], []),
-            ('daguerre/test', [], ['fake1.png', 'fake2.png', 'fake3.png'])
+            ('dg', ['test'], []),
+            ('dg/test', [], ['fake1.png', 'fake2.png', 'fake3.png'])
         )
         AdjustedImage.objects.create(requested='fit|50|50',
                                      storage_path='whatever.png',
-                                     adjusted='daguerre/test/fake2.png')
+                                     adjusted='dg/test/fake2.png')
         with mock.patch.object(clean, '_walk', return_value=walk_ret) as walk:
             self.assertEqual(clean._orphaned_files(),
-                             ['daguerre/test/fake1.png',
-                              'daguerre/test/fake3.png'])
-            walk.assert_called_once_with('daguerre', topdown=False)
+                             ['dg/test/fake1.png',
+                              'dg/test/fake3.png'])
+            walk.assert_called_once_with('dg', topdown=False)
+
+    @override_settings(DAGUERRE_ADJUSTED_IMAGE_PATH='img')
+    def test_orphaned_files__modified_path(self):
+        clean = Clean()
+        walk_ret = (
+            ('img', ['test'], []),
+            ('img/test', [], ['fake1.png', 'fake2.png', 'fake3.png'])
+        )
+        AdjustedImage.objects.create(requested='fit|50|50',
+                                     storage_path='whatever.png',
+                                     adjusted='img/test/fake2.png')
+        with mock.patch.object(clean, '_walk', return_value=walk_ret) as walk:
+            self.assertEqual(clean._orphaned_files(),
+                             ['img/test/fake1.png',
+                              'img/test/fake3.png'])
+            walk.assert_called_once_with('img', topdown=False)
 
 
 class PreadjustTestCase(BaseTestCase):
