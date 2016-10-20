@@ -1,15 +1,30 @@
-import operator
+# -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
+import hashlib
+import operator
+import warnings
+from datetime import datetime
+
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
+from django.utils.encoding import force_bytes, python_2_unicode_compatible
 from six.moves import reduce
 
 from daguerre.adjustments import registry
 
+# The default image path where the images will be saved to. Can be overriden by
+# defining the DAGUERRE_ADJUSTED_IMAGE_PATH setting in the project's settings.
+# Example: DAGUERRE_ADJUSTED_IMAGE_PATH = 'img'
+DEFAULT_ADJUSTED_IMAGE_PATH = 'dg'
 
+
+@python_2_unicode_compatible
 class Area(models.Model):
     """
     Represents an area of an image. Can be used to specify a crop. Also used
@@ -68,7 +83,7 @@ class Area(models.Model):
         return dict((f.name, getattr(self, f.name))
                     for f in self._meta.fields)
 
-    def __unicode__(self):
+    def __str__(self):
         if self.name:
             name = self.name
         else:
@@ -99,17 +114,58 @@ def delete_adjusted_images(sender, **kwargs):
     qs.delete()
 
 
+def upload_to(instance, filename):
+    """
+    Construct the directory path where the adjusted images will be saved to
+    using the MD5 hash algorithm.
+
+    Can be customized using the DAGUERRE_PATH setting set in the project's
+    settings. If left unspecified, the default value will be used, i.e. 'dg'.
+    WARNING: The maximum length of the specified string is 13 characters.
+
+    Example:
+    * Default: dg/ce/2b/7014c0bdbedea0e4f4bf.jpeg
+    * DAGUERRE_PATH = 'img': img/ce/2b/7014c0bdbedea0e4f4bf.jpeg
+
+    Known issue:
+    * If the extracted hash string is 'ad', ad blockers will block the image.
+      All occurrences of 'ad' will be replaced with 'ag' since the MD5 hash
+      produces letters from 'a' to 'f'.
+    """
+
+    image_path = getattr(
+        settings, 'DAGUERRE_ADJUSTED_IMAGE_PATH', DEFAULT_ADJUSTED_IMAGE_PATH)
+
+    if len(image_path) > 13:
+        msg = ('The DAGUERRE_PATH value is more than 13 characters long! '
+               'Falling back to the default '
+               'value: "{}".'.format(DEFAULT_ADJUSTED_IMAGE_PATH))
+        warnings.warn(msg)
+        image_path = DEFAULT_ADJUSTED_IMAGE_PATH
+
+    # Avoid TypeError on Py3 by forcing the string to bytestring
+    # https://docs.djangoproject.com/en/dev/_modules/django/contrib/auth/hashers/
+    # https://github.com/django/django/blob/master/django/contrib/auth/hashers.py#L524
+    str_for_hash = force_bytes('{} {}'.format(filename, datetime.utcnow()))
+    # Replace all occurrences of 'ad' with 'ag' to avoid ad blockers
+    hash_for_dir = hashlib.md5(str_for_hash).hexdigest().replace('ad', 'ag')
+    return '{0}/{1}/{2}/{3}'.format(
+        image_path, hash_for_dir[0:2], hash_for_dir[2:4], filename)
+
+
+@python_2_unicode_compatible
 class AdjustedImage(models.Model):
     """Represents a managed image adjustment."""
     storage_path = models.CharField(max_length=200)
     # The image name is a 20-character hash, so the max length with a 4-char
-    # extension (jpeg) is 45.
-    adjusted = models.ImageField(upload_to='daguerre/%Y/%m/%d/',
+    # extension (jpeg) is 45. The maximum length of the
+    # DAGUERRE_ADJUSTED_IMAGE_PATH string is 13.
+    adjusted = models.ImageField(upload_to=upload_to,
                                  max_length=45)
     requested = models.CharField(max_length=100)
 
     class Meta:
         index_together = [['requested', 'storage_path'], ]
 
-    def __unicode__(self):
+    def __str__(self):
         return u"{0}: {1}".format(self.storage_path, self.requested)

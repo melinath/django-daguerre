@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import os
 
+from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand
 from django.db import models
@@ -8,7 +9,7 @@ from django.template.defaultfilters import pluralize
 import six
 
 from daguerre.helpers import IOERRORS
-from daguerre.models import AdjustedImage, Area
+from daguerre.models import AdjustedImage, Area, DEFAULT_ADJUSTED_IMAGE_PATH
 
 
 class Command(BaseCommand):
@@ -127,12 +128,16 @@ class Command(BaseCommand):
         in the database.
 
         """
+        base_dir = getattr(
+            settings, 'DAGUERRE_ADJUSTED_IMAGE_PATH',
+            DEFAULT_ADJUSTED_IMAGE_PATH)
+
         known_paths = set(
             AdjustedImage.objects.values_list('adjusted', flat=True).distinct()
         )
         orphans = []
         for dirpath, dirnames, filenames in self._walk(
-                'daguerre', topdown=False):
+                base_dir, topdown=False):
             for filename in filenames:
                 filepath = os.path.join(dirpath, filename)
                 if filepath not in known_paths:
