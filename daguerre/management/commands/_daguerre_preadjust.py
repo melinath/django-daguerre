@@ -31,24 +31,35 @@ See the django-daguerre documentation for more details.
 """
 
 
+# Store option kwargs as consts so that we can reuse them
+# between compatibility sets
+REMOVE_OPTION_KWARGS = {
+    'action': 'store_true',
+    'dest': 'remove',
+    'default': False,
+    'help': "Remove all adjustments that aren't listed in DAGUERRE_PREADJUSTMENTS",
+}
+
+NOCREATE_OPTION_KWARGS = {
+    'action': 'store_true',
+    'dest': 'nocreate',
+    'default': False,
+    'help': "Don't create any new adjustments."
+}
+
+
 class Command(BaseCommand):
-    option_list = BaseCommand.option_list + (
-        make_option(
-            '--remove',
-            action='store_true',
-            dest='remove',
-            default=False,
-            help="Remove all adjustments that aren't "
-                 "listed in DAGUERRE_PREADJUSTMENTS",
-        ),
-        make_option(
-            '--nocreate',
-            action='store_true',
-            dest='nocreate',
-            default=False,
-            help="Don't create any new adjustments."
-        ),
-    )
+    if hasattr(BaseCommand, 'option_list'):
+        # Django < 1.10
+        option_list = BaseCommand.option_list + (
+            make_option('--remove', **REMOVE_OPTION_KWARGS),
+            make_option('--nocreate', **NOCREATE_OPTION_KWARGS),
+        )
+    else:
+        # Django >= 1.10
+        def add_arguments(self, parser):
+            parser.add_argument('--remove', **REMOVE_OPTION_KWARGS)
+            parser.add_argument('--nocreate', **NOCREATE_OPTION_KWARGS)
 
     def _get_helpers(self):
         if not hasattr(settings, 'DAGUERRE_PREADJUSTMENTS'):

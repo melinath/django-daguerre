@@ -21,7 +21,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'Pillow',
-        'django>=1.7,<1.10',
+        'django>=1.7,<1.12',
         'six>=1.10.0',
     ],
     extras_require={

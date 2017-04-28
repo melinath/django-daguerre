@@ -1,0 +1,8 @@
+2.2.3 (2017-04-27)
+------------------
+
+* Doc updates
+* Corrected preadjust behavior
+* Corrected rounding of floating point numbers (thanks `@fitodic <https://github.com/fitodic>`_!)
+* Allowed customizing the image storage path, and improved the default path (thanks `@fitodic <https://github.com/fitodic>`_!)
+* Added official support for Django 1.10 & 1.11
