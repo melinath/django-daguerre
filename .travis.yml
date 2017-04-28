@@ -1,8 +1,5 @@
 dist: trusty
-sudo: false
-services:
-  - mysql
-  - postgresql
+sudo: required
 language: python
 python:
   - "2.7"
