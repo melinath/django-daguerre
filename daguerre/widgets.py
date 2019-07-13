@@ -1,3 +1,5 @@
+import django
+
 from django.contrib.admin.widgets import AdminFileWidget
 
 if django.VERSION >= (2, 0):
