@@ -1,5 +1,10 @@
 from django.contrib.admin.widgets import AdminFileWidget
-from django.core.urlresolvers import reverse
+
+if django.VERSION >= (2, 0):
+    from django.urls import reverse
+else:
+    from django.core.urlresolvers import reverse
+
 from django.utils.safestring import mark_safe
 
 
