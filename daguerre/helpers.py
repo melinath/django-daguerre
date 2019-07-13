@@ -2,11 +2,17 @@ import datetime
 import itertools
 import ssl
 import struct
+import django
 
 from django.conf import settings
 from django.core.files.base import File
 from django.core.files.storage import default_storage
-from django.core.urlresolvers import reverse
+
+if django.VERSION >= (2, 0):
+    from django.urls import reverse
+else:
+    from django.core.urlresolvers import reverse
+
 from django.http import QueryDict
 from django.template import Variable, VariableDoesNotExist, TemplateSyntaxError
 import six
@@ -93,7 +99,7 @@ class AdjustmentHelper(object):
         self._finalized = False
 
         if lookup is None:
-            lookup_func = lambda obj, default=None: obj
+            def lookup_func(obj, default=None): return obj
         else:
             try:
                 lookup_var = Variable("item.{0}".format(lookup))
@@ -332,7 +338,8 @@ class AdjustmentHelper(object):
                     except IOERRORS:
                         info_dict = AdjustmentInfoDict()
                     else:
-                        info_dict = self._adjusted_image_info_dict(adjusted_image)
+                        info_dict = self._adjusted_image_info_dict(
+                            adjusted_image)
                 else:
                     info_dict = self._path_info_dict(path)
                 for item in items:
