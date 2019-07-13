@@ -1,4 +1,4 @@
-dist: xenial
+dist: trusty
 sudo: required
 language: python
 python:
@@ -6,8 +6,6 @@ python:
   - "3.3"
   - "3.4"
   - "3.5"
-  - "3.6"
-  - "3.7"
 env:
   - DB=sqlite3 DJANGO=1.7
   - DB=mysql DJANGO=1.7
@@ -30,18 +28,6 @@ env:
   - DB=postgres DJANGO=2.2
 matrix:
   exclude:
-    - python: "3.7"
-      env: DB=sqlite3 DJANGO=1.7
-    - python: "3.7"
-      env: DB=mysql DJANGO=1.7
-    - python: "3.7"
-      env: DB=postgres DJANGO=1.7
-    - python: "3.6"
-      env: DB=sqlite3 DJANGO=1.7
-    - python: "3.6"
-      env: DB=mysql DJANGO=1.7
-    - python: "3.6"
-      env: DB=postgres DJANGO=1.7
     - python: "3.5"
       env: DB=sqlite3 DJANGO=1.7
     - python: "3.5"
