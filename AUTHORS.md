@@ -12,7 +12,6 @@ This file lists the people whose contributions have made Daguerre possible.
 * Filip Todić
 * Stjepan Zlodi
 * Artem Zyryanov
-* Nikola Tucković
 
 We have tried to include everyone, but if you've made a contribution and are not listed, please open an issue or a pull request with your name.
 
