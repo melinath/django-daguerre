@@ -1,3 +1,4 @@
 Django==2.2
 pytz==2017.2
+sqlparse==0.3.0
 -r requirements.txt
