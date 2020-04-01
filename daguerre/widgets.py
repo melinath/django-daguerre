@@ -1,6 +1,10 @@
 from django.contrib.admin.widgets import AdminFileWidget
-from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
+try:
+    from django.urls import reverse
+except ImportError:
+    # Compatibility for Django < 1.10
+    from django.core.urlresolvers import reverse
 
 
 class AreaWidget(AdminFileWidget):

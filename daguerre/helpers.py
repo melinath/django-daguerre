@@ -6,11 +6,15 @@ import struct
 from django.conf import settings
 from django.core.files.base import File
 from django.core.files.storage import default_storage
-from django.core.urlresolvers import reverse
 from django.http import QueryDict
 from django.template import Variable, VariableDoesNotExist, TemplateSyntaxError
 import six
 from six.moves import http_client
+try:
+    from django.urls import reverse
+except ImportError:
+    # Compatibility for Django < 1.10
+    from django.core.urlresolvers import reverse
 try:
     from PIL import Image
 except ImportError:
