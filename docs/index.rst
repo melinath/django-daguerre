@@ -28,12 +28,12 @@ any changes to your models. It **just works**.
     {% endfor %}
 
 
-:Code:         http://github.com/littleweaver/django-daguerre
+:Code:         http://github.com/melinath/django-daguerre
 :Docs:         http://readthedocs.org/docs/django-daguerre/
 :Build status: |build-image|
 
-.. |build-image| image:: https://secure.travis-ci.org/littleweaver/django-daguerre.png?branch=master
-                 :target: http://travis-ci.org/littleweaver/django-daguerre/branches
+.. |build-image| image:: https://secure.travis-ci.org/melinath/django-daguerre.png?branch=master
+                 :target: http://travis-ci.org/melinath/django-daguerre/branches
 
 Contents
 --------
