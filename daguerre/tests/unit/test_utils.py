@@ -103,8 +103,12 @@ class ExifAwareSizeTestCase(BaseTestCase):
         image = Image.open(self._data_path('20x7_exif_not_rotated.jpg'))
         self.assertEqual(exif_aware_size(image), self.ORIGINAL_ORIENTATION)
 
-    def test_non_exif(self):
+    def test_png_ignored(self):
         image = Image.open(self._data_path('20x7_no_exif.png'))
+        self.assertEqual(exif_aware_size(image), self.ORIGINAL_ORIENTATION)
+
+    def test_non_exif(self):
+        image = Image.open(self._data_path('20x7_no_exif.jpg'))
         self.assertEqual(exif_aware_size(image), self.ORIGINAL_ORIENTATION)
 
 
@@ -120,6 +124,10 @@ class GetImageDimensionsTestCase(BaseTestCase):
         dim = get_image_dimensions(self._data_path('20x7_exif_not_rotated.jpg'))
         self.assertEqual(dim, self.ORIGINAL_ORIENTATION)
 
-    def test_non_exif(self):
+    def test_png_ignored(self):
         dim = get_image_dimensions(self._data_path('20x7_no_exif.png'))
+        self.assertEqual(dim, self.ORIGINAL_ORIENTATION)
+
+    def test_non_exif(self):
+        dim = get_image_dimensions(self._data_path('20x7_no_exif.jpg'))
         self.assertEqual(dim, self.ORIGINAL_ORIENTATION)

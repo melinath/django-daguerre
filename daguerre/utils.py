@@ -48,7 +48,7 @@ def make_hash(*args, **kwargs):
 def get_exif_orientation(image):
     # Extract the orientation tag
     try:
-        exif_data = image._getexif()  # should be careful with that _method
+        exif_data = image.getexif()
     except AttributeError:
         # No Exif data, return None
         return None
@@ -89,11 +89,13 @@ def exif_aware_size(image):
     :returns: A 2-tuple (width, height).
 
     """
-    # Extract the orientation tag
-    orientation = get_exif_orientation(image)
-    if orientation in ROTATION_TAGS:
-        # Exif data indicates image should be rotated. Flip dimensions.
-        return image.size[::-1]
+    # For .png images, don't try to make exif modifications.
+    if image.format != 'PNG':
+        # Extract the orientation tag
+        orientation = get_exif_orientation(image)
+        if orientation in ROTATION_TAGS:
+            # Exif data indicates image should be rotated. Flip dimensions.
+            return image.size[::-1]
     return image.size
 
 
