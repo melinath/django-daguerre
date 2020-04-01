@@ -1,3 +1,4 @@
+import struct
 import zlib
 
 from hashlib import sha1
@@ -47,7 +48,7 @@ def make_hash(*args, **kwargs):
 def get_exif_orientation(image):
     # Extract the orientation tag
     try:
-        exif_data = image._getexif()  # should be careful with that _method
+        exif_data = image.getexif()
     except AttributeError:
         # No Exif data, return None
         return None
@@ -88,11 +89,13 @@ def exif_aware_size(image):
     :returns: A 2-tuple (width, height).
 
     """
-    # Extract the orientation tag
-    orientation = get_exif_orientation(image)
-    if orientation in ROTATION_TAGS:
-        # Exif data indicates image should be rotated. Flip dimensions.
-        return image.size[::-1]
+    # For .png images, don't try to make exif modifications.
+    if image.format != 'PNG':
+        # Extract the orientation tag
+        orientation = get_exif_orientation(image)
+        if orientation in ROTATION_TAGS:
+            # Exif data indicates image should be rotated. Flip dimensions.
+            return image.size[::-1]
     return image.size
 
 
@@ -127,9 +130,9 @@ def get_image_dimensions(file_or_path, close=False):
         file = open(file_or_path, 'rb')
         close = True
     try:
-        # Most of the time PIL only needs a small chunk to parse the image and
-        # get the dimensions, but with some TIFF files PIL needs to parse the
-        # whole file.
+        # Most of the time Pillow only needs a small chunk to parse the image
+        # and get the dimensions, but with some TIFF files Pillow needs to
+        # parse the whole file.
         chunk_size = 1024
         while 1:
             data = file.read(chunk_size)
@@ -144,10 +147,19 @@ def get_image_dimensions(file_or_path, close=False):
                     pass
                 else:
                     raise
+            except struct.error:
+                # Ignore PIL failing on a too short buffer when reads return
+                # less bytes than expected. Skip and feed more data to the
+                # parser (ticket #24544).
+                pass
+            except RuntimeError:
+                # e.g. "RuntimeError: could not create decoder object" for
+                # WebP files. A different chunk_size may work.
+                pass
             if p.image:
                 return exif_aware_size(p.image)
             chunk_size *= 2
-        return None
+        return (None, None)
     finally:
         if close:
             file.close()
