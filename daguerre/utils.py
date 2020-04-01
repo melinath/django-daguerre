@@ -1,3 +1,4 @@
+import struct
 import zlib
 
 from hashlib import sha1
@@ -127,9 +128,9 @@ def get_image_dimensions(file_or_path, close=False):
         file = open(file_or_path, 'rb')
         close = True
     try:
-        # Most of the time PIL only needs a small chunk to parse the image and
-        # get the dimensions, but with some TIFF files PIL needs to parse the
-        # whole file.
+        # Most of the time Pillow only needs a small chunk to parse the image
+        # and get the dimensions, but with some TIFF files Pillow needs to
+        # parse the whole file.
         chunk_size = 1024
         while 1:
             data = file.read(chunk_size)
@@ -144,10 +145,19 @@ def get_image_dimensions(file_or_path, close=False):
                     pass
                 else:
                     raise
+            except struct.error:
+                # Ignore PIL failing on a too short buffer when reads return
+                # less bytes than expected. Skip and feed more data to the
+                # parser (ticket #24544).
+                pass
+            except RuntimeError:
+                # e.g. "RuntimeError: could not create decoder object" for
+                # WebP files. A different chunk_size may work.
+                pass
             if p.image:
                 return exif_aware_size(p.image)
             chunk_size *= 2
-        return None
+        return (None, None)
     finally:
         if close:
             file.close()
