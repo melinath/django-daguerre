@@ -11,7 +11,7 @@ from daguerre.helpers import adjust, AdjustmentInfoDict
 
 
 register = template.Library()
-kwarg_re = re.compile("(\w+)=(.+)")
+kwarg_re = re.compile(r"(\w+)=(.+)")
 
 
 class AdjustmentNode(template.Node):
