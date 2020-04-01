@@ -21,8 +21,35 @@ env:
   - DB=sqlite3 DJANGO=1.11
   - DB=mysql DJANGO=1.11
   - DB=postgres DJANGO=1.11
+  - DB=sqlite3 DJANGO=2.0
+  - DB=mysql DJANGO=2.0
+  - DB=postgres DJANGO=2.0
+  - DB=sqlite3 DJANGO=2.1
+  - DB=mysql DJANGO=2.1
+  - DB=postgres DJANGO=2.1
+  - DB=sqlite3 DJANGO=2.2
+  - DB=mysql DJANGO=2.2
+  - DB=postgres DJANGO=2.2
 matrix:
   exclude:
+    - python: "2.7"
+      env: DB=sqlite3 DJANGO=2.0
+    - python: "2.7"
+      env: DB=mysql DJANGO=2.0
+    - python: "2.7"
+      env: DB=postgres DJANGO=2.0
+    - python: "2.7"
+      env: DB=sqlite3 DJANGO=2.1
+    - python: "2.7"
+      env: DB=mysql DJANGO=2.1
+    - python: "2.7"
+      env: DB=postgres DJANGO=2.1
+    - python: "2.7"
+      env: DB=sqlite3 DJANGO=2.2
+    - python: "2.7"
+      env: DB=mysql DJANGO=2.2
+    - python: "2.7"
+      env: DB=postgres DJANGO=2.2
     - python: "3.5"
       env: DB=sqlite3 DJANGO=1.7
     - python: "3.5"
@@ -35,6 +62,10 @@ matrix:
       env: DB=mysql DJANGO=1.7
     - python: "3.6"
       env: DB=postgres DJANGO=1.7
+    - python: "3.5"
+      env: DB=sqlite3 DJANGO=2.2
+    - python: "3.6"
+      env: DB=sqlite3 DJANGO=2.2
 install:
   - pip install . --no-deps
   - pip install --no-deps -r test_project/requirements-$DJANGO.txt
