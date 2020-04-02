@@ -43,7 +43,6 @@ You can install the latest version of Daguerre using ``pip``::
 
 You can clone the repository yourself at https://github.com/melinath/django-daguerre.
 
-.. highlight:: python
 
 Setup
 -----
