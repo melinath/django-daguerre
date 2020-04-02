@@ -43,27 +43,10 @@ Now you're ready to :doc:`use Daguerre's template tags </guides/template-tags>`!
 Versions and Requirements
 -------------------------
 
-* Python 2.7+, 3.3+
+* Python 2.7+, 3.5+
 * Pillow
-* Django 1.7 – 1.11
+* Django 1.7 – 2.2
 * Six 1.10.0+
 
 Daguerre *may* work with earlier versions of these packages, but they
 are not officially supported.
-
-If you need to use earlier versions of Python or Django, refer this
-versions table to determine which version of Daguerre to install.
-
-=============== =================== ===============
-Package         Python              Django
-=============== =================== ===============
-Daguerre 2.1.0  Python 2.7+, 3.3+   Django 1.7+  
-Daguerre 2.0.0  Python 2.6+, 3.3+   Django 1.6.1+
-Daguerre 1.0.1  Python 2.6+         Django 1.4+
-=============== =================== ===============
-
-You can install older versions of Daguerre with pip. E.g.,
-
-.. code-block:: bash
-
-   pip install django-daguerre==2.0

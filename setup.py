@@ -21,7 +21,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'Pillow',
-        'django>=1.7,<1.12',
+        'django>=1.7',
         'six>=1.10.0',
     ],
     extras_require={
@@ -33,8 +33,8 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
