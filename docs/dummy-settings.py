@@ -5,4 +5,8 @@ DATABASES = {
 	}
 }
 
+INSTALLED_APPS = [
+    'daguerre',
+]
+
 SECRET_KEY = "NOT SECRET"

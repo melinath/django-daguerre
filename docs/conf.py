@@ -21,6 +21,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "_ext"))
 sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'dummy-settings'
+import django
+django.setup()
 
 # -- General configuration -----------------------------------------------------
 

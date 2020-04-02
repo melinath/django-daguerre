@@ -6,4 +6,3 @@ from django.conf import settings
 urlpatterns = static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + [
     url(r'^', include('daguerre.urls')),
 ]
-
