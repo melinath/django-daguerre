@@ -1,0 +1,6 @@
+2.3.0 (2020-04-02)
+------------------
+
+* Added official support for Django 2.0-2.2
+* Dropped official support for Python 3.3 and Python 3.4
+* Updated get_image_dimensions implementation to better match current Django implementation
