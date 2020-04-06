@@ -25,7 +25,7 @@ class AdjustTemplatetagTestCase(BaseTestCase):
         helper = AdjustmentHelper([storage_path], generate=False)
         helper.adjust('fit', width=50, height=50)
         t = Template("{% load daguerre %}{% adjust image 'fit' width=50 "
-                     "height=50 as adj %}{{ adj }}")
+                     "height=50 %}")
         c = Context({'image': adjusted.adjusted})
         self.assertEqual(t.render(c), escape(helper[0][1]['url']))
 
@@ -35,7 +35,7 @@ class AdjustTemplatetagTestCase(BaseTestCase):
         c = Context({'image': 23})
         self.assertEqual(t.render(c), '')
 
-    def test_multiple(self):
+    def test_multiple_adjustments(self):
         # Tag should allow multiple adjustments to be passed in.
         storage_path = self.create_image('100x100.png')
         helper = AdjustmentHelper([storage_path])
@@ -45,6 +45,36 @@ class AdjustTemplatetagTestCase(BaseTestCase):
                      "height=50 'fit' width=25 %}")
         c = Context({'image': storage_path})
         self.assertEqual(t.render(c), escape(helper[0][1]['url']))
+
+    def test_using_as_renders_as_url(self):
+        # Tag should accept a path as its argument.
+        storage_path = self.create_image('100x100.png')
+        helper = AdjustmentHelper([storage_path], generate=False)
+        helper.adjust('fit', width=50, height=50)
+        t = Template("{% load daguerre %}{% adjust image 'fit' width=50 "
+                     "height=50 as asvar %}{{ asvar }}")
+        c = Context({'image': storage_path})
+        self.assertEqual(t.render(c), escape(helper[0][1]['url']))
+
+    def test_using_as_allows_width_access(self):
+        # Tag should accept a path as its argument.
+        storage_path = self.create_image('50x100_crop.png')
+        helper = AdjustmentHelper([storage_path], generate=False)
+        helper.adjust('fit', width=50, height=50)
+        t = Template("{% load daguerre %}{% adjust image 'fit' height=50 "
+                     "as asvar %}{{ asvar.width }}")
+        c = Context({'image': storage_path})
+        self.assertEqual(t.render(c), '25')
+
+    def test_using_as_allows_height_access(self):
+        # Tag should accept a path as its argument.
+        storage_path = self.create_image('50x100_crop.png')
+        helper = AdjustmentHelper([storage_path], generate=False)
+        helper.adjust('fit', width=50, height=50)
+        t = Template("{% load daguerre %}{% adjust image 'fit' width=25 "
+                     "as asvar %}{{ asvar.height }}")
+        c = Context({'image': storage_path})
+        self.assertEqual(t.render(c), '50')
 
 
 class BulkTestObject(object):
