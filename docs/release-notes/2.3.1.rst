@@ -1,0 +1,4 @@
+2.3.1 (2020-04-06)
+------------------
+
+* Bugfix: Made {% adjust ... as var %} template tag correctly use an info dict instead of a helper instance so that width and height are available. Thanks @pembeci for the report!
