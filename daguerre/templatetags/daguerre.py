@@ -36,10 +36,13 @@ class AdjustmentNode(template.Node):
                     context[self.asvar] = AdjustmentInfoDict()
                 return ''
 
+        # Since this is used for a single image, we just need the info dict
+        # for the first image in the helper.
+        info_dict = adjusted[0][1]
         if self.asvar is not None:
-            context[self.asvar] = adjusted
+            context[self.asvar] = info_dict
             return ''
-        return escape(adjusted)
+        return escape(info_dict)
 
 
 class BulkAdjustmentNode(template.Node):
