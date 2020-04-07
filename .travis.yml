@@ -1,12 +1,10 @@
-os: linux
-arch: arm64
 dist: xenial
 language: python
 cache: pip
 python:
-  - "2.7.15"
+  - "2.7"
   - "3.5"
-  - "3.6.7"
+  - "3.6"
 env:
   - DB=sqlite3 DJANGO=1.7
   - DB=mysql DJANGO=1.7
