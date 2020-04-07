@@ -2,7 +2,7 @@
 Pillow==6.2.2
 mock==3.0.5
 pbr==5.4.4
-six==1.14.0
 
 # sub-dependencies
 funcsigs==1.0.2
+six==1.14.0
