@@ -11,7 +11,7 @@ setup(
     url="http://django-daguerre.readthedocs.org/",
     maintainer='Stephen Burrows',
     maintainer_email='stephen.r.burrows@gmail.com',
-    description='On-the-fly image manipulation for Django 1.8+.',
+    description='On-the-fly image manipulation for Django 1.11+.',
     long_description=open(
             os.path.join(os.path.dirname(__file__), 'README.rst')
     ).read(),
