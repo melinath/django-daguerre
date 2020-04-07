@@ -11,7 +11,7 @@ setup(
     url="http://django-daguerre.readthedocs.org/",
     maintainer='Stephen Burrows',
     maintainer_email='stephen.r.burrows@gmail.com',
-    description='On-the-fly image manipulation for Django 1.7+.',
+    description='On-the-fly image manipulation for Django 1.8+.',
     long_description=open(
             os.path.join(os.path.dirname(__file__), 'README.rst')
     ).read(),
@@ -30,8 +30,6 @@ setup(
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
