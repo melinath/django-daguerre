@@ -22,7 +22,6 @@ setup(
     install_requires=[
         'Pillow',
         'django>=1.7',
-        'six>=1.10.0',
     ],
     extras_require={
         'docs': ["sphinx-rtd-theme>=0.1.5"],

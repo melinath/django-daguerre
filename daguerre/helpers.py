@@ -1,4 +1,5 @@
 import datetime
+import http.client
 import itertools
 import ssl
 import struct
@@ -8,8 +9,6 @@ from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.http import QueryDict
 from django.template import Variable, VariableDoesNotExist, TemplateSyntaxError
-import six
-from six.moves import http_client
 try:
     from django.urls import reverse
 except ImportError:
@@ -31,7 +30,7 @@ from daguerre.utils import make_hash, save_image, get_image_dimensions, KEEP_FOR
 # If any of the following errors appear during file manipulations, we will
 # treat them as IOErrors.
 # See http://code.larlet.fr/django-storages/issue/162/reraise-boto-httplib-errors-as-ioerrors
-IOERRORS = (IOError, http_client.IncompleteRead, ssl.SSLError)
+IOERRORS = (IOError, http.client.IncompleteRead, ssl.SSLError)
 
 try:
     import boto.exception
@@ -46,7 +45,7 @@ def adjust(path_or_iterable, adjustment=None, lookup=None, generate=False, **kwa
     if isinstance(path_or_iterable, AdjustmentHelper):
         helper = path_or_iterable
     else:
-        if isinstance(path_or_iterable, six.string_types):
+        if isinstance(path_or_iterable, (str, bytes)):
             iterable = [path_or_iterable]
         elif isinstance(path_or_iterable, File):
             iterable = [path_or_iterable.name]
@@ -69,10 +68,7 @@ class AdjustmentInfoDict(dict):
     "A simple dict subclass for making image data more usable in templates."
 
     def __str__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return six.text_type(self.get('url', ''))
+        return str(self.get('url', ''))
 
 
 class AdjustmentHelper(object):
@@ -114,7 +110,7 @@ class AdjustmentHelper(object):
 
     def __unicode__(self):
         try:
-            return six.text_type(self[0][1])
+            return str(self[0][1])
         except IndexError:
             return u''
 
@@ -226,7 +222,7 @@ class AdjustmentHelper(object):
         if secure:
             kwargs['security'] = self.make_security_hash(kwargs)
 
-        for k, v in six.iteritems(kwargs):
+        for k, v in kwargs.items():
             qd[self.query_map[k]] = v
 
         return qd
@@ -234,7 +230,7 @@ class AdjustmentHelper(object):
     @classmethod
     def from_querydict(cls, image_or_storage_path, querydict, secure=False, generate=False):
         kwargs = {}
-        for verbose, short in six.iteritems(cls.query_map):
+        for verbose, short in cls.query_map.items():
             if short in querydict:
                 kwargs[verbose] = querydict[short]
 
@@ -310,7 +306,7 @@ class AdjustmentHelper(object):
             if isinstance(path, File):
                 path = path.name
             # Skip empty paths (such as from an ImageFieldFile with no image.)
-            if path and isinstance(path, six.string_types):
+            if path and isinstance(path, (str, bytes)):
                 self.remaining.setdefault(path, []).append(item)
             else:
                 self.adjusted[item] = AdjustmentInfoDict()
@@ -329,7 +325,7 @@ class AdjustmentHelper(object):
                 del self.remaining[path]
 
         if self.remaining:
-            for path, items in six.iteritems(self.remaining.copy()):
+            for path, items in self.remaining.copy().items():
                 if self.generate is True:
                     try:
                         adjusted_image = self._generate(path)
@@ -377,7 +373,7 @@ class AdjustmentHelper(object):
         adjusted = AdjustedImage(**kwargs)
         f = adjusted._meta.get_field('adjusted')
 
-        args = (six.text_type(kwargs), datetime.datetime.now().isoformat())
+        args = (str(kwargs), datetime.datetime.now().isoformat())
         filename = '.'.join((make_hash(*args, step=2), format.lower()))
         storage_path = f.generate_filename(adjusted, filename)
 

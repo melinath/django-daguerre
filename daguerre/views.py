@@ -5,7 +5,6 @@ from django.core.exceptions import ValidationError
 from django.http import (HttpResponse, Http404, HttpResponseRedirect,
                          HttpResponseForbidden)
 from django.views.generic import View
-import six
 
 from daguerre.helpers import AdjustmentHelper
 from daguerre.models import Area
@@ -29,7 +28,7 @@ class AdjustedImageRedirectView(View):
                 secure=self.secure,
                 generate=generate)
         except ValueError as e:
-            raise Http404(six.text_type(e))
+            raise Http404(str(e))
 
     def get(self, request, *args, **kwargs):
         helper = self.get_helper(generate=True)
@@ -121,7 +120,7 @@ class AjaxUpdateAreaView(View):
                 return HttpResponseForbidden('')
             area = Area(storage_path=storage_path, **data)
         else:
-            for fname, value in six.iteritems(data):
+            for fname, value in data.items():
                 setattr(area, fname, value)
 
         status = 200

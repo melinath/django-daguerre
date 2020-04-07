@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from optparse import make_option
 
 from django.apps import apps
@@ -8,7 +6,6 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Model
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import pluralize
-import six
 
 from daguerre.models import AdjustedImage
 from daguerre.helpers import AdjustmentHelper, IOERRORS
@@ -69,10 +66,10 @@ class Command(BaseCommand):
             self._helpers = []
             try:
                 for (model_or_iterable, adjustments, lookup) in dp:
-                    if isinstance(model_or_iterable, six.string_types):
+                    if isinstance(model_or_iterable, (str, bytes)):
                         app_label, model_name = model_or_iterable.split('.')
                         model_or_iterable = apps.get_model(app_label, model_name)
-                    if (isinstance(model_or_iterable, six.class_types) and
+                    if (isinstance(model_or_iterable, type) and
                             issubclass(model_or_iterable, Model)):
                         iterable = model_or_iterable.objects.all()
                     elif isinstance(model_or_iterable, QuerySet):
@@ -96,9 +93,9 @@ class Command(BaseCommand):
         remaining_count = 0
         helpers = self._get_helpers()
         for helper in helpers:
-            empty_count += len([info_dict for info_dict in six.itervalues(helper.adjusted)
+            empty_count += len([info_dict for info_dict in helper.adjusted.values()
                                 if not info_dict])
-            skipped_count += len([info_dict for info_dict in six.itervalues(helper.adjusted)
+            skipped_count += len([info_dict for info_dict in helper.adjusted.values()
                                   if info_dict and 'ajax_url' not in info_dict])
             remaining_count += len(helper.adjusted) - skipped_count - empty_count
 
@@ -124,7 +121,7 @@ class Command(BaseCommand):
             failed_count = 0
             for helper in helpers:
                 remaining = {}
-                for item, info_dict in six.iteritems(helper.adjusted):
+                for item, info_dict in helper.adjusted.items():
                     # Skip if missing
                     if not info_dict:
                         continue
@@ -134,7 +131,7 @@ class Command(BaseCommand):
 
                     remaining.setdefault(helper.lookup_func(item, None), []).append(item)
 
-                for path, items in six.iteritems(remaining):
+                for path, items in remaining.items():
                     try:
                         helper._generate(path)
                     except IOERRORS:
