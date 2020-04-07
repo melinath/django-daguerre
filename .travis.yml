@@ -76,6 +76,7 @@ before_script:
   - "flake8 --ignore=E501,E731,W504 daguerre"
   - if [ $DB == 'mysql' ]; then sudo service mysql start; fi
   - if [ $DB == 'mysql' ]; then mysql -e 'CREATE DATABASE daguerre_test;'; fi
+  - if [ $DB == 'postgres' ]; then sudo service postgresql start; fi
   - if [ $DB == 'postgres' ]; then psql -c 'drop database if exists daguerre_test;'
     -U postgres; fi
   - if [ $DB == 'postgres' ]; then psql -c 'create database daguerre_test;' -U postgres;
