@@ -1,5 +1,4 @@
-dist: trusty
-sudo: required
+dist: xenial
 language: python
 cache: pip
 python:
@@ -63,10 +62,6 @@ matrix:
       env: DB=mysql DJANGO=1.7
     - python: "3.6"
       env: DB=postgres DJANGO=1.7
-    - python: "3.5"
-      env: DB=sqlite3 DJANGO=2.2
-    - python: "3.6"
-      env: DB=sqlite3 DJANGO=2.2
 install:
   - pip install . --no-deps
   - pip install --no-deps -r test_project/requirements-$DJANGO.txt
@@ -75,7 +70,9 @@ install:
   - if [ $DB == 'postgres' ]; then pip install --no-deps psycopg2-binary==2.8.4; fi
 before_script:
   - "flake8 --ignore=E501,E731,W504 daguerre"
+  - if [ $DB == 'mysql' ]; then sudo service mysql start; fi
   - if [ $DB == 'mysql' ]; then mysql -e 'CREATE DATABASE daguerre_test;'; fi
+  - if [ $DB == 'postgres' ]; then sudo service postgresql start; fi
   - if [ $DB == 'postgres' ]; then psql -c 'drop database if exists daguerre_test;'
     -U postgres; fi
   - if [ $DB == 'postgres' ]; then psql -c 'create database daguerre_test;' -U postgres;
