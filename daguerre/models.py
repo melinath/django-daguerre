@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-
 import hashlib
 import operator
 import warnings
 from datetime import datetime
+from functools import reduce
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -14,7 +13,6 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.utils.encoding import force_bytes, python_2_unicode_compatible
-from six.moves import reduce
 
 from daguerre.adjustments import registry
 

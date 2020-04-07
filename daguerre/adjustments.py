@@ -1,6 +1,3 @@
-from __future__ import division
-from six.moves import xrange
-
 from daguerre.utils import exif_aware_resize, exif_aware_size
 
 try:
@@ -179,8 +176,8 @@ class Crop(Adjustment):
             min_penalty = None
             optimal_coords = None
 
-            for x in xrange(image_width - new_width + 1):
-                for y in xrange(image_height - new_height + 1):
+            for x in range(image_width - new_width + 1):
+                for y in range(image_height - new_height + 1):
                     penalty = 0
                     for area in areas:
                         penalty += self._get_penalty(area, x, y,

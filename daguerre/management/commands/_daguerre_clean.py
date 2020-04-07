@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 
 from django.conf import settings
@@ -6,7 +5,6 @@ from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand
 from django.db import models
 from django.template.defaultfilters import pluralize
-import six
 
 from daguerre.helpers import IOERRORS
 from daguerre.models import AdjustedImage, Area, DEFAULT_ADJUSTED_IMAGE_PATH
@@ -20,10 +18,10 @@ class Command(BaseCommand):
             reason_plural=None):
         count = queryset.count()
         if count == 1:
-            name = six.text_type(queryset.model._meta.verbose_name)
+            name = str(queryset.model._meta.verbose_name)
             reason = reason
         else:
-            name = six.text_type(queryset.model._meta.verbose_name_plural)
+            name = str(queryset.model._meta.verbose_name_plural)
             reason = reason_plural or reason
         if count == 0:
             self.stdout.write(u"No {0} {1}.\n".format(name, reason))

@@ -7,7 +7,6 @@ from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.utils.encoding import smart_bytes
-import six
 try:
     from PIL import Image, ImageFile, ExifTags
 except ImportError:
@@ -33,7 +32,7 @@ ORIENTATION_TO_TRANSPOSE = {
 #: Which Exif orientation tags correspond to a 90deg or 270deg rotation.
 ROTATION_TAGS = (5, 6, 7, 8)
 #: Map human-readable Exif tag names to their markers.
-EXIF_TAGS = dict((y, x) for (x, y) in six.iteritems(ExifTags.TAGS))
+EXIF_TAGS = {y: x for x, y in ExifTags.TAGS.items()}
 
 
 def make_hash(*args, **kwargs):
@@ -41,7 +40,7 @@ def make_hash(*args, **kwargs):
     stop = kwargs.get('stop', None)
     step = kwargs.get('step', None)
     return sha1(smart_bytes(u''.join([
-        six.text_type(arg) for arg in args])
+        str(arg) for arg in args])
     )).hexdigest()[start:stop:step]
 
 
