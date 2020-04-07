@@ -6,15 +6,6 @@ python:
   - "3.6"
   - "3.7"
 env:
-  - DB=sqlite3 DJANGO=1.8
-  - DB=mysql DJANGO=1.8
-  - DB=postgres DJANGO=1.8
-  - DB=sqlite3 DJANGO=1.9
-  - DB=mysql DJANGO=1.9
-  - DB=postgres DJANGO=1.9
-  - DB=sqlite3 DJANGO=1.10
-  - DB=mysql DJANGO=1.10
-  - DB=postgres DJANGO=1.10
   - DB=sqlite3 DJANGO=1.11
   - DB=mysql DJANGO=1.11
   - DB=postgres DJANGO=1.11

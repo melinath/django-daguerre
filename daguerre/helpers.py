@@ -9,11 +9,7 @@ from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.http import QueryDict
 from django.template import Variable, VariableDoesNotExist, TemplateSyntaxError
-try:
-    from django.urls import reverse
-except ImportError:
-    # Compatibility for Django < 1.10
-    from django.core.urlresolvers import reverse
+from django.urls import reverse
 try:
     from PIL import Image
 except ImportError:
