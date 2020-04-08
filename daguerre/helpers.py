@@ -10,10 +10,7 @@ from django.core.files.storage import default_storage
 from django.http import QueryDict
 from django.template import Variable, VariableDoesNotExist, TemplateSyntaxError
 from django.urls import reverse
-try:
-    from PIL import Image
-except ImportError:
-    import Image
+from PIL import Image
 try:
     import jingo
 except ImportError:
