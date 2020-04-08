@@ -12,7 +12,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
-from django.utils.encoding import force_bytes, python_2_unicode_compatible
+from django.utils.encoding import force_bytes
 
 from daguerre.adjustments import registry
 
@@ -22,7 +22,6 @@ from daguerre.adjustments import registry
 DEFAULT_ADJUSTED_IMAGE_PATH = 'dg'
 
 
-@python_2_unicode_compatible
 class Area(models.Model):
     """
     Represents an area of an image. Can be used to specify a crop. Also used
@@ -151,7 +150,6 @@ def upload_to(instance, filename):
         image_path, hash_for_dir[0:2], hash_for_dir[2:4], filename)
 
 
-@python_2_unicode_compatible
 class AdjustedImage(models.Model):
     """Represents a managed image adjustment."""
     storage_path = models.CharField(max_length=200)
