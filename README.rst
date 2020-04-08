@@ -67,7 +67,4 @@ Run the migration command to create the database models::
 Testing
 -------
 
-We recommend running `tox`_ from the repository's root directory,
-but you can also run ``test_project/manage.py test daguerre``.
-
-.. _tox: http://tox.readthedocs.org/en/latest/
+You can run the tests with ``test_project/manage.py test daguerre``.
