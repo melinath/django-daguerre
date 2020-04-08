@@ -2,11 +2,8 @@ import os
 
 from django.contrib.auth.models import User, Permission
 from django.test import TestCase
-try:
-    from PIL import ImageChops, Image
-except ImportError:
-    import Image
-    import ImageChops
+from PIL import Image
+from PIL import ImageChops
 
 import daguerre
 from daguerre.models import Area

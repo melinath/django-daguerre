@@ -1,9 +1,6 @@
 from django.test import TestCase
 from django.core.files.storage import default_storage
-try:
-    from PIL import Image
-except ImportError:
-    import Image
+from PIL import Image
 
 from daguerre.tests.base import BaseTestCase
 from daguerre.utils import (

@@ -1,9 +1,6 @@
-from daguerre.utils import exif_aware_resize, exif_aware_size
+from PIL import Image
 
-try:
-    from PIL import Image
-except ImportError:
-    import Image
+from daguerre.utils import exif_aware_resize, exif_aware_size
 
 
 class AdjustmentRegistry(object):

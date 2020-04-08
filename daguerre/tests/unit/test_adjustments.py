@@ -1,11 +1,8 @@
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from PIL import Image
 import mock
 import struct
-try:
-    from PIL import Image
-except ImportError:
-    import Image
 
 from daguerre.adjustments import Fit, Crop, Fill
 from daguerre.helpers import AdjustmentHelper

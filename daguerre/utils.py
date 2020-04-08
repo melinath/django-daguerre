@@ -7,12 +7,9 @@ from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.utils.encoding import smart_bytes
-try:
-    from PIL import Image, ImageFile, ExifTags
-except ImportError:
-    import Image
-    import ImageFile
-    import ExifTags
+from PIL import ExifTags
+from PIL import Image
+from PIL import ImageFile
 
 #: Formats that we trust to be able to handle gracefully.
 KEEP_FORMATS = ('PNG', 'JPEG', 'GIF')
