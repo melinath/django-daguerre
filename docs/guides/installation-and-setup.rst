@@ -45,7 +45,7 @@ Versions and Requirements
 
 * Python 3.5+
 * Pillow
-* Django 1.11 – 2.2
+* Django 1.11 – 3.0
 
 Daguerre *may* work with earlier versions of these packages, but they
 are not officially supported.
