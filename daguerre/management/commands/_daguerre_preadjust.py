@@ -1,5 +1,3 @@
-from optparse import make_option
-
 from django.apps import apps
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -46,17 +44,9 @@ NOCREATE_OPTION_KWARGS = {
 
 
 class Command(BaseCommand):
-    if hasattr(BaseCommand, 'option_list'):
-        # Django < 1.10
-        option_list = BaseCommand.option_list + (
-            make_option('--remove', **REMOVE_OPTION_KWARGS),
-            make_option('--nocreate', **NOCREATE_OPTION_KWARGS),
-        )
-    else:
-        # Django >= 1.10
-        def add_arguments(self, parser):
-            parser.add_argument('--remove', **REMOVE_OPTION_KWARGS)
-            parser.add_argument('--nocreate', **NOCREATE_OPTION_KWARGS)
+    def add_arguments(self, parser):
+        parser.add_argument('--remove', **REMOVE_OPTION_KWARGS)
+        parser.add_argument('--nocreate', **NOCREATE_OPTION_KWARGS)
 
     def _get_helpers(self):
         if not hasattr(settings, 'DAGUERRE_PREADJUSTMENTS'):
