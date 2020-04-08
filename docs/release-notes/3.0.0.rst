@@ -1,0 +1,8 @@
+3.0.0 (2020-04-08)
+------------------
+
+* Added official support for Django 3.0
+* Added official support for Python 3.8
+* Dropped support for Django < 1.11
+* Dropped support for Python 2
+* Dropped support for PIL
