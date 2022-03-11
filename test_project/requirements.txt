@@ -1,5 +1,5 @@
 # main dependencies
-Pillow==6.2.2
+Pillow==9.0.1
 mock==3.0.5
 pbr==5.4.4
 
